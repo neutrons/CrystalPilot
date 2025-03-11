@@ -37,7 +37,8 @@ class MainViewModel:
         # and/or process errors.
         self.model_bind = binding.new_bind(self.model, callback_after_update=self.change_callback)
 
-        self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)
+        #self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)
+        self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.update_experimentinfo_options)
         self.angleplan_bind = binding.new_bind(self.model.angleplan, callback_after_update=self.change_callback)
         self.eiccontrol_bind = binding.new_bind(self.model.eiccontrol, callback_after_update=self.change_callback)
         #self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis, callback_after_update=self.change_callback)
@@ -72,6 +73,17 @@ class MainViewModel:
 
 
 
+    #def update_experimentinfo_options(self, _: Any = None) -> None:
+    def  update_experimentinfo_options(self, results: Dict[str, Any]) -> None:
+        self.model.experimentinfo.update_option_lists()
+        self.experimentinfo_bind.update_in_view(self.model.experimentinfo)
+        print("update_experimentinfo_options")
+        print(self.model.experimentinfo.options)
+        if results["error"]:
+            print(f"error in fields {results['errored']}, model not changed")
+        else:
+            print(f"model fields updated: {results['updated']}")
+        #time.sleep(7)
 
     def change_callback(self, results: Dict[str, Any]) -> None:
         if results["error"]:
