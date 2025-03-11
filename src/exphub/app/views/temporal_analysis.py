@@ -12,6 +12,8 @@ from trame.widgets import html
 from trame.widgets import plotly
 import hashlib
 
+import numpy as np
+
 def temporal_data_analysis():
     # Dummy data generation for the plot
     x_data = list(range(10))
@@ -49,13 +51,63 @@ class TemporalAnalysisView:
             InputField(
                 v_model="model_temporalanalysis.time_interval",
             )
+        fig_i=go.Figure()
+        fig_i.update_layout(
+            title={
+            'text': 'Prediction of Data',
+            'x': 0.5,
+            'xanchor': 'center'
+            },
+            xaxis_title='Time Steps (s)',
+            yaxis_title=' ',
+            xaxis=dict(range=[0, 2000]),
+            yaxis=dict(range=[0, 100]),
+            paper_bgcolor='rgba(10,10,10,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+        )
+
+        fig_u=go.Figure()
+        fig_u.update_layout(
+            title={
+            'text': 'Prediction of Uncertainty',
+            'x': 0.5,
+            'xanchor': 'center'
+            },
+            xaxis_title='Time Steps (s)',
+            paper_bgcolor='rgba(10,10,10,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            yaxis_title='',
+            xaxis=dict(range=[0, 2000]),
+            yaxis=dict(range=[0, 100])
+            
+        )
+        fig_u.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+        fig_u.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+
+        fig_i.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+        fig_i.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+
+ 
+
+        #with HBoxLayout(halign="left",  height="50vh"):
+        #    self.figure_intensity
+        #with HBoxLayout(halign="right", height="50vh"):
+        #    self.figure_uncertainty
+        #with GridLayout(columns=2, classes="mb-2"):
+        #    self.figure_intensity 
+        #    self.figure_uncertainty 
+ 
         with GridLayout(columns=2, classes="mb-2"):
-            with HBoxLayout(halign="center", height="50vh"):
-                vuetify.VCardTitle("Prediction of Intensity"),
+            with HBoxLayout(halign="left", height="40vh"):
+                #vuetify.VCardTitle("Prediction of Intensity"),
+        #        self.figure_intensity 
                 self.figure_intensity = plotly.Figure()
-            with HBoxLayout(halign="center", height="50vh"):
-                vuetify.VCardTitle("Prediction of Uncertainty"),
+                self.figure_intensity.update(fig_i)
+            with HBoxLayout(halign="left", height="40vh"):
+                #vuetify.VCardTitle("Prediction of Uncertainty"),
+                #self.figure_uncertainty 
                 self.figure_uncertainty = plotly.Figure()
+                self.figure_uncertainty.update(fig_u)
             
         vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_temporalanalysis_figure)
 

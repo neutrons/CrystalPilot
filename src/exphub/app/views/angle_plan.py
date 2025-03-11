@@ -17,17 +17,19 @@ class AnglePlanView:
     def create_ui(self) -> None:
         #with vuetify.VRow():
         with GridLayout(columns=2):
-            RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
-            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token)
-        with GridLayout(columns=4):
             InputField(v_model="model_angleplan.plan_name")#, type="button", label="Upload")
             InputField(v_model="model_angleplan.plan_type", type="select", items="model_angleplan.plan_type_list")
+        with GridLayout(columns=2):
+            RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
+            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token, style="align-self: center;")
+        with GridLayout(columns=2):
             RemoteFileInput(
                     v_model="model_angleplan.plan_file",
-                    base_paths=["/HFIR", "/SNS", "/home/zx5/1-todo/6-hardware/"],
+                    base_paths=["/HFIR", "/SNS",],
+                    #base_paths=["/HFIR", "/SNS", "/home/zx5/1-todo/6-hardware/"],
                     extensions=[".csv"],
                 )
-            vuetify.VBtn("Upload CSV", click=self.view_model.update_view)
+            vuetify.VBtn("Upload Strategy", click=self.view_model.update_view, style="align-self: center;")
 
         '''
         with vuetify.VRow():
@@ -41,7 +43,7 @@ class AnglePlanView:
         #   )
 
         #with vuetify.VRow():
-        vuetify.VCardTitle("Angle Plan Table")
+        vuetify.VCardTitle("CrystalPlan Table")
         with GridLayout(columns=7):
             vuetify.VListItem(v_for="header in model_angleplan.headers", v_text="header")
         #    vuetify.VRow(
@@ -101,8 +103,8 @@ class AnglePlanView:
  
         with GridLayout(columns=3):
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
-            vuetify.VBtn("Update Angles", click=self.view_model.update_view)
-            vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan)
+            vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
+            vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan, style="align-self: center;")
 
 
 
@@ -124,6 +126,12 @@ class AnglePlanView:
                     #text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",
                     color="success",
                 )
+        with GridLayout(columns=4):
+            
+            InputField(v_model="model_eiccontrol.eic_auto_stop_strategy", type="select", items="model_eiccontrol.eic_auto_stop_strategy_options")
+            InputField(v_model="model_eiccontrol.eic_auto_stop_uncertainty_threshold")
+            InputField(v_model="model_eiccontrol.eic_submission_scan_id", label="Scan ID")
+            vuetify.VBtn("Manual Stop Run", click=self.view_model.stoprun, style="align-self: center;")
 
         '''
         vuetify.VDataTable(

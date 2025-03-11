@@ -69,19 +69,30 @@ class CSSStatusView:
             #image = Image.open(image_path)
             initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
             image=Image.open(io.BytesIO(initial_screenshot))
+            width, height = image.size
+            cropscreen = image.crop((0, int(height *0), int(width*0.7), int(height *1.000)))
+            screenshot = io.BytesIO()
+            cropscreen.save(screenshot, format="PNG")
+            screenshot = screenshot.getvalue()
+            image = Image.open(io.BytesIO(screenshot))
 
             # Convert the image to a Plotly figure
             fig = go.Figure()
+            fig.update_layout(
+               plot_bgcolor='white',  # Background color of the plot area
+                paper_bgcolor='white'  # Background color of the entire figure
+            )   
+
 
             fig.add_layout_image(
                 dict(
                     source=image,
                     xref="paper", yref="paper",
-                    x=0, y=1,
+                    x=0.5, y=0.5,
                     sizex=1, sizey=1,
-                    xanchor="left", yanchor="top",
+                    xanchor="center", yanchor="middle",
                     layer="below",
-                    sizing="stretch",
+                    #sizing="stretch",
                     opacity=1,
                 )
             )

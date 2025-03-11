@@ -29,9 +29,13 @@ class AnglePlanModel(BaseModel):
 
     test: str = Field(default="test", title="Test", description="Test field")
     test_list: List[str] = Field(default=["test1", "test2"])
-    plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Plan File", description="File path to the plan file")
-    plan_name: str = Field(default="test", title="Plan Name", description="Name of the plan")
-    plan_type: str = Field(default="Crystal Plan", title="Plan Type", description="Type of the plan")
+    plan_file: str = Field(default="/SNS/TOPAZ/IPTS-34069/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
+    #plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
+    #plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")
+    #plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")
+    
+    plan_name: str = Field(default="test", title="Strategy Name", description="Name of the plan")
+    plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     data: List[Dict]= Field(default = [
         {"name": "John", "age": 25, "city": "New York"},
         {"name": "Jane", "age": 30, "city": "London"},
@@ -62,6 +66,7 @@ class AnglePlanModel(BaseModel):
             self.angle_list = list(reader)
         self.convert_plan_format(self.plan_type,self.angle_list)
         
+        
         #print(self.angle_list)
 
     def convert_plan_format(self,source_type:str,angle_list:List[Dict]) -> None:
@@ -74,7 +79,7 @@ class AnglePlanModel(BaseModel):
                 new_angle["Comment"] = ""
                 new_angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
                 new_angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
-                new_angle["Wait For"] = angle["Wait For/n"]
+                new_angle["Wait For"] = angle["Wait For"]
                 if "PCharge" in new_angle["Wait For"]:
                     new_angle["Wait For"] = "PCharge"
                 new_angle["Value"] = angle["Value"]

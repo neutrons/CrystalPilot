@@ -135,7 +135,8 @@ class ExperimentInfoModel(BaseModel):
     minIntensity: float = Field(default=10, title="Minimum integrated intensity")
     minIsigI: float = Field(default=2.0, title="Minimum I/sigI")
     borderPixels: int = Field(default=18, title="Width of border in which peaks are rejected")
-    minDSpacing: float = Field(default=0.5, title="Minimum d-Spacing")
+    minDSpacing: float = Field(default=0.5, title="Minimum D-Spacing")
+    maxDSpacing: float = Field(default=30.0, title="Maximum D-Spacing")
     minWavelength: float = Field(default=0.4, title="Minimum wavelength")
     maxWavelength: float = Field(default=3.5, title="Maximum wavelength")
 
@@ -903,6 +904,7 @@ class ExperimentInfoModel(BaseModel):
         self.minIsigI = self.to_float(params_dictionary["minIsigI"])
         self.borderPixels = self.to_int(params_dictionary["numBorderCh"])
         self.minDSpacing = self.to_float(params_dictionary["dMin"])
+        self.maxDSpacing = self.to_float(params_dictionary["dMax"])
         self.minWavelength = self.to_float(params_dictionary["wlMin"])
         self.maxWavelength = self.to_float(params_dictionary["wlMax"])
         self.z_score = self.to_float(params_dictionary["z_score"])

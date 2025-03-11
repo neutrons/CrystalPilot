@@ -86,7 +86,7 @@ class MainViewModel:
         self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
 ######################################################################################################################################################
-        self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)
+        #self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)
 ######################################################################################################################################################
         #print(self.model.angleplan.test_list)
 
@@ -151,13 +151,26 @@ class MainViewModel:
                 print("============================================================================================")
                 self.update_temporalanalysis_figure()
                 print("=====================update temporal done=======================================================================")
+                if self.model.eiccontrol.eic_auto_stop_strategy=="By Uncertainty" and len(self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty)>0:
+                  if self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty[-1]<self.model.eiccontrol.eic_auto_stop_uncertainty_threshold:
+                    print("stop_run")
+                    self.stoprun()
+                    self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty=[]
+                    self.model.temporalanalysis.mtd_workflow.timeseries_data_plt=[]
+
+                    continue
             except Exception as e:
                 print(e)
-            self.update_temporalanalysis_figure()
-            await asyncio.sleep(10)
+            #self.update_temporalanalysis_figure()
+            await asyncio.sleep(40)
         
 
 
     def update_newtabtemplate_figure(self, _: Any = None) -> None:
         self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)
         self.newtabtemplate_updatefig_bind.update_in_view(self.model.newtabtemplate.get_figure())
+
+    def stoprun(self) -> None:
+        self.model.eiccontrol.stop_run()
+        self.update_view()
+        pass

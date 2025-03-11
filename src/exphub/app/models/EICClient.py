@@ -903,7 +903,7 @@ class EICClient(object):
             cert_file = self._find_pem_file(cert_directory)
             #os.environ['SSL_CERT_FILE'] = "cert.pem"
             os.environ['SSL_CERT_FILE'] = "/etc/pki/tls/cert.pem"
-            #os.environ['SSL_CERT_FILE'] = "/home/zx5/.miniforge/envs/exphub/ssl/cacert.pem"
+            os.environ['SSL_CERT_FILE'] = "/home/zx5/.miniforge/envs/exphub/ssl/cacert.pem"
             # print(f'\n\nIn _set_sll_crt_file(). cert_file = {cert_file} cert_directory = {cert_directory}\n\n')
         except:
             e = sys.exc_info()

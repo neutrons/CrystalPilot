@@ -45,6 +45,16 @@ class ExperimentInfoView:
                 items="config.options.centering_list",
                 type="select",
             )
+            InputField(
+                v_model="config.UBFileName",
+            )
+        with GridLayout(columns=2):
+            InputField(
+                v_model="config.minDSpacing",
+            )
+            InputField(
+                v_model="config.maxDSpacing",
+            )
     def save_settings(self):
         # Placeholder function to handle saving settings
         print("Settings saved")

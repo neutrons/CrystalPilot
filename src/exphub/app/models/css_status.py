@@ -34,7 +34,7 @@ def save_webpage_as_image(url, output_file="webpage.png"):
     browser.get(url)
     
     # Take screenshot and save it
-    time.sleep(0.4)
+    time.sleep(1.4)
     screenshot = browser.get_screenshot_as_png()
     #with open(output_file, "wb") as file:
     #    file.write(screenshot)
@@ -104,17 +104,25 @@ class CSSStatusModel(BaseModel):
 
 
         fig = go.Figure()
+        fig.update_layout(
+           plot_bgcolor='white',  # Background color of the plot area
+            paper_bgcolor='white'  # Background color of the entire figure
+        )   
         fig.add_layout_image(
             dict(
                 source=image,
                 xref="paper", yref="paper",
-                x=0, y=1,
+                x=0.5, y=0.5,
                 sizex=1, sizey=1,
-                xanchor="left", yanchor="top"
+                xanchor="center", yanchor="middle",
+                opacity=1,
+         #       plot_bgcolor='white',  # Background color of the plot area
+          #      paper_bgcolor='white'  # Background color of the entire figure
+                
             )
         )
         fig.update_layout(
-            title="CSS Status: "+str(time.time()),
+            #title="CSS Status: "+str(time.time()),
             xaxis={"visible": False},
             yaxis={"visible": False},
         )

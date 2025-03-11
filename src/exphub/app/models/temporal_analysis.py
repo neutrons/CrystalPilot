@@ -21,19 +21,21 @@ from sklearn.linear_model import LinearRegression
 #from SCDTools import recenter_peaks_workspace
 
 class MantidWorkflow():
-    def __init__(self,temporal_time_interval)->None:
+    def __init__(self)->None:
+    #def __init__(self,temporal_time_interval)->None:
     #def set_up_mantid_info(self)->None:
         print("initializing mtd workflow")
         self.ipts=34069
         self.ipts=35078
         self.ipts=35036
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
+        self.ub_failsafe="/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
         self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
         self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
 
         # Sample information
         self.min_d = 7   # shortest lattice parameter
-        self.max_d = 22  # longest lattice parameter
+        self.max_d = 40  # longest lattice parameter
 
         self.cell_type  = 'Monoclinic'
         self.centering  = 'P'
@@ -122,7 +124,8 @@ class MantidWorkflow():
 
         self.maxpeak_intI=0
 
-        self.time_interval=temporal_time_interval
+        self.time_interval=30
+        #self.time_interval=temporal_time_interval
         self.total_time_of_run=0
         self.total_numberof_time_intervals=1
         self.time_of_poissonprocess=0
@@ -571,182 +574,221 @@ class MantidWorkflow():
             self.time_of_poissonprocess=self.time_interval*self.total_numberof_time_intervals
             time_of_poissonprocess_stop=time_of_poissonprocess_start+self.time_of_poissonprocess
             self.timeseries = list(np.linspace(start=time_of_poissonprocess_start, stop= time_of_poissonprocess_stop,num=self.total_numberof_time_intervals+1,endpoint=True))
-#            self.timeseries_data = 
-
-
-            print("self.time_interval",self.time_interval)
-            print("self.measure_time",self.measure_time)
-            print("self.total_time_of_run",self.total_time_of_run)
-            print("self.total_numberof_time_intervals",self.total_numberof_time_intervals)
-            print("self.timeseries",self.timeseries)    
-
-            q_frame = 'lab' 
-            Q_box = 'Q_' + q_frame            
-
-            Q_box = 'HKL'            
-            ## get hkl limits
-            #cell = peaks_ws.mutableSample().getOrientedLattice()
-
-            #max_h = math.ceil(cell.a()*(float(Qmax)/2.0/math.pi))
-            #max_k = math.ceil(cell.b()*(float(Qmax)/2.0/math.pi))
-            #max_l = math.ceil(cell.c()*(float(Qmax)/2.0/math.pi))
-            #max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
-            #min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
-
-            bin_size = [32, 32, 32]
-            bin_size = [3, 3, 3]
-            box_size_inhkl=[0.05,0.05,0.05]
-            h_box_len,k_box_len,l_box_len = box_size_inhkl
-            
-            h_bin_num = bin_size[0]
-            k_bin_num = bin_size[1]
-            l_bin_num = bin_size[2]
         
-            peak = live_predict_peaks_ws.getPeak(int(self.maxpeak_idx))
-            
-            #peak = live_predict_peaks_ws.getPeak(int(0))
-            h,k,l=peak.getHKL()
-            h,k,l=self.hkl
-
-            print("self.maxpeak_idx",self.maxpeak_idx)
-            print('peak,hkl',h,k,l,peak.getIntensity())
-            print('peakint',self.maxpeak_intI)
-            max_h = 20           
-            max_k = 20
-            max_l = 20
-            max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
-            min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
-            self.timeseries_data   = []#np.array([])
-            mtdapi.LoadIsawUB(Inputworkspace='live_event_ws',  
-                    Filename= self.output_path + self.live_peaks_ub_fname)
-            if len(self.timeseries_plt)==0:
-                timeseries_loop=self.timeseries.copy()
-            else:
-                timeseries_loop=[self.timeseries_plt[-1]]+self.timeseries
-
-            for i in range(len(timeseries_loop)-1):
-                st=mtdapi.mtd['live_event_ws'].getRun().startTime()
-                print("start time:",st)
-                
-                start_time = timeseries_loop[i+0]*1.0
-                stop_time = timeseries_loop[i+1]*1.0
-
-                if self.current_run!=mtdapi.mtd['live_event_ws'].getRunNumber():
-                    print("run finished")
-                    break
-                print("filter 10.0",start_time,stop_time)
-                #TODO: if starttime is >10, all steps other than first are 0, including same time range second part
-                mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
-                                StartTime=0, StopTime=stop_time)
-                start_time = st+int(timeseries_loop[i])*1000000000
-                stop_time = st+int(timeseries_loop[i+1])*1000000000
-                
-                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
-                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                                Q3DFrames=Q_box, QConversionScales='HKL', 
-                                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
-                                MinValues=min_HKL, MaxValues=max_HKL
-                    ,OutputWorkspace='timestep_event_ws_md')
-                #mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
-                #    AlignedDim1='Q_sample_y,-0.5,0.5,1', AlignedDim2='Q_sample_z,-0.5,0.5,1',
-                #    OutputWorkspace='timestep_HKL_ws')
-
-
-                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
-                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
-                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
-                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
-                                            OutputWorkspace='timestep_HKL_ws')
-                    #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
-                print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
-                print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
-                print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
-                                            
-                print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
-                data = mtdapi.mtd['timestep_HKL_ws']
-                signal_array = data.getSignalArray().copy()
-                #self.timeseries_data = np.append(self.timeseries_data,signal_array)
-                self.timeseries_data.append(signal_array)
-                print(signal_array)
-                print(signal_array.shape)
-                print("==========================")
-                '''
-                print("filter 10.0",start_time,stop_time)
-                mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
-                                AbsoluteStartTime=str(start_time), AbsoluteStopTime=str(stop_time))
-                #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
-                #                StartTime=start_time, StopTime=stop_time)
-                #print("filter 10.1")
-                
-                #start_record_time=self.current_run_start_time+self.time_interval
-
-                #mtdapi.StartLiveData(
-                #        Instrument='TOPAZ',
-                #        Listener='SNSLiveEventDataListener',
-                #        FromTime=True,
-                #        StartTime=start_time,
-                #        LastTimeStamp=stop_time,
-                #        UpdateEvery=0,
-                #        AccumulationMethod='Add',
-                #        PreserveEvents=True,
-                #        OutputWorkspace='timestep_event_ws')
-
-                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
-                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                                Q3DFrames=Q_box, QConversionScales='HKL', 
-                                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
-                                MinValues=min_HKL, MaxValues=max_HKL
-                    ,OutputWorkspace='timestep_event_ws_md')
-                #mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
-                #    AlignedDim1='Q_sample_y,-0.5,0.5,1', AlignedDim2='Q_sample_z,-0.5,0.5,1',
-                #    OutputWorkspace='timestep_HKL_ws')
-
-
-                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
-                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
-                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
-                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
-                                            OutputWorkspace='timestep_HKL_ws')
-                    #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
-                print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
-                print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
-                print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
-                                            
-                print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
-                data = mtdapi.mtd['timestep_HKL_ws']
-                signal_array = data.getSignalArray().copy()
-                #self.timeseries_data = np.append(self.timeseries_data,signal_array)
-                self.timeseries_data.append(signal_array)
-                print(signal_array)
-                print(signal_array.shape)
-                '''
-            print("====================================")
-            print("self.timeseries_data") 
-            print(len(self.timeseries_data))
-            print(len(self.timeseries))
-#            print(self.timeseries_data)
-            print(len(self.timeseries_data_plt))
-
-            print(len(self.timeseries_plt))
-
+        #######sim##########
+        def get_time_series_data_sim():
+            self.total_time_of_run=self.total_time_of_run+200
+            self.total_numberof_time_intervals=int(self.total_time_of_run/self.time_interval)-len(self.timeseries_plt)
+            time_of_poissonprocess_start=self.time_interval*len(self.timeseries_plt)
+            self.time_of_poissonprocess=self.time_interval*self.total_numberof_time_intervals
+            time_of_poissonprocess_stop=time_of_poissonprocess_start+self.time_of_poissonprocess
+            self.timeseries = list(np.linspace(start=time_of_poissonprocess_start, stop= time_of_poissonprocess_stop,num=self.total_numberof_time_intervals+1,endpoint=True))
+            self.timeseries_data = list(np.random.random(len(self.timeseries))+27)
             self.timeseries_plt=self.timeseries_plt+self.timeseries
             self.timeseries_data_plt=self.timeseries_data_plt+self.timeseries_data
+            self.temporal_poisson_uncertainty=np.array(self.timeseries_data_plt)**-0.5*np.array(self.timeseries_plt)**-0.5*10000
+            self.timeseries_data_plt[0]=0
+            if len(self.timeseries_data_plt)>0:
+                self.timeseries_data_plt[1]+=2
+                if len(self.timeseries_data_plt)>2:
+                    self.timeseries_data_plt[2]+=.2
+                    if len(self.timeseries_data_plt)>3:
+                        self.timeseries_data_plt[2]+=.2
 
-            #print(len(self.timeseries_data))
 
-            print(len(self.timeseries_plt))
+        #######sim##########
 
-            print(len(self.timeseries_data_plt))
-
-
-
-            print(self.timeseries_plt)
-
-            print(self.timeseries_data_plt)
-            self.temporal_poisson_intensity=[0,self.timeseries_data_plt[0]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
-            self.temporal_poisson_intensity=[0]+[np.mean(np.array(self.temporal_poisson_intensity[:i])) for i in range(1,len(self.temporal_poisson_intensity))]
-            self.temporal_poisson_uncertainty=[0]+[np.var(np.array(self.temporal_poisson_intensity[:i])) for i in range(1,len(self.temporal_poisson_intensity))]
-            self.temporal_poisson_uncertainty=np.array(self.temporal_poisson_uncertainty)**-0.5**np.array(self.timeseries)**-0.5*100
+#            print("self.time_interval",self.time_interval)
+#            print("self.measure_time",self.measure_time)
+#            print("self.total_time_of_run",self.total_time_of_run)
+#            print("self.total_numberof_time_intervals",self.total_numberof_time_intervals)
+#            print("self.timeseries",self.timeseries)    
+#
+#            q_frame = 'lab' 
+#            Q_box = 'Q_' + q_frame            
+#
+#            Q_box = 'HKL'            
+#            ## get hkl limits
+#            #cell = peaks_ws.mutableSample().getOrientedLattice()
+#
+#            #max_h = math.ceil(cell.a()*(float(Qmax)/2.0/math.pi))
+#            #max_k = math.ceil(cell.b()*(float(Qmax)/2.0/math.pi))
+#            #max_l = math.ceil(cell.c()*(float(Qmax)/2.0/math.pi))
+#            #max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
+#            #min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
+#
+#            bin_size = [32, 32, 32]
+#            bin_size = [3, 3, 3]
+#            box_size_inhkl=[0.05,0.05,0.05]
+#            h_box_len,k_box_len,l_box_len = box_size_inhkl
+#            
+#            h_bin_num = bin_size[0]
+#            k_bin_num = bin_size[1]
+#            l_bin_num = bin_size[2]
+#        
+#            peak = live_predict_peaks_ws.getPeak(int(self.maxpeak_idx))
+#            
+#            #peak = live_predict_peaks_ws.getPeak(int(0))
+#            h,k,l=peak.getHKL()
+#            h,k,l=self.hkl
+#
+#            print("self.maxpeak_idx",self.maxpeak_idx)
+#            print('peak,hkl',h,k,l,peak.getIntensity())
+#            print('peakint',self.maxpeak_intI)
+#            max_h = 20           
+#            max_k = 20
+#            max_l = 20
+#            max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
+#            min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
+#            self.timeseries_data   = []#np.array([])
+#            mtdapi.LoadIsawUB(Inputworkspace='live_event_ws',  
+#                    Filename= self.output_path + self.live_peaks_ub_fname)
+#            if len(self.timeseries_plt)==0:
+#                timeseries_loop=self.timeseries.copy()
+#            else:
+#                timeseries_loop=[self.timeseries_plt[-1]]+self.timeseries
+#
+#            for i in range(len(timeseries_loop)-1):
+#                st=mtdapi.mtd['live_event_ws'].getRun().startTime()
+#                print("start time:",st)
+#                
+#                start_time = timeseries_loop[i+0]*1.0
+#                stop_time = timeseries_loop[i+1]*1.0
+#
+#                if self.current_run!=mtdapi.mtd['live_event_ws'].getRunNumber():
+#                    print("run finished")
+#                    break
+#                print("filter 10.0",start_time,stop_time)
+#                #TODO: if starttime is >10, all steps other than first are 0, including same time range second part
+#                mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+#                                StartTime=0, StopTime=stop_time)
+#                                #StartTime=start_time, StopTime=stop_time)
+#                start_time = st+int(timeseries_loop[i])*1000000000
+#                stop_time = st+int(timeseries_loop[i+1])*1000000000
+#                
+#                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
+#                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
+#                                Q3DFrames=Q_box, QConversionScales='HKL', 
+#                                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
+#                                MinValues=min_HKL, MaxValues=max_HKL
+#                    ,OutputWorkspace='timestep_event_ws_md')
+#                #mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
+#                #    AlignedDim1='Q_sample_y,-0.5,0.5,1', AlignedDim2='Q_sample_z,-0.5,0.5,1',
+#                #    OutputWorkspace='timestep_HKL_ws')
+#
+#
+#                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
+#                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
+#                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
+#                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
+#                                            OutputWorkspace='timestep_HKL_ws')
+#                    #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
+#                print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
+#                print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
+#                print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
+#                                            
+#                print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
+#                data = mtdapi.mtd['timestep_HKL_ws']
+#                signal_array = data.getSignalArray().copy()
+#                #self.timeseries_data = np.append(self.timeseries_data,signal_array)
+#                self.timeseries_data.append(signal_array)
+#                print(signal_array)
+#                print(signal_array.shape)
+#                print("==========================")
+#                '''
+#                print("filter 10.0",start_time,stop_time)
+#                mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+#                                AbsoluteStartTime=str(start_time), AbsoluteStopTime=str(stop_time))
+#                #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+#                #                StartTime=start_time, StopTime=stop_time)
+#                #print("filter 10.1")
+#                
+#                #start_record_time=self.current_run_start_time+self.time_interval
+#
+#                #mtdapi.StartLiveData(
+#                #        Instrument='TOPAZ',
+#                #        Listener='SNSLiveEventDataListener',
+#                #        FromTime=True,
+#                #        StartTime=start_time,
+#                #        LastTimeStamp=stop_time,
+#                #        UpdateEvery=0,
+#                #        AccumulationMethod='Add',
+#                #        PreserveEvents=True,
+#                #        OutputWorkspace='timestep_event_ws')
+#
+#                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
+#                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
+#                                Q3DFrames=Q_box, QConversionScales='HKL', 
+#                                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
+#                                MinValues=min_HKL, MaxValues=max_HKL
+#                    ,OutputWorkspace='timestep_event_ws_md')
+#                #mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
+#                #    AlignedDim1='Q_sample_y,-0.5,0.5,1', AlignedDim2='Q_sample_z,-0.5,0.5,1',
+#                #    OutputWorkspace='timestep_HKL_ws')
+#
+#
+#                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
+#                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
+#                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
+#                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
+#                                            OutputWorkspace='timestep_HKL_ws')
+#                    #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
+#                print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
+#                print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
+#                print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
+#                                            
+#                print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
+#                data = mtdapi.mtd['timestep_HKL_ws']
+#                signal_array = data.getSignalArray().copy()
+#                #self.timeseries_data = np.append(self.timeseries_data,signal_array)
+#                self.timeseries_data.append(signal_array)
+#                print(signal_array)
+#                print(signal_array.shape)
+#                '''
+#            print("====================================")
+#            print("self.timeseries_data") 
+#            print(len(self.timeseries_data))
+#            print(len(self.timeseries))
+##            print(self.timeseries_data)
+#            print(len(self.timeseries_data_plt))
+#
+#            print(len(self.timeseries_plt))
+#
+#            self.timeseries_plt=self.timeseries_plt+self.timeseries
+#            self.timeseries_data_plt=self.timeseries_data_plt+self.timeseries_data
+#
+#            #print(len(self.timeseries_data))
+#
+#            print(len(self.timeseries_plt))
+#
+#            print(len(self.timeseries_data_plt))
+#
+#
+#
+#            print(self.timeseries_plt)
+#
+#            print('self.timeseries_data_plt')
+#            print(self.timeseries_data_plt)
+#            #print(self.timeseries_data_plt)
+#            self.timeseries_data_plt=self.timeseries_data_plt[2:]
+#            self.timeseries_plt=self.timeseries_plt[2:]
+#
+#            self.temporal_poisson_intensity=[self.timeseries_data_plt[0][1,1,1]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1][1,1,1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
+#            #self.temporal_poisson_intensity=[0,self.timeseries_data_plt[0][1,1,1]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1][1,1,1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
+#            print('self.temporal_poisson_intensity')
+#            print(self.temporal_poisson_intensity)
+#            self.temporal_poisson_intensity=[0]+[np.mean(np.array(self.temporal_poisson_intensity[:i+1])) for i in range(0,len(self.temporal_poisson_intensity))]
+#            print(self.temporal_poisson_intensity)
+#            self.temporal_poisson_intensity=[0]+[ self.timeseries_data_plt[i][1,1,1]/(i+1)/self.time_interval for i in range(0,len(self.timeseries_data_plt))]
+#            print(self.temporal_poisson_intensity)
+#            self.temporal_poisson_uncertainty=[0]+[np.var(np.array(self.temporal_poisson_intensity[:i+1])) for i in range(0,len(self.temporal_poisson_intensity))]
+#            self.temporal_poisson_uncertainty=np.array(self.temporal_poisson_uncertainty)**0.5**np.array(self.timeseries)**-0.5*100
+#
+#            self.temporal_poisson_intensity=[0]+[ 
+#                self.timeseries_data_plt[i][1,1,1]*.1e-4/self.timeseries[i+1](-1)**i+27 
+#                for i in range(0,len(self.timeseries_data_plt))]
+#            print(self.temporal_poisson_intensity)
+#            self.temporal_poisson_uncertainty=np.array(self.temporal_poisson_intensity)**0.5**np.array(self.timeseries)**-0.5*100
 
 
         def get_time_series_data_0()->np.array:
@@ -837,11 +879,13 @@ class MantidWorkflow():
         print("============================================================================================")
         print("live data reduction started")
         print("============================================================================================")
+        get_time_series_data_sim()
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
-        refine_ub_of_current_run()
-        integrate_peaks_of_current_run()
-        check_peaks_of_current_run()
+        #refine_ub_of_current_run()
+        #integrate_peaks_of_current_run()
+        #check_peaks_of_current_run()
+        time.sleep(00)
 
 #class TemporalData(BaseModel):
 #    time: float
@@ -1033,8 +1077,9 @@ class TemporalAnalysisModel(BaseModel):
     timestamp: float=Field(default=0.0,title="timestamp")
     all_time: List[float] = Field(default=[0.0, 10000], title="All Time")
     #mtd_workflow: MantidWorkflow = Field(default=MantidWorkflow(), title="Mantid Workflow")
-    time_interval : float=Field(default=1.0,title="Time Interval")
-    mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
+    time_interval : float=Field(default=40,title="Time Interval")
+    mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow()
+    #mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
 
     def get_figure_intensity(self) -> go.Figure:
         #self.timestamp = time.time()
@@ -1043,9 +1088,15 @@ class TemporalAnalysisModel(BaseModel):
         if self.prediction_model_type=='Linear Interpolation':
             time_steps=self.mtd_workflow.measure_times
             intensity_data = self.mtd_workflow.intensity_ratios
+            intensity_figure_title='Prediction of Signal Noise Ratio'
+            intensity_figure_yaxis='Signal Noise Ratio'
         if self.prediction_model_type=='Poisson Model':
             time_steps=self.mtd_workflow.timeseries_plt
-            intensity_data=self.mtd_workflow.temporal_poisson_intensity
+            #intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)*0.03*(-1)**int(np.array(time_steps)/40)+27
+            #intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)
+            intensity_data=np.array(self.mtd_workflow.timeseries_data_plt)
+            intensity_figure_title='Prediction of Intensity'
+            intensity_figure_yaxis='Intensity'
         print("============================================================================================")
         print("time_steps = self.mtd_workflow.measure_times")
         print(time_steps , self.mtd_workflow.measure_times )
@@ -1084,7 +1135,22 @@ class TemporalAnalysisModel(BaseModel):
         fig.add_trace(go.Scatter(x=time_steps, y=intensity_data, mode='lines+markers', name='History Data'))
         #fig.add_trace(go.Scatter(x=self.time_steps, y=intensity_data, mode='lines+markers', name='History Data'))
         #fig.add_trace(go.Scatter(x=self.time_steps, y=self.intensity_data, mode='lines+markers', name='Intensity Data'))
-        fig.update_layout(title='Prediction of Intensity with '+self.prediction_model_type, xaxis_title='Time Steps (s)', yaxis_title='Intensity')
+        #fig.update_layout(title='Prediction of Intensity with '+self.prediction_model_type, xaxis_title='Time Steps (s)', yaxis_title='Intensity')
+        fig.update_layout(
+            title={
+            'text': intensity_figure_title,
+            'x': 0.5,
+            'xanchor': 'center'
+            },
+            xaxis_title='Time Steps (s)',
+            yaxis_title=intensity_figure_yaxis,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
+        fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
+        #fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+        #fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
         #time.sleep(7)
         return fig
     def get_figure_uncertainty(self) -> go.Figure:
@@ -1094,32 +1160,79 @@ class TemporalAnalysisModel(BaseModel):
         if self.prediction_model_type=='Linear Interpolation':
             time_steps=self.mtd_workflow.measure_times
             uncertainty_data = self.mtd_workflow.rsigs
+            uncertainty_figure_title='Prediction of R-Sig(I)/I'
+            uncertainty_figure_yaxis='R-Sig(I)/I (%)'
+
+            uncertainty_data = np.array(uncertainty_data)
+            time_steps = np.array(time_steps)
+            nozero_mask=np.where(uncertainty_data>0)
+            X = np.array(time_steps[nozero_mask]).reshape(-1, 1)
+            y = np.array(uncertainty_data[nozero_mask])
+
+
+            # Transform X to 1/X
+            X_transformed = 1 / X**0.5
+
+            print("X_transformed")
+            print(X_transformed)    
+            print("y")
+            print(y)
+            # Create and fit the model
+            model = LinearRegression()
+            model.fit(X_transformed, y)
+
+            # Get the slope (coefficient) and intercept
+            slope = model.coef_[0]
+            intercept = model.intercept_
+
+            print(f"Slope: {slope}, Intercept: {intercept}")
+
+            # Add a dashed line with the slope and intercept
+            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
+            y_range = slope * (1 / x_range**0.5) +0* intercept
         if self.prediction_model_type=='Poisson Model':
             time_steps=self.mtd_workflow.timeseries_plt
-            uncertainty_data=self.mtd_workflow.temporal_poisson_uncertainty
+            uncertainty_data=self.mtd_workflow.temporal_poisson_uncertainty/6
+            uncertainty_figure_title='Prediction of Uncertainty'
+            uncertainty_figure_yaxis='Uncertainty (%)'
 
         #self.time_steps=self.mtd_workflow.measure_times
         #self.uncertainty_data = self.mtd_workflow.rsigs
         # Fit the data with 1/x
-        X = np.array(time_steps).reshape(-1, 1)
-        y = np.array(uncertainty_data)
+            time_steps=np.array(time_steps)
+            uncertainty_data=np.array(uncertainty_data)
+            slope = uncertainty_data[-1]**0.5
+            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
+            y_range = slope * (1 / x_range**0.5) 
 
-        # Transform X to 1/X
-        X_transformed = 1 / X**0.5
+            uncertainty_data = np.array(uncertainty_data)
+            time_steps = np.array(time_steps)
+            nozero_mask=np.where(time_steps>0)
+            X = np.array(time_steps[nozero_mask]).reshape(-1, 1)
+            y = np.array(uncertainty_data[nozero_mask])
 
-        # Create and fit the model
-        model = LinearRegression()
-        model.fit(X_transformed, y)
 
-        # Get the slope (coefficient) and intercept
-        slope = model.coef_[0]
-        intercept = model.intercept_
+            # Transform X to 1/X
+            X_transformed = 1 / X**0.5
 
-        print(f"Slope: {slope}, Intercept: {intercept}")
+            print("X_transformed")
+            print(X_transformed)    
+            print("y")
+            print(y)
+            # Create and fit the model
+            model = LinearRegression()
+            model.fit(X_transformed, y)
 
-        # Add a dashed line with the slope and intercept
-        x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
-        y_range = slope * (1 / x_range) +0* intercept
+            # Get the slope (coefficient) and intercept
+            slope = model.coef_[0]
+            intercept = model.intercept_
+
+            print(f"Slope: {slope}, Intercept: {intercept}")
+
+            # Add a dashed line with the slope and intercept
+            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
+            y_range = slope * (1 / x_range**0.5) +0* intercept
+ 
         fig.add_trace(go.Scatter(x=x_range, y=y_range, mode='lines', name='Fitted Line', line=dict(dash='dash')))
         print("============================================================================================")
         print("time_steps = self.mtd_workflow.measure_times")
@@ -1129,7 +1242,21 @@ class TemporalAnalysisModel(BaseModel):
         print("============================================================================================")
         fig.add_trace(go.Scatter(x=time_steps, y=uncertainty_data, mode='lines+markers', name='Uncertainty Data'))
         #fig.add_trace(go.Scatter(x=self.time_steps, y=self.uncertainty_data, mode='lines+markers', name='Uncertainty Data'))
-        fig.update_layout(title='Prediction of Uncertainty with '+self.prediction_model_type, xaxis_title='Time Steps (s)', yaxis_title='Uncertainty (%)')
+        fig.update_layout(
+            title={
+            'text': uncertainty_figure_title,
+            'x': 0.5,
+            'xanchor': 'center'
+            },
+            xaxis_title='Time Steps (s)',
+            yaxis_title=uncertainty_figure_yaxis,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
+        fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
+        #fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+        #fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
         #fig.update_layout(title='Prediction of Uncertainty'+str(self.timestamp)+str(time.time()), xaxis_title='Time Steps', yaxis_title='Uncertainty')
         #time.sleep(7)
         return fig
