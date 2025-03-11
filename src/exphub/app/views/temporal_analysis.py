@@ -37,6 +37,7 @@ class TemporalAnalysisView:
         #        vuetify.VCardText("Content for Temporal Analysis tab goes here."),
         with GridLayout(columns=1, classes="mb-2"):
             InputField(v_model="model_temporalanalysis.prediction_model_type", items="model_temporalanalysis.prediction_model_type_options", type="select")
+            InputField(v_model="model_temporalanalysis.data_selection", items="model_temporalanalysis.data_selection_options", type="select")
         #with GridLayout(columns=4, classes="mb-2"):
             #InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
             #InputField(v_model="model_cssstatus.x_axis", items="model_cssstatus.axis_options", type="select")
@@ -54,7 +55,7 @@ class TemporalAnalysisView:
         fig_i=go.Figure()
         fig_i.update_layout(
             title={
-            'text': 'Prediction of Data',
+            'text': 'Prediction of Signal Noise Ratio',
             'x': 0.5,
             'xanchor': 'center'
             },

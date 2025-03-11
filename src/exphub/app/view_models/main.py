@@ -136,10 +136,10 @@ class MainViewModel:
 
  
     def update_temporalanalysis_figure(self, _: Any = None) -> None:
-        self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
         #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
         self.temporalanalysis_updatefigure_intensity_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity())
         self.temporalanalysis_updatefigure_uncertainty_bind.update_in_view(self.model.temporalanalysis.get_figure_uncertainty())
+        self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
         #time.sleep(7)
 
     async def auto_update_temporalanalysis_figure(self) -> None:
@@ -158,6 +158,7 @@ class MainViewModel:
             print("============================================================================================")
             print("get_live_mtd_data")
             try:
+                #self.update_temporalanalysis_figure()
                 self.model.temporalanalysis.mtd_workflow.live_data_reduction()
                 print("get_live_mtd_data done")
                 print("============================================================================================")
