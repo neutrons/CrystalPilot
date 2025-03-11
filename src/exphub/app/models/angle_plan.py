@@ -29,6 +29,8 @@ class AnglePlanModel(BaseModel):
 
     test: str = Field(default="test", title="Test", description="Test field")
     test_list: List[str] = Field(default=["test1", "test2"])
+    #test_dict: List[Dict] = Field(default=[{"key1": "testdict1", "key2": "testdict2"}])
+    test_dict: List[List] = Field(default=[[ "testlist1"],[  "testlist2"]])
     plan_file: str = Field(default="/SNS/TOPAZ/IPTS-34069/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
     #plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
     #plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")
@@ -58,7 +60,7 @@ class AnglePlanModel(BaseModel):
 
     
 
-    plan_type_list: List[str] = Field(default=["Crystal Plan", "NeuXstalViz"])
+    plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
     def load_ap(self, file_path: str) -> None:
         print("load_ap")
         with open(file_path, mode='r') as apfile:
@@ -79,7 +81,10 @@ class AnglePlanModel(BaseModel):
                 new_angle["Comment"] = ""
                 new_angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
                 new_angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
-                new_angle["Wait For"] = angle["Wait For"]
+                wait_for_key = next((key for key in angle.keys() if key.startswith("Wait For")), None)
+                if wait_for_key:
+                    new_angle["Wait For"] = angle[wait_for_key]
+                #new_angle["Wait For"] = angle["Wait For/n"]
                 if "PCharge" in new_angle["Wait For"]:
                     new_angle["Wait For"] = "PCharge"
                 new_angle["Value"] = angle["Value"]

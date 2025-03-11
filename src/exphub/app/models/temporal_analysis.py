@@ -1270,13 +1270,12 @@ class TemporalAnalysisModel(BaseModel):
         if len(self.mtd_workflow.measure_times)>0:
             uncertainty_data = np.array(uncertainty_data)
             time_steps = np.array(time_steps)
-            nozero_mask=np.where(time_steps>0)
-            X = np.array(time_steps[nozero_mask]).reshape(-1, 1)
-            y = np.array(uncertainty_data[nozero_mask])
+            X = np.array(time_steps).reshape(-1, 1)
+            y = np.array(uncertainty_data)**-1
 
 
             # Transform X to 1/X
-            X_transformed =  X**-0.5
+            X_transformed =  X**0.5
 
             print("X_transformed")
             print(X_transformed)    
@@ -1294,7 +1293,7 @@ class TemporalAnalysisModel(BaseModel):
 
             # Add a dashed line with the slope and intercept
             x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
-            y_range = slope * (1 / x_range**0.5) +0* intercept
+            y_range = (slope * (x_range**0.5) + intercept)**-1
 
             #self.time_steps=self.mtd_workflow.measure_times
             #self.uncertainty_data = self.mtd_workflow.rsigs

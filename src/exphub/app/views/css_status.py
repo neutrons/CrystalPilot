@@ -61,7 +61,11 @@ class CSSStatusView:
             #    items="model_cssstatus.axis_options",
             #    type="select",
             #)
-        with HBoxLayout(halign="center", height="50vh"):
+
+
+
+
+        with HBoxLayout(halign="center", height="50vh",width="100%"):
             self.figure = plotly.Figure()
             
             # Load the image from the file
@@ -70,7 +74,7 @@ class CSSStatusView:
             initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
             image=Image.open(io.BytesIO(initial_screenshot))
             width, height = image.size
-            cropscreen = image.crop((0, int(height *0), int(width*0.7), int(height *1.000)))
+            cropscreen = image.crop((0, int(height *0), int(width*0.65), int(height *1.000)))
             screenshot = io.BytesIO()
             cropscreen.save(screenshot, format="PNG")
             screenshot = screenshot.getvalue()
@@ -89,7 +93,7 @@ class CSSStatusView:
                     source=image,
                     xref="paper", yref="paper",
                     x=0.5, y=0.5,
-                    sizex=1, sizey=1,
+                    sizex=1.00, sizey=1.00,
                     xanchor="center", yanchor="middle",
                     layer="below",
                     #sizing="stretch",
@@ -100,9 +104,7 @@ class CSSStatusView:
             # Update layout to remove axes
             fig.update_xaxes(visible=False)
             fig.update_yaxes(visible=False)
-            fig.update_layout(
-                margin=dict(l=0, r=0, t=0, b=0)
-            )
+            fig.update_layout( margin=dict(l=0, r=0, t=0, b=0))
 
             # Update the figure in the UI
             self.figure.update(fig)

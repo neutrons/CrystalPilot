@@ -70,6 +70,60 @@ class AnglePlanView:
         print("model_angleplan.angle_list")
         print(self.view_model.model.angleplan.angle_list)
         print(len(self.view_model.model.angleplan.angle_list))
+        #vuetify.VDataTable(
+        #    headers="model_angleplan.headers",
+        #    items="model_angleplan.angle_list",
+        #    item_key="index",
+        #    hide_default_footer=True,
+        #    children=[
+        #    vuetify.VDataTableRow(
+        #        v_for="(item, index) in model_angleplan.angle_list",
+        #        key="index",
+        #        children=[
+        #        vuetify.VDataTableCell(
+        #            v_for="(header, headerIndex) in model_angleplan.headers",
+        #            key="headerIndex",
+        #            children=["{{ item[header] }}"]
+        #        )
+        #        ]
+        #    )
+        #    ]
+        #)
+        #vuetify.VDataTable(
+        #    headers="model_angleplan.headers",
+        #    items="model_angleplan.angle_list",
+        #    item_key="index",
+        #    hide_default_footer=True,
+        #    children=[
+        #        vuetify.VDataTableRow(
+        #            v_for="(item, index) in model_angleplan.angle_list",
+        #            key="index",
+        #            children=[
+        #                vuetify.VDataTableCell(
+        #                    v_for="header in model_angleplan.headers",
+        #                    children=["{{ item[header.value] }}"]
+        #                )
+        #            ]
+        #        )
+        #    ]
+        #)
+        #vuetify.VDataTable(
+        #    headers=[
+        #        {"text": "key", "value": "key1"},
+        #        {"text": "key2", "value": "key2"},
+        #    ],
+        #    items="model_angleplan.test_list",
+        #)
+        #vuetify.VDataTable(
+        #    headers=[
+        #    {"text": "Key 1", "value": "key1"},
+        #    {"text": "Key 2", "value": "key2"},
+        #    ],
+        #    items=[
+        #    {"key1": "test1", "key2": "test2"},
+        #    {"key1": "test3", "key2": "test4"},
+        #    ],
+        #)
         vuetify.VRow(
             v_for="(angle, index) in model_angleplan.angle_list",
             #key="index",
@@ -77,9 +131,11 @@ class AnglePlanView:
             vuetify.VRow(
                 v_for="(key, keyindex) in angle",
                 children=[
-                    vuetify.VTextField(
+                    InputField(
+                    #vuetify.VTextField(
                     v_model="key",
                     #v_model=f"model_angleplan.angle_list[0][""Comment""]",
+                    #v_model=f"model_angleplan.angle_list[index][keyindex]",
                     #v_model="key",
                     #label=f"Angle: {key}",
                     dense=True,
@@ -95,6 +151,7 @@ class AnglePlanView:
 
             )
             ],
+
 
             dense=True,
             align="center",
@@ -132,6 +189,16 @@ class AnglePlanView:
             InputField(v_model="model_eiccontrol.eic_auto_stop_uncertainty_threshold")
             InputField(v_model="model_eiccontrol.eic_submission_scan_id", label="Scan ID")
             vuetify.VBtn("Manual Stop Run", click=self.view_model.stoprun, style="align-self: center;")
+
+        #vuetify.VRow( v_for="(angle, index) in model_angleplan.test_list", children=[ InputField(v_model="model_angleplan.test_list[index]",) ] )
+        #vuetify.VRow( v_for="(angle, index) in model_angleplan.test_dict", children=[ 
+        #    vuetify.VRow( v_for="(a,i) in model_angleplan.test_dict[index]", children=[ 
+        #    #InputField(v_model="angle[i]",) ] )
+        #    InputField(v_model="model_angleplan.test_dict[index][i]",) ] )
+        #    #InputField(v_model="model_angleplan.test_dict[index].get(i)",) ] )
+        #])
+
+
 
         '''
         vuetify.VDataTable(

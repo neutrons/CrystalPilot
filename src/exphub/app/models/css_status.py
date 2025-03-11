@@ -93,9 +93,9 @@ class CSSStatusModel(BaseModel):
         print("genratged fig md5sum:" + str(hash(image.tobytes())))
         match self.plot_type:
             case "Detector":
-                cropscreen = image.crop((0, 0, int(width*0.7), int(height *0.457)))
+                cropscreen = image.crop((0, 0, int(width*0.65), int(height *0.457)))
             case "D-space":
-                cropscreen = image.crop((0, int(height *0.457), int(width*0.7), int(height *1.000)))
+                cropscreen = image.crop((0, int(height *0.457), int(width*0.65), int(height *1.000)))
         screenshot = io.BytesIO()
         cropscreen.save(screenshot, format="PNG")
         screenshot = screenshot.getvalue()
@@ -126,6 +126,7 @@ class CSSStatusModel(BaseModel):
             xaxis={"visible": False},
             yaxis={"visible": False},
         )
+        fig.update_layout( margin=dict(l=0, r=0, t=0, b=0))
         print("get plotly figure done") 
         return fig
     def is_not_heatmap(self) -> bool:
