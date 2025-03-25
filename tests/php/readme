@@ -1,0 +1,2 @@
+  sudo apt install php-cli
+  php -S 0.0.0.0:8000
