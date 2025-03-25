@@ -3,10 +3,28 @@ from typing import List, Dict
 import csv
 
 
+class RunPlan(BaseModel):
+    title: str =Field(default="Untitled")
+    comment: str = Field(default="")
+    phi: float = Field(default=0.0)
+    omega: float = Field(default=0.0)
+    wait_for: str = Field(default="")
+    value: float = Field(default=0.0)
+    or_time: float = Field(default=0.0)
+
 class AnglePlanModel(BaseModel):
+
     headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
     #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
     table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
+    #run_plan1=RunPlan(title="test_angleplan_1",comment="",phi=0,omega=0,wait_for="PCharge",value=10,or_time=0)
+    #run_plan2=RunPlan(title="test_angleplan_2",comment="",phi=10,omega=10,wait_for="PCharge",value=10,or_time=0)
+    #angle_list_pd:List[RunPlan]=Field(default=[run_plan1,run_plan2])
+    angle_list_pd:List[RunPlan]=Field(default=[
+               RunPlan(title="test_angleplan_1",comment="",phi=0,omega=0,wait_for="PCharge",value=10,or_time=0),
+               RunPlan(title="test_angleplan_2",comment="",phi=10,omega=10,wait_for="PCharge",value=10,or_time=0)
+    ])
+
     angle_list: List[Dict] = Field(default=[{"Title":"test_angleplan_1",
                                              "Comment":"",
                                              "BL12:Mot:goniokm:phi":0,
@@ -16,8 +34,8 @@ class AnglePlanModel(BaseModel):
                                              "Or Time":""},
                                              {"Title":"test_angleplan_2",
                                              "Comment":"",
-                                             "BL12:Mot:goniokm:phi":0,
-                                             "BL12:Mot:goniokm:omega":0,
+                                             "BL12:Mot:goniokm:phi":10,
+                                             "BL12:Mot:goniokm:omega":10,
                                              "Wait For":"PCharge",
                                              "Value":10,
                                              "Or Time":""}

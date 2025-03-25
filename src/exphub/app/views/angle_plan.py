@@ -41,7 +41,13 @@ class AnglePlanView:
         #              {"text": "value", "value": "value"} ],
         #    items=[{"header": "Title", "value": "title"}, {"header": "Comment", "value": "comment"}],
         #   )
-
+        vuetify.VDataTable(
+            headers=[{"text": "Column 1", "value": "col1"}, {"text": "Column 2", "value": "col2"}],
+            items=[{"col1": "Row 1 Col 1", "col2": "Row 1 Col 2"}, {"col1": "Row 2 Col 1", "col2": "Row 2 Col 2"}],
+        )
+        vuetify.VDataTable(
+            items="model_angleplan.test_dict",
+        )
         #with vuetify.VRow():
         vuetify.VCardTitle("CrystalPlan Table")
         with GridLayout(columns=7):
@@ -124,38 +130,68 @@ class AnglePlanView:
         #    {"key1": "test3", "key2": "test4"},
         #    ],
         #)
+        #with GridLayout(columns=7):
+        #    vuetify.VRow(
+        #    v_for="(angle, index) in model_angleplan.angle_list",
+        #    key="index",
+        #    children=[
+        #        vuetify.VCol(
+        #        v_for="(key, keyindex) in angle",
+        #        key="keyindex",
+        #        children=[
+        #            InputField(
+        #            v_model=f"model_angleplan.angle_list[index][keyindex]",
+        #            dense=True,
+        #            hide_details=True,
+        #            align="center",
+        #            )
+        #        ],
+        #        )
+        #    ],
+        #    )
         vuetify.VRow(
-            v_for="(angle, index) in model_angleplan.angle_list",
+            v_for="(angle, index) in model_angleplan.angle_list_pd",
             #key="index",
             children=[
-            vuetify.VRow(
-                v_for="(key, keyindex) in angle",
-                children=[
-                    InputField(
-                    #vuetify.VTextField(
-                    v_model="key",
-                    #v_model=f"model_angleplan.angle_list[0][""Comment""]",
-                    #v_model=f"model_angleplan.angle_list[index][keyindex]",
-                    #v_model="key",
-                    #label=f"Angle: {key}",
-                    dense=True,
-                    hide_details=True,
-                    align="center",
+            #vuetify.VRow(
+            #    v_for="(key, keyindex) in angle",
+            #    children=[
+            #        InputField(
+            #        #vuetify.VTextField(
+            #        v_model="key",
+            #        #v_model=f"model_angleplan.angle_list[0][""Comment""]",
+            #        #v_model=f"model_angleplan.angle_list_pd[index].title",
+            #        #v_model="key",
+            #        #label=f"Angle: {key}",
+            #        dense=True,
+            #        hide_details=True,
+            #        align="center",
 
-                    )
-                ],
-                dense=True,
-                align="center",
-                hide_details=True,
+            #        )
+            #    ],
+            #    dense=True,
+            #    align="center",
+            #    hide_details=True,
 
 
-            )
+            #),
+            vuetify.VRow(children=[
+              #  InputField(v_model="angle.omega")
+               # InputField(v_model=f"angle")
+                #InputField(v_model=f"model_angleplan.angle_list_pd[index]")
+                #InputField(v_model=f"model_angleplan.angle_list_pd[index].omega")
+            ])
             ],
 
 
             dense=True,
             align="center",
             hide_details=True,
+        )
+        InputField(v_model="model_angleplan.angle_list_pd[0].omega")
+        vuetify.VRow(
+            v_for="(angle, index) in model_angleplan.angle_list_pd",
+            children=[InputField(v_model="angle.omega")]
         )
  
         with GridLayout(columns=3):
