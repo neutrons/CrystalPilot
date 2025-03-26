@@ -3,6 +3,7 @@ from nova.trame.view.components import InputField,RemoteFileInput
 from ..view_models.main import MainViewModel
 from nova.trame.view.layouts import GridLayout, HBoxLayout
 from trame.widgets import vuetify3 as vuetify
+from trame.widgets import html
 
 class AnglePlanView:
 
@@ -50,6 +51,66 @@ class AnglePlanView:
         )
         #with vuetify.VRow():
         vuetify.VCardTitle("CrystalPlan Table")
+
+
+        def add_book():
+            pass
+        '''
+        def add_book():
+            state.is_editing = False
+            state.record = DEFAULT_RECORD.copy()
+            state.dialog = True
+
+        @server.controller.trigger('edit_book')
+        def edit_book(book_id):
+            state.is_editing = True
+            book = next((b for b in state.books if b["id"] == book_id), None)
+            if book:
+                state.record = book.copy()
+                state.dialog = True
+
+        def remove_book(book_id):
+            state.books = [b for b in state.books if b["id"] != book_id]
+
+        @server.controller.trigger('save_book')
+        def save_book():
+            if state.is_editing:
+                for i, book in enumerate(state.books):
+                    if book["id"] == state.record["id"]:
+                        state.books[i] = state.record.copy()
+                        break
+            else:
+                state.record["id"] = len(state.books) + 1
+                state.books.append(state.record.copy())
+            state.dialog = False
+            state.dirty("books")
+'''
+
+        with vuetify.VDataTable(
+            headers=("model_angleplan.angle_list_headers",[]),
+            items=("model_angleplan.angle_list",[]),
+        ):
+                with vuetify.Template(v_slot_top=True):
+                    with vuetify.VToolbar(flat=True):
+                        vuetify.VToolbarTitle("Add Run")
+                        vuetify.VSpacer()
+                        vuetify.VBtn(
+                            "Add a Run",
+                            prepend_icon="mdi-plus",
+                            click=add_book,
+                        )
+
+                with vuetify.Template(raw_attrs=['v-slot:item.actions="{ item }"']):
+                    with html.Div(classes="d-flex justify-end"):
+                        with vuetify.VBtn(icon=True, size="small", click="trigger('edit_book', [item.id])"):
+                            vuetify.VIcon("mdi-pencil")
+                with vuetify.Template(raw_attrs=['v-slot:item.Title="{ item }"']):
+                    with html.Div(classes="d-flex justify-end"):
+                        with vuetify.VBtn(icon=True, size="small", click="trigger('edit_book', [item.id])"):
+                            vuetify.VIcon("mdi-pencil")
+
+
+
         with GridLayout(columns=7):
             vuetify.VListItem(v_for="header in model_angleplan.headers", v_text="header")
         #    vuetify.VRow(
@@ -191,7 +252,8 @@ class AnglePlanView:
         InputField(v_model="model_angleplan.angle_list_pd[0].omega")
         vuetify.VRow(
             v_for="(angle, index) in model_angleplan.angle_list_pd",
-            children=[InputField(v_model="angle.omega")]
+            #children=[InputField(v_model="angle.omega")]
+            children=[InputField(v_model="model_angleplan.angle_list_pd[index].omega")]
         )
  
         with GridLayout(columns=3):

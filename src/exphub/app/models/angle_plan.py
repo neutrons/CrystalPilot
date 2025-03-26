@@ -15,6 +15,17 @@ class RunPlan(BaseModel):
 class AnglePlanModel(BaseModel):
 
     headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
+    angle_list_headers: List[Dict] = Field(default=[
+        {"title":  "Title"    ,"value":"Title"   ,"sortable":True , "align":"center"},
+        {"title":  "Comment"  ,"value":"Comment" ,"sortable":True , "align":"center"},
+        {"title":  "phi"      ,"value":"phi"     ,"sortable":True , "align":"center"},
+        {"title":  "omega"    ,"value":"omega"   ,"sortable":True , "align":"center"},
+        {"title":  "Wait For" ,"value":"Wait For","sortable":True , "align":"center"},
+        {"title":  "Value"    ,"value":"Value"   ,"sortable":True , "align":"center"},
+        {"title":  "Or Time"  ,"value":"Or Time" ,"sortable":True , "align":"center"},
+        {"title":  "Action"   ,"value":"actions" ,"sortable":False, "align":"center"},
+
+        ])
     #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
     table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     #run_plan1=RunPlan(title="test_angleplan_1",comment="",phi=0,omega=0,wait_for="PCharge",value=10,or_time=0)
