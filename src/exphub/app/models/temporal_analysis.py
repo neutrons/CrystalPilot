@@ -1092,8 +1092,6 @@ class PoissonModelAnalysis(BaseModel):
 '''
         
 class TemporalAnalysisModel(BaseModel):
-    headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
-    #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
     table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     prediction_model_type: str = Field(default="Poisson Model", title="Prediction Model")
     prediction_model_type_options: List[str] = ["Poisson Model", ]

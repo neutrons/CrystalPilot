@@ -91,12 +91,16 @@ class MainViewModel:
         else:
             print(f"model fields updated: {results['updated']}")
 
+    def upload_strategy(self) -> None:
+        self.model.angleplan.load_ap(self.model.angleplan.plan_file)
+        self.update_view()
+
     def update_view(self) -> None:
         #self.model_bind.update_in_view(self.model)
-        self.model.angleplan.load_ap(self.model.angleplan.plan_file)
         self.angleplan_bind.update_in_view(self.model.angleplan)
         self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
+        
 ######################################################################################################################################################
         #self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)
 ######################################################################################################################################################
@@ -187,3 +191,55 @@ class MainViewModel:
         self.model.eiccontrol.stop_run()
         self.update_view()
         pass
+
+
+##########################################################################################################################
+#  edit angle plans
+##########################################################################################################################
+    #import trame
+    #trame_server=trame.app.get_server()
+
+    #@trame_server.controller.trigger('add_run')
+    def add_run(self) -> None:
+        print("add_run")
+        self.model.angleplan.is_editing_run = False
+        self.model.angleplan.run_record = self.model.angleplan.get_default_run_record()
+        self.model.angleplan.runedit_dialog = True
+        #### should be called after change object in python and want to sync with js object
+        self.update_view()
+
+    # trigger needed for passing js variable to fucntion call in view
+    #@trame_server.controller.trigger('edit_run')
+    def edit_run(self,run_id):
+        print("edit_run")
+        print(run_id)
+        self.model.angleplan.is_editing_run = True
+        run = next((r for r in self.model.angleplan.angle_list if r["id"] == run_id), None)
+        if run:
+            self.model.angleplan.run_record = run.copy()
+            self.model.angleplan.runedit_dialog = True
+        self.update_view()
+
+    #@trame_server.controller.trigger('save_run')
+    def save_run(self) -> None:
+        print("save_run")
+        print(self.model.angleplan.run_record["id"])
+        if self.model.angleplan.is_editing_run:
+            for i, run in enumerate(self.model.angleplan.angle_list):
+                if run["id"] == self.model.angleplan.run_record["id"]:
+                    self.model.angleplan.angle_list[i] = self.model.angleplan.run_record.copy()
+                    break
+        else:
+            self.model.angleplan.run_record["id"] = len(self.model.angleplan.angle_list) + 1
+            self.model.angleplan.angle_list.append(self.model.angleplan.run_record.copy())
+        self.model.angleplan.runedit_dialog = False
+        self.update_view()
+
+    #@trame_server.controller.trigger('remove_run')
+    def remove_run(self,run_id):
+        print("remove_run")
+        print(run_id)
+        self.model.angleplan.angle_list = [r for r in self.model.angleplan.angle_list if r["id"] != run_id]
+        print(self.model.angleplan.angle_list)
+        self.update_view()
+

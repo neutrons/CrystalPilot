@@ -48,8 +48,6 @@ def save_webpage_as_image(url, output_file="webpage.png"):
 #save_webpage_as_image(bl12cssstatus_urlsrc)
 
 class CSSStatusModel(BaseModel):
-    headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
-    #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
     table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     angle_list: List[Dict] = Field(default=[{"Title":"test_angleplan_1",
                                              "Comment":"",

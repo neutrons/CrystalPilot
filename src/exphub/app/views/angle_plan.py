@@ -4,6 +4,7 @@ from ..view_models.main import MainViewModel
 from nova.trame.view.layouts import GridLayout, HBoxLayout
 from trame.widgets import vuetify3 as vuetify
 from trame.widgets import html
+import trame
 
 class AnglePlanView:
 
@@ -11,12 +12,37 @@ class AnglePlanView:
         self.view_model = view_model
         #self.view_model.angleplan_bind.connect("model.angleplan")
         self.view_model.angleplan_bind.connect("model_angleplan")
-
         self.view_model.eiccontrol_bind.connect("model_eiccontrol")
+        self.is_editing = False
         self.create_ui()
 
     def create_ui(self) -> None:
         #with vuetify.VRow():
+        trame_server=trame.app.get_server()
+        @trame_server.controller.trigger("edit_run")
+        def edit_run(run_id:int):
+            #state.is_editing = True
+            #book = next((b for b in state.books if b["id"] == book_id), None)
+            #if book:
+            #    state.record = book.copy()
+            #    state.dialog = True
+            print("view id",run_id)
+            self.view_model.edit_run(run_id)
+        
+        @trame_server.controller.trigger("remove_run")
+        def remove_run(run_id:int):
+            #state.books = [b for b in state.books if b["id"] != book_id]
+            print("view id",run_id)
+            self.view_model.remove_run(run_id)
+
+        @trame_server.controller.trigger("save_run")
+        def save_run():
+            #state.books = [b for b in state.books if b["id"] != book_id]
+            #self.view_model.save_run()
+            self.view_model.save_run()
+
+
+
         with GridLayout(columns=2):
             InputField(v_model="model_angleplan.plan_name")#, type="button", label="Upload")
             InputField(v_model="model_angleplan.plan_type", type="select", items="model_angleplan.plan_type_list")
@@ -30,89 +56,86 @@ class AnglePlanView:
                     #base_paths=["/HFIR", "/SNS", "/home/zx5/1-todo/6-hardware/"],
                     extensions=[".csv"],
                 )
-            vuetify.VBtn("Upload Strategy", click=self.view_model.update_view, style="align-self: center;")
+            vuetify.VBtn("Upload Strategy", click=self.view_model.upload_strategy, style="align-self: center;")
 
-        '''
-        with vuetify.VRow():
-            with vuetify.VCol(v_for="(item, index) in model_angleplan.test_list", v_bind__key="index"):
-                vuetify.VListItem(v_text="item")
-        '''
-        #vuetify.VDataTable(
-        #    headers=[ {"text": "Header", "value": "header"} ,
-        #              {"text": "value", "value": "value"} ],
-        #    items=[{"header": "Title", "value": "title"}, {"header": "Comment", "value": "comment"}],
-        #   )
-        vuetify.VDataTable(
-            headers=[{"text": "Column 1", "value": "col1"}, {"text": "Column 2", "value": "col2"}],
-            items=[{"col1": "Row 1 Col 1", "col2": "Row 1 Col 2"}, {"col1": "Row 2 Col 1", "col2": "Row 2 Col 2"}],
-        )
-        vuetify.VDataTable(
-            items="model_angleplan.test_dict",
-        )
-        #with vuetify.VRow():
-        vuetify.VCardTitle("CrystalPlan Table")
+        #vuetify.VCardTitle("CrystalPlan Table")
+        
+        with vuetify.VSheet(classes="pa-4"):
+            with vuetify.VDataTable(
+                headers=("model_angleplan.angle_list_headers",[]), #TODO trame syntax, 
+                items=("model_angleplan.angle_list",[]),
+            ):
+                    with vuetify.Template(v_slot_top=True):
+                    #with vuetify.Template(v_slot_bottom=True):
+                        with vuetify.VToolbar(flat=True):
+                            vuetify.VToolbarTitle("Experiment Run Strategy")
+                            vuetify.VSpacer()
+                            vuetify.VBtn(
+                                "Add a Run",
+                                prepend_icon="mdi-plus",
+                                click=self.view_model.add_run,
+                                #click="trigger('add_run')",
+                            )
+
+                    with vuetify.Template(raw_attrs=['v-slot:item.actions="{ item }"']): #TODO 'item' predefined by vuetify
+                        with html.Div(classes="d-flex justify-end"):
+
+                            with vuetify.VBtn(icon=True, size="small", click="trigger('edit_run', [item.id])"):
+                            #with vuetify.VBtn(icon=True, size="small", click="trigger('edit_run', [item.id])"):
+                                vuetify.VIcon("mdi-pencil")
+                            with vuetify.VBtn(icon=True, size="small", click="trigger('remove_run', [item.id])"):
+                            #with vuetify.VBtn(icon=True, size="small", click="trigger('delete_run', [item.id])"):
+                                vuetify.VIcon("mdi-delete")
 
 
-        def add_book():
-            pass
-        '''
-        def add_book():
-            state.is_editing = False
-            state.record = DEFAULT_RECORD.copy()
-            state.dialog = True
-
-        @server.controller.trigger('edit_book')
-        def edit_book(book_id):
-            state.is_editing = True
-            book = next((b for b in state.books if b["id"] == book_id), None)
-            if book:
-                state.record = book.copy()
-                state.dialog = True
-
-        def remove_book(book_id):
-            state.books = [b for b in state.books if b["id"] != book_id]
-
-        @server.controller.trigger('save_book')
-        def save_book():
-            if state.is_editing:
-                for i, book in enumerate(state.books):
-                    if book["id"] == state.record["id"]:
-                        state.books[i] = state.record.copy()
-                        break
-            else:
-                state.record["id"] = len(state.books) + 1
-                state.books.append(state.record.copy())
-            state.dialog = False
-            state.dirty("books")
-'''
-
-        with vuetify.VDataTable(
-            headers=("model_angleplan.angle_list_headers",[]),
-            items=("model_angleplan.angle_list",[]),
-        ):
-                with vuetify.Template(v_slot_top=True):
-                    with vuetify.VToolbar(flat=True):
-                        vuetify.VToolbarTitle("Add Run")
-                        vuetify.VSpacer()
-                        vuetify.VBtn(
-                            "Add a Run",
-                            prepend_icon="mdi-plus",
-                            click=add_book,
+        with vuetify.VDialog(v_model="model_angleplan.runedit_dialog", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
+            with vuetify.VCard():
+                vuetify.VCardTitle(
+                    "{{ model_angleplan.is_editing_run ? 'Edit' : 'Add' }} a Run" #todo handle bar syntax
+                )
+                vuetify.VCardSubtitle(
+                    "{{ model_angleplan.is_editing_run ? 'Update' : 'Create' }} run strategy"
+                )
+                with vuetify.VCardText():
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record['title']", label="Title",
+                            update_modelValue="flushState('model_angleplan')"
                         )
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record.comment", label="Comment",
+                            update_modelValue="flushState('model_angleplan')"
+                        )
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record.phi", label="phi", type="number",
+                            update_modelValue="flushState('model_angleplan')"
+                        )
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record.omega", label="omega", type="number",
+                            update_modelValue="flushState('model_angleplan')"   
+                        ) 
+                        vuetify.VSelect(
+                            v_model="model_angleplan.run_record.wait_for",
+                            items=["PCharge", "seconds"],
+                            label="Wait For",
+                            update_modelValue="flushState('model_angleplan')"   
+                        )
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record.value", label="Value", type="number"
+                            update_modelValue="flushState('model_angleplan')"   
+                        )
+                        vuetify.VTextField(
+                            v_model="model_angleplan.run_record.or_time", label="Or Time", type="number"
+                            update_modelValue="flushState('model_angleplan')"   
+                        )
+                with vuetify.VCardActions():
+                    vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False")
+                    vuetify.VSpacer()
+                    vuetify.VBtn("Save", click="trigger('save_run')")
+                    #vuetify.VBtn("Save", click="trigger('save_run')")
 
-                with vuetify.Template(raw_attrs=['v-slot:item.actions="{ item }"']):
-                    with html.Div(classes="d-flex justify-end"):
-                        with vuetify.VBtn(icon=True, size="small", click="trigger('edit_book', [item.id])"):
-                            vuetify.VIcon("mdi-pencil")
-                with vuetify.Template(raw_attrs=['v-slot:item.Title="{ item }"']):
-                    with html.Div(classes="d-flex justify-end"):
-                        with vuetify.VBtn(icon=True, size="small", click="trigger('edit_book', [item.id])"):
-                            vuetify.VIcon("mdi-pencil")
 
-
-
-        with GridLayout(columns=7):
-            vuetify.VListItem(v_for="header in model_angleplan.headers", v_text="header")
+        #with GridLayout(columns=7):
+        #    vuetify.VListItem(v_for="header in model_angleplan.headers", v_text="header")
         #    vuetify.VRow(
         #        v_for="(angle, index) in model_angleplan.angle_list",
         #        key="index",
@@ -137,142 +160,18 @@ class AnglePlanView:
         print("model_angleplan.angle_list")
         print(self.view_model.model.angleplan.angle_list)
         print(len(self.view_model.model.angleplan.angle_list))
-        #vuetify.VDataTable(
-        #    headers="model_angleplan.headers",
-        #    items="model_angleplan.angle_list",
-        #    item_key="index",
-        #    hide_default_footer=True,
-        #    children=[
-        #    vuetify.VDataTableRow(
-        #        v_for="(item, index) in model_angleplan.angle_list",
-        #        key="index",
-        #        children=[
-        #        vuetify.VDataTableCell(
-        #            v_for="(header, headerIndex) in model_angleplan.headers",
-        #            key="headerIndex",
-        #            children=["{{ item[header] }}"]
-        #        )
-        #        ]
-        #    )
-        #    ]
-        #)
-        #vuetify.VDataTable(
-        #    headers="model_angleplan.headers",
-        #    items="model_angleplan.angle_list",
-        #    item_key="index",
-        #    hide_default_footer=True,
-        #    children=[
-        #        vuetify.VDataTableRow(
-        #            v_for="(item, index) in model_angleplan.angle_list",
-        #            key="index",
-        #            children=[
-        #                vuetify.VDataTableCell(
-        #                    v_for="header in model_angleplan.headers",
-        #                    children=["{{ item[header.value] }}"]
-        #                )
-        #            ]
-        #        )
-        #    ]
-        #)
-        #vuetify.VDataTable(
-        #    headers=[
-        #        {"text": "key", "value": "key1"},
-        #        {"text": "key2", "value": "key2"},
-        #    ],
-        #    items="model_angleplan.test_list",
-        #)
-        #vuetify.VDataTable(
-        #    headers=[
-        #    {"text": "Key 1", "value": "key1"},
-        #    {"text": "Key 2", "value": "key2"},
-        #    ],
-        #    items=[
-        #    {"key1": "test1", "key2": "test2"},
-        #    {"key1": "test3", "key2": "test4"},
-        #    ],
-        #)
-        #with GridLayout(columns=7):
-        #    vuetify.VRow(
-        #    v_for="(angle, index) in model_angleplan.angle_list",
-        #    key="index",
-        #    children=[
-        #        vuetify.VCol(
-        #        v_for="(key, keyindex) in angle",
-        #        key="keyindex",
-        #        children=[
-        #            InputField(
-        #            v_model=f"model_angleplan.angle_list[index][keyindex]",
-        #            dense=True,
-        #            hide_details=True,
-        #            align="center",
-        #            )
-        #        ],
-        #        )
-        #    ],
-        #    )
-        vuetify.VRow(
-            v_for="(angle, index) in model_angleplan.angle_list_pd",
-            #key="index",
-            children=[
-            #vuetify.VRow(
-            #    v_for="(key, keyindex) in angle",
-            #    children=[
-            #        InputField(
-            #        #vuetify.VTextField(
-            #        v_model="key",
-            #        #v_model=f"model_angleplan.angle_list[0][""Comment""]",
-            #        #v_model=f"model_angleplan.angle_list_pd[index].title",
-            #        #v_model="key",
-            #        #label=f"Angle: {key}",
-            #        dense=True,
-            #        hide_details=True,
-            #        align="center",
-
-            #        )
-            #    ],
-            #    dense=True,
-            #    align="center",
-            #    hide_details=True,
-
-
-            #),
-            vuetify.VRow(children=[
-              #  InputField(v_model="angle.omega")
-               # InputField(v_model=f"angle")
-                #InputField(v_model=f"model_angleplan.angle_list_pd[index]")
-                #InputField(v_model=f"model_angleplan.angle_list_pd[index].omega")
-            ])
-            ],
-
-
-            dense=True,
-            align="center",
-            hide_details=True,
-        )
-        InputField(v_model="model_angleplan.angle_list_pd[0].omega")
-        vuetify.VRow(
-            v_for="(angle, index) in model_angleplan.angle_list_pd",
-            #children=[InputField(v_model="angle.omega")]
-            children=[InputField(v_model="model_angleplan.angle_list_pd[index].omega")]
-        )
+        
+        #with vuetify.VRow( v_for="(angle, index) in model_angleplan.angle_list_pd",):
+        #    InputField(v_model="model_angleplan.angle_list_pd[index].phi")
+        #    InputField(v_model="model_angleplan.angle_list_pd[index].omega")
  
         with GridLayout(columns=3):
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
             vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
             vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan, style="align-self: center;")
 
-
-
-#            vuetify.VListItem(v_for="angle in model_angleplan.angle_list", v_text="header")
-#            with vuetify.Template(v_for="(angle, index) in model_angleplan.angle_list", v_bind__key="angle"):
-#                vuetify.VList(v_model="angle")
-#                with vuetify.VRow(v_for="(value, key) in angle"):
-#                    vuetify.VListItem(v_model="value")
-
-
-      #  InputField(v_model="model_eiccontrol.IPTS_number")
-       # InputField(v_model="model_eiccontrol.instrument_name")
-
+        #InputField(v_model="model_eiccontrol.IPTS_number")
+        #InputField(v_model="model_eiccontrol.instrument_name")
 
         with GridLayout(columns=1):
             vuetify.VBanner(
@@ -287,138 +186,3 @@ class AnglePlanView:
             InputField(v_model="model_eiccontrol.eic_auto_stop_uncertainty_threshold")
             InputField(v_model="model_eiccontrol.eic_submission_scan_id", label="Scan ID")
             vuetify.VBtn("Manual Stop Run", click=self.view_model.stoprun, style="align-self: center;")
-
-        #vuetify.VRow( v_for="(angle, index) in model_angleplan.test_list", children=[ InputField(v_model="model_angleplan.test_list[index]",) ] )
-        #vuetify.VRow( v_for="(angle, index) in model_angleplan.test_dict", children=[ 
-        #    vuetify.VRow( v_for="(a,i) in model_angleplan.test_dict[index]", children=[ 
-        #    #InputField(v_model="angle[i]",) ] )
-        #    InputField(v_model="model_angleplan.test_dict[index][i]",) ] )
-        #    #InputField(v_model="model_angleplan.test_dict[index].get(i)",) ] )
-        #])
-
-
-
-        '''
-        vuetify.VDataTable(
-            headers=[
-            {"text": "Angle", "value": "angle"},
-            {"text": "Value", "value": "value"}
-            ],
-            items="model_angleplan.angle_list",
-            item_key="index",
-            hide_default_footer=True,
-            children=[
-            vuetify.VDataTableFooter(
-                v_for="(header, index) in headers",
-                key="index",
-                children=[
-                vuetify.VDataTableHeaders(
-                    children=["{{ header.text }}"]
-                )
-                ]
-            ),
-            vuetify.VDataTableRow(
-                v_for="(item, index) in model_angleplan.angle_list",
-
-                key="index",
-                children=[
-                vuetify.VDataTable(
-                    v_for="(key, keyindex) in angle",
-                    children=["{{ key }}"]
-                ),
-                vuetify.VDataTable(
-                    children=["{{ item.value }}"]
-                )
-                ]
-            )
-            ]
-        )
-        '''
-
-
-
-        '''
-        vuetify.VDataTable(
-            headers=[
-                {"text": "Test", "value": "test"}
-            ],
-            items="model_angleplan.test_list",
-            item_key="index",
-            hide_default_footer=True,
-            children=[
-                vuetify.VDataTableRow(
-                    v_for="(item, index) in model_angleplan.test_list",
-                    key="index",
-                    children=[
-                        vuetify.VDataTableCell(children=["{{ item }}"])
-                    ]
-                )
-            ]
-        )
-        '''
-        #vuetify.VDataTable(items="model_angleplan.data", headers="model_angleplan.columns")
-        #vuetify.VBtn("Click Me!", color="primary")
-
-        '''
-        vuetify.VDataTable(
-            headers=[
-            {"text": "Plan Name", "value": "plan_name"},
-            {"text": "Plan File", "value": "plan_file"}
-            ],
-            items="model_angleplan.test_list",
-            item_key="index",
-            hide_default_footer=True,
-            children=["{{ item }}"]
-        )
-        '''
-        #vuetify.VList(
-        #    v_for="( i d ) in model_angleplan.test_list",
-        #    children=[
-        #        vuetify.VListItemTitle(children=[vuetify.VTextField(v_model="model_angleplan.test_list", label="Angle")])
-        #    ]
-        #    #v_model="model_angleplan.test_list",
-        #)
-
-
-        #with vuetify.VList():
-        #    with vuetify.Template(v_for="item in model_angleplan.test_list", v_bind__key="item"):
-        #        vuetify.VListItem(children=[InputField(v_model="item", v_on__input="item = $event")])
-
-
-        #vuetify.VList(
-        #    v_for="(angle, index) in model_angleplan.angle_list",
-        #    children=[
-        #    vuetify.VListItemTitle(children=[vuetify.VTextField(v_model="{{ angle }}")])
-        #    ]
-        #)
-        #vuetify.VBtn("Submit through EIC", click=self.view_model.update_view)
-        #vuetify.VSpacer()
-        '''
-        vuetify.VList(
-            v_model="model_angleplan.angle_list",
-            children=[
-            vuetify.VListItem(
-                v_for="(angle, index) in model_angleplan.angle_list",
-                key="index",
-                children=[
-                vuetify.VListItem(
-                    v_for="(key, keyindex) in angle",
-                    children=[
-                    vuetify.VListItemTitle(children=[
-                        vuetify.VTextField(
-                        v_model="model_angleplan.angle_list",
-                        #v_model=f"model_angleplan.angle_list[0][""Comment""]",
-                        #v_model="key",
-                        #label=f"Angle: {key}",
-                        dense=True,
-                        hide_details=True
-                        )
-                    ]),
-                    ]
-                )
-                ]
-            )
-            ]
-        )
-        '''
-        pass

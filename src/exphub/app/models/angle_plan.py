@@ -14,20 +14,29 @@ class RunPlan(BaseModel):
 
 class AnglePlanModel(BaseModel):
 
-    headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
+    #headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
+    #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
+    angle_keys: List[str]=Field(default=['id','title','comment','chi','phi','omega','wait_for','value','or_time'])
     angle_list_headers: List[Dict] = Field(default=[
-        {"title":  "Title"    ,"value":"Title"   ,"sortable":True , "align":"center"},
-        {"title":  "Comment"  ,"value":"Comment" ,"sortable":True , "align":"center"},
+        {"title":  "Title"    ,"value":"title"   ,"sortable":True , "align":"center"},
+        {"title":  "Comment"  ,"value":"comment" ,"sortable":True , "align":"center"},
+        {"title":  "chi"      ,"value":"chi"     ,"sortable":True , "align":"center"},
         {"title":  "phi"      ,"value":"phi"     ,"sortable":True , "align":"center"},
         {"title":  "omega"    ,"value":"omega"   ,"sortable":True , "align":"center"},
-        {"title":  "Wait For" ,"value":"Wait For","sortable":True , "align":"center"},
-        {"title":  "Value"    ,"value":"Value"   ,"sortable":True , "align":"center"},
-        {"title":  "Or Time"  ,"value":"Or Time" ,"sortable":True , "align":"center"},
+        {"title":  "Wait For" ,"value":"wait_for","sortable":True , "align":"center"},
+        {"title":  "Value"    ,"value":"value"   ,"sortable":True , "align":"center"},
+        {"title":  "Or Time"  ,"value":"or_time" ,"sortable":True , "align":"center"},
         {"title":  "Action"   ,"value":"actions" ,"sortable":False, "align":"center"},
-
         ])
-    #headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
-    table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
+
+    #table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
+    #test: str = Field(default="test", title="Test", description="Test field")
+    #test_list: List[str] = Field(default=["test1", "test2"])
+    #test_dict: List[Dict] = Field(default=[{"key1": "testdict1", "key2": "testdict2"}])
+    #test_dict: List[List] = Field(default=[[ "testlist1"],[  "testlist2"]])
+
+    ###########################################################################################################################################
+    #TODO: pydantic model variable realization for angle list: used for pydnatic table(vrow)
     #run_plan1=RunPlan(title="test_angleplan_1",comment="",phi=0,omega=0,wait_for="PCharge",value=10,or_time=0)
     #run_plan2=RunPlan(title="test_angleplan_2",comment="",phi=10,omega=10,wait_for="PCharge",value=10,or_time=0)
     #angle_list_pd:List[RunPlan]=Field(default=[run_plan1,run_plan2])
@@ -35,67 +44,84 @@ class AnglePlanModel(BaseModel):
                RunPlan(title="test_angleplan_1",comment="",phi=0,omega=0,wait_for="PCharge",value=10,or_time=0),
                RunPlan(title="test_angleplan_2",comment="",phi=10,omega=10,wait_for="PCharge",value=10,or_time=0)
     ])
+    ###########################################################################################################################################
 
-    angle_list: List[Dict] = Field(default=[{"Title":"test_angleplan_1",
-                                             "Comment":"",
-                                             "BL12:Mot:goniokm:phi":0,
-                                             "BL12:Mot:goniokm:omega":0,
-                                             "Wait For":"PCharge",
-                                             "Value":10,
-                                             "Or Time":""},
-                                             {"Title":"test_angleplan_2",
+    is_editing_run: bool = Field(default=False, title="Is Editing", description="Flag to indicate if the angle plan is being edited")
+    run_record:Dict = Field(default={"id":0,
+                                     "title": "title",
+                                    "comment": "",
+                                    'chi': 0,
+                                    "phi": 0,
+                                    "omega": 0,
+                                    "wait_for": "PCharge",
+                                    "value": 0,
+                                    "or_time": ""}, title="Run Record", description="Record of the run plan")
+    runedit_dialog: bool = Field(default=False, title="Run Edit Dialog", description="Flag to indicate if the run edit dialog is open")
+
+    angle_list_read:List[Dict] = Field(default=[
+                                            {"Title":"",
                                              "Comment":"",
                                              "BL12:Mot:goniokm:phi":10,
                                              "BL12:Mot:goniokm:omega":10,
                                              "Wait For":"PCharge",
                                              "Value":10,
                                              "Or Time":""}
+                                                ],
+                                    title="Angle Plan",
+                                    description="List of angles to be measured",)
+    ##############################################################################
+    angle_list: List[Dict] = Field(default=[{"id":1,
+                                             "title":"test_angleplan_1",
+                                             "comment":"",
+                                             "chi":0,
+                                             "phi":0,
+                                             "omega":0,
+                                             "wait_for": "PCharge",
+                                             "value": 1,
+                                             "or_time": ""},
+                                            {"id":2,
+                                             "title":"test_angleplan_2",
+                                             "comment":"",
+                                             "chi":10,
+                                             "phi":10,
+                                             "omega":10,
+                                             "wait_for": "PCharge",
+                                             "value": 1,
+                                             "or_time": ""},
                                              ],
                                     title="Angle Plan",
                                     description="List of angles to be measured",)
 
 
+    plan_name: str = Field(default="CrystalPilot Plan", title="Strategy Name", description="Name of the plan")
 
-    test: str = Field(default="test", title="Test", description="Test field")
-    test_list: List[str] = Field(default=["test1", "test2"])
-    #test_dict: List[Dict] = Field(default=[{"key1": "testdict1", "key2": "testdict2"}])
-    test_dict: List[List] = Field(default=[[ "testlist1"],[  "testlist2"]])
     plan_file: str = Field(default="/SNS/TOPAZ/IPTS-34069/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
     #plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
     #plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")
     #plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")
-    
-    plan_name: str = Field(default="test", title="Strategy Name", description="Name of the plan")
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
-    data: List[Dict]= Field(default = [
-        {"name": "John", "age": 25, "city": "New York"},
-        {"name": "Jane", "age": 30, "city": "London"},
-        {"name": "Alice", "age": 28, "city": "Paris"},
-        {"name": "Bob", "age": 35, "city": "Berlin"}
-    ])
-
-    # Define columns for the data table
-    #columns: List[Dict]= Field(default= [
-    #    {"name": "name", "label": "Name", "align": "left"},
-    #    {"name": "age", "label": "Age", "align": "center"},
-    #    {"name": "city", "label": "City", "align": "center"}
-    #])
-    columns: List[Dict]= Field(default = [
-        {"text": "Name", "value": "name"},
-        {"text": "Age", "value": "age"},
-        {"text": "City", "value": "city"}
-    ])
-
-
-    
-
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
+    
+    def get_default_run_record(self) -> Dict:
+        return {
+                "id":0,
+                "title":"",
+                "comment":"",
+                "chi":0,
+                "phi":0,
+                "omega":0,
+                "wait_for": "PCharge",
+                "value": 0,
+                "or_time": ""}
+
+    #@field_validator("angle_list", mode="before")
     def load_ap(self, file_path: str) -> None:
         print("load_ap")
         with open(file_path, mode='r') as apfile:
             reader = csv.DictReader(apfile)
-            self.angle_list = list(reader)
-        self.convert_plan_format(self.plan_type,self.angle_list)
+            self.angle_list_read = list(reader)
+        self.convert_plan_format(self.plan_type,self.angle_list_read)
+        self.convert_angle_list_read_to_angle_list()
         
         
         #print(self.angle_list)
@@ -129,6 +155,24 @@ class AnglePlanModel(BaseModel):
                 angle["Wait For"] = angle["Wait For"].replace("_"," ")
                 angle["Value"] = angle["Value"]
                 angle["Or Time"] = angle["Or Time"].replace("_"," ")
+        self.angle_list_read = new_angle_list
+        pass
+    def convert_angle_list_read_to_angle_list(self) -> None:
+        if self.plan_type == "Crystal Plan":
+            new_angle_list = []
+            for i in range(len(self.angle_list_read)):
+                angle=self.angle_list_read[i]
+                new_angle={}
+                new_angle["id"] = i+1
+                new_angle["title"] = angle["Title"]
+                new_angle["comment"] = angle["Comment"]
+                new_angle["chi"] = 0
+                new_angle["phi"] = angle["BL12:Mot:goniokm:phi"]
+                new_angle["omega"] = angle["BL12:Mot:goniokm:omega"]
+                new_angle["wait_for"] = angle["Wait For"]
+                new_angle["value"] = angle["Value"]
+                new_angle["or_time"] = angle["Or Time"]
+                new_angle_list.append(new_angle)
         self.angle_list = new_angle_list
         pass
 

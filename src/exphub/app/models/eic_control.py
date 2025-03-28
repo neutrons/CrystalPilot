@@ -49,6 +49,9 @@ class EICControlModel(BaseModel):
     eic_submission_scan_id_list: List[int] = Field(default=[-1], title="EIC Submission Scan ID List")
     current_scan_idx: int = Field(default=0, title="Current Scan Index")
 
+    correct_run_format: bool = Field(default=True, title="Correct Run Format")
+    supported_beamline: bool = Field(default=True, title="Supported Beamline")
+
 
     def load_token(self, file_path: str) -> None:
         with open(file_path, mode='r') as tokenfile:
@@ -62,8 +65,12 @@ class EICControlModel(BaseModel):
 
         desc="CrystalPilot Submission"
         if self.beamline == "bl12":
-            headers=['Title','Comment','BL12:Mot:goniokm:phi','BL12:Mot:goniokm:omega','Wait For','Value','Or Time']
-        rows=[[angle[key] for key in headers] for angle in angleplan]
+            eic_headers=['Title','Comment','BL12:Mot:goniokm:phi','BL12:Mot:goniokm:omega','Wait For','Value','Or Time']
+            angle_keys=['title','comment','phi','omega','wait_for','value','or_time']
+        else:
+            self.supported_beamline=False
+
+        rows=[[angle[key] for key in angle_keys] for angle in angleplan]
 
         self.eic_submission_success= []
         self.eic_submission_message= []
@@ -72,8 +79,8 @@ class EICControlModel(BaseModel):
             print(row)
             desc_sub=desc+" "+row[0]
             success, scan_id, response_data = eic_client.submit_table_scan( 
-                parms={'run_mode': 0, 'headers': headers, 'rows': [row]}, desc=desc_sub, simulate_only=self.is_simulation)
-            parms={'run_mode': 0, 'headers': headers, 'rows': rows}
+                parms={'run_mode': 0, 'headers': eic_headers, 'rows': [row]}, desc=desc_sub, simulate_only=self.is_simulation)
+            parms={'run_mode': 0, 'headers': eic_headers, 'rows': rows}
             print(parms)
             print(success, scan_id, response_data)
             self.eic_submission_success.append(success)
