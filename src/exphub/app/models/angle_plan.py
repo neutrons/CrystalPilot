@@ -102,6 +102,23 @@ class AnglePlanModel(BaseModel):
     #plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
+
+
+
+    instrument        : str = Field(default="TOPAZ", title="Instrument Name", description="Name of the instrument" )
+    wavelength        : float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam", type="float")
+    axes              : str = Field(default=["BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega"], title="Axes", description="List of axes to be used for the angle plan")
+    limits            : List = Field(default=[0, 360], title="Limits", description="Limits of the axes") 
+    UB                : List = Field(default=[[-0.06196579 ,-0.0646735 ,  0.00629365],
+                                        [ 0.05857223, -0.05941086, -0.03262031],
+                                        [ 0.02816059, -0.01873959,  0.08169699]], title="UB Matrix", description="UB matrix of the crystal")
+    d_min             : float = Field(default="0.5", title="d_min", description="d_min of the crystal")
+    d_max             : float = Field(default="10", title="d_max", description="d_max of the crystal")
+    offset            : float = Field(default="0", title="Offset", description="Offset of the crystal")
+    point_group       : str = Field(default="m-3", title="Point Group", description="Point group of the crystal")
+    lattice_centering : str = Field(default="P", title="Lattice Centering", description="Lattice centering of the crystal")
+
+ 
     
     def get_default_run_record(self) -> Dict:
         return {
@@ -192,3 +209,38 @@ class AnglePlanModel(BaseModel):
     def submit_to_eic(self) -> None:
         # Implement the submit logic here
         pass
+
+
+
+
+    # note to symmetry:
+    # 1. mantid has 
+    #   # Create point group
+    #   point_group = PointGroupFactory.createPointGroup(point_group_symbol)
+    #   # Get symmetry operations
+    #   sym_ops = point_group.getSymmetryOperations()
+    # 2. symmetryopreation should have matrix() method
+    #     not work in python
+    # 3. sym_op.transformHKL([1,0,0])           # qspace
+    #    sym_op.transformCoordinate[1,0,0])     # real space
+    #    have strange  behaviro:  eg
+    #    
+    #         
+    #         pg = PointGroupFactory.createPointGroup('6/mmm')
+    #         s=pg.getSymmetryOperationStrings
+    #         s
+    #         Out[79]: <bound method getSymmetryOperationStrings of PointGroupFactory.createPointGroup("6/mmm")>
+    #         pg.getSymmetryOperationStrings()
+    #         Out[80]: <mantid.kernel._kernel.std_vector_str at 0x7ad2afb57df0>
+    #         s=pg.getSymmetryOperationStrings()
+    #         s
+    #         Out[83]: <mantid.kernel._kernel.std_vector_str at 0x7ad2afb84970>
+    #         s[0]
+    #         Out[84]: '-x+y,-x,-z'
+    #     not rotation matrix
+
+    ####################
+    # change strategey to use repeated q grids
+    ####################
+    #
+    #def angleplan(self, instrument, logs, wavelength,peaks,laue):
