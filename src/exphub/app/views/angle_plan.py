@@ -6,6 +6,11 @@ from trame.widgets import vuetify3 as vuetify
 from trame.widgets import html
 import trame
 
+import plotly.graph_objects as go
+from PIL import Image
+from trame.widgets import plotly
+import hashlib
+
 class AnglePlanView:
 
     def __init__(self,view_model:MainViewModel) -> None:
@@ -69,13 +74,22 @@ class AnglePlanView:
                     #with vuetify.Template(v_slot_bottom=True):
                         with vuetify.VToolbar(flat=True):
                             vuetify.VToolbarTitle("Experiment Run Strategy")
-                            vuetify.VSpacer()
-                            vuetify.VBtn(
-                                "Add a Run",
-                                prepend_icon="mdi-plus",
-                                click=self.view_model.add_run,
-                                #click="trigger('add_run')",
-                            )
+                            #vuetify.VSpacer()
+                            #vuetify.VBtn(
+                            #    "Reset Strategy",
+                            #    #prepend_icon="mdi-",
+                            #    click=self.view_model.reset_run,
+                            #    #click="trigger('add_run')",
+                            #)
+
+
+                            #vuetify.VSpacer()
+                            #vuetify.VBtn(
+                            #    "Add a Run",
+                            #    prepend_icon="mdi-plus",
+                            #    click=self.view_model.add_run,
+                            #    #click="trigger('add_run')",
+                            #)
 
                     with vuetify.Template(raw_attrs=['v-slot:item.actions="{ item }"']): #TODO 'item' predefined by vuetify
                         with html.Div(classes="d-flex justify-end"):
@@ -86,6 +100,7 @@ class AnglePlanView:
                             with vuetify.VBtn(icon=True, size="small", click="trigger('remove_run', [item.id])"):
                             #with vuetify.VBtn(icon=True, size="small", click="trigger('delete_run', [item.id])"):
                                 vuetify.VIcon("mdi-delete")
+            
 
 
         with vuetify.VDialog(v_model="model_angleplan.runedit_dialog", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
@@ -120,11 +135,11 @@ class AnglePlanView:
                             update_modelValue="flushState('model_angleplan')"   
                         )
                         vuetify.VTextField(
-                            v_model="model_angleplan.run_record.value", label="Value", type="number"
+                            v_model="model_angleplan.run_record.value", label="Value", type="number",
                             update_modelValue="flushState('model_angleplan')"   
                         )
                         vuetify.VTextField(
-                            v_model="model_angleplan.run_record.or_time", label="Or Time", type="number"
+                            v_model="model_angleplan.run_record.or_time", label="Or Time", type="number",
                             update_modelValue="flushState('model_angleplan')"   
                         )
                 with vuetify.VCardActions():
@@ -165,11 +180,59 @@ class AnglePlanView:
         #    InputField(v_model="model_angleplan.angle_list_pd[index].phi")
         #    InputField(v_model="model_angleplan.angle_list_pd[index].omega")
  
+        @trame_server.controller.trigger("show_coverage")
+        def show_coverage():
+            #state.books = [b for b in state.books if b["id"] != book_id]
+            print("view id")
+            self.view_model.show_coverage()
         with GridLayout(columns=3):
+            vuetify.VBtn("Reset Strategy", click=self.view_model.reset_run, style="align-self: center;")
+            vuetify.VBtn(
+                                "Add a Run",
+                                prepend_icon="mdi-plus",
+                                click=self.view_model.add_run,
+                                #click="trigger('add_run')",
+                            )
+            vuetify.VBtn("Show Coverage", click="trigger('show_coverage')", style="align-self: center;")
+            #vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")
+        with GridLayout(columns=2):
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
-            vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
+            #vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
+            #html.Div(style="height: 20px;")
             vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan, style="align-self: center;")
 
+
+        
+        with vuetify.VDialog(v_model="model_angleplan.show_coverage", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
+            with vuetify.VCard():
+                vuetify.VCardTitle(
+                    "{{ model_angleplan.is_editing_run ? 'Edit' : 'Add' }} a Run" #todo handle bar syntax
+                )
+                vuetify.VCardSubtitle(
+                    "{{ model_angleplan.is_editing_run ? 'Update' : 'Create' }} run strategy"
+                )
+ 
+            fig_i=go.Figure()
+            fig_i.update_layout(
+                title={
+                'text': 'Prediction of Signal Noise Ratio',
+                'x': 0.5,
+                'xanchor': 'center'
+                },
+                xaxis_title='Time Steps (s)',
+                yaxis_title=' ',
+                xaxis=dict(range=[0, 2000]),
+                yaxis=dict(range=[0, 100]),
+                paper_bgcolor='rgba(10,10,10,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+            )
+            with HBoxLayout(halign="left", height="40vh"):
+                #vuetify.VCardTitle("Prediction of Intensity"),
+        #        self.figure_intensity 
+                self.figure_intensity = plotly.Figure()
+                self.figure_intensity.update(fig_i)
+        #######################################################################################
+ 
         #InputField(v_model="model_eiccontrol.IPTS_number")
         #InputField(v_model="model_eiccontrol.instrument_name")
 

@@ -58,6 +58,8 @@ class MainViewModel:
                                                 callback_after_update=self.update_newtabtemplate_figure)
         self.newtabtemplate_updatefig_bind = binding.new_bind()
 ######################################################################################################################################################
+        self.is_under_development = False
+        self.is_under_development_bind = binding.new_bind(self.is_under_development)
 
         #self.pyvista_config = PyVistaConfig()
 
@@ -100,6 +102,8 @@ class MainViewModel:
         self.angleplan_bind.update_in_view(self.model.angleplan)
         self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
+        self.is_under_development_bind.update_in_view(self.is_under_development)
+        self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
         
 ######################################################################################################################################################
         #self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)
@@ -242,4 +246,23 @@ class MainViewModel:
         self.model.angleplan.angle_list = [r for r in self.model.angleplan.angle_list if r["id"] != run_id]
         print(self.model.angleplan.angle_list)
         self.update_view()
+    def show_coverage(self):
+        print("show_cov")
+        #self.model.angleplan.show_coverage = True
+        self.is_under_development = True
+
+        self.update_view()
+    def reset_run(self):
+        #if self.model.experimentinfo.c
+        pass
+    def show_under_development_dialog(self):
+        print("show_underdev")
+        self.model.angleplan.is_under_development = True
+        self.update_view()
+    def close_under_development_dialog(self):
+        print("hide_underdev")
+        self.is_under_development = False
+        self.update_view()
+
+
 

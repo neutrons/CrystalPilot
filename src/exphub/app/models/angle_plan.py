@@ -20,7 +20,7 @@ class AnglePlanModel(BaseModel):
     angle_list_headers: List[Dict] = Field(default=[
         {"title":  "Title"    ,"value":"title"   ,"sortable":True , "align":"center"},
         {"title":  "Comment"  ,"value":"comment" ,"sortable":True , "align":"center"},
-        {"title":  "chi"      ,"value":"chi"     ,"sortable":True , "align":"center"},
+#        {"title":  "chi"      ,"value":"chi"     ,"sortable":True , "align":"center"},
         {"title":  "phi"      ,"value":"phi"     ,"sortable":True , "align":"center"},
         {"title":  "omega"    ,"value":"omega"   ,"sortable":True , "align":"center"},
         {"title":  "Wait For" ,"value":"wait_for","sortable":True , "align":"center"},
@@ -28,6 +28,7 @@ class AnglePlanModel(BaseModel):
         {"title":  "Or Time"  ,"value":"or_time" ,"sortable":True , "align":"center"},
         {"title":  "Action"   ,"value":"actions" ,"sortable":False, "align":"center"},
         ])
+    show_coverage: bool = Field(default=False, title="Show Coverage", description="Flag to indicate if coverage is shown")
 
     #table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     #test: str = Field(default="test", title="Test", description="Test field")

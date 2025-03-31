@@ -20,6 +20,7 @@ class TabContentPanel:
         self.server = server
         self.ctrl = server.controller
         self.create_ui()
+        self.view_model.is_under_development_bind.connect("is_under_development")
 
     def create_ui(self) -> None:
         with vuetify.VForm(ref="form") as self.f:
@@ -45,6 +46,14 @@ class TabContentPanel:
                 #vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
                 #vuetify.VBtn("Data Reduction", click=self.open_data_reduction)
                 #vuetify.VBtn("Data Refinement", click=self.open_data_refinement)
+        with vuetify.VDialog(v_model="is_under_development", max_width="500px"):
+                with vuetify.VCard():
+                    with vuetify.VCardTitle("Under Development"):
+                        print("Under Development")
+                        vuetify.VCardText("This feature is currently under development.", classes="text-caption text-center")
+                    with vuetify.VCardActions():
+                        vuetify.VBtn("OK", click=self.view_model.close_under_development_dialog, color="primary", block=True)
+                        #vuetify.VBtn("OK",  color="primary", block=True)
 
     def open_data_visualization() -> None:
         """Open the Data Visualization tab."""
@@ -56,3 +65,4 @@ class TabContentPanel:
         """Open the Data Refinement tab."""
         print("Open Data Refinement tab")
         
+    
