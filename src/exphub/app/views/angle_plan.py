@@ -10,6 +10,8 @@ import plotly.graph_objects as go
 from PIL import Image
 from trame.widgets import plotly
 import hashlib
+from scipy.spatial import ConvexHull
+import numpy as np
 
 class AnglePlanView:
 
@@ -18,9 +20,62 @@ class AnglePlanView:
         #self.view_model.angleplan_bind.connect("model.angleplan")
         self.view_model.angleplan_bind.connect("model_angleplan")
         self.view_model.eiccontrol_bind.connect("model_eiccontrol")
+        self.view_model.angleplan_updatefigure_converage_bind.connect(self.update_figure_converage)
         self.is_editing = False
+        self.fig_c=go.Figure()
+        vertices = np.array([
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [1, 1, 1],
+            [0, 1, 1],
+        ])
+        
+        # Define faces
+        faces = np.array([
+            [4, 0, 1, 2, 3],  # bottom
+            [4, 4, 5, 6, 7],  # top
+            [4, 0, 1, 5, 4],  # front
+            [4, 1, 2, 6, 5],  # right
+            [4, 2, 3, 7, 6],  # back
+            [4, 3, 0, 4, 7],  # left
+        ])
+        
+
+        # Create a 3D mesh figure
+        fig = go.Figure(data=[
+            go.Mesh3d(
+            x=vertices[:, 0],
+            y=vertices[:, 1],
+            z=vertices[:, 2],
+            i=faces[:, 1],
+            j=faces[:, 2],
+            k=faces[:, 3],
+            color='lightblue',
+            opacity=0.50
+            )
+        ])
+
+        # Update layout for better visualization
+        fig.update_layout(
+            scene=dict(
+            xaxis_title='X Axis',
+            yaxis_title='Y Axis',
+            zaxis_title='Z Axis',
+            aspectmode='data'
+            ),
+            title='3D Polyhedron Visualization'
+        )
+        self.fig_c=fig
+
         self.create_ui()
 
+    def update_figure_converage(self, fig:go.Figure) -> None:
+        pass
+    
     def create_ui(self) -> None:
         #with vuetify.VRow():
         trame_server=trame.app.get_server()
@@ -51,9 +106,6 @@ class AnglePlanView:
         with GridLayout(columns=2):
             InputField(v_model="model_angleplan.plan_name")#, type="button", label="Upload")
             InputField(v_model="model_angleplan.plan_type", type="select", items="model_angleplan.plan_type_list")
-        with GridLayout(columns=2):
-            RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
-            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token, style="align-self: center;")
         with GridLayout(columns=2):
             RemoteFileInput(
                     v_model="model_angleplan.plan_file",
@@ -130,7 +182,7 @@ class AnglePlanView:
                         ) 
                         vuetify.VSelect(
                             v_model="model_angleplan.run_record.wait_for",
-                            items=["PCharge", "seconds"],
+                            items=("model_angleplan.wait_for_list",[]),
                             label="Wait For",
                             update_modelValue="flushState('model_angleplan')"   
                         )
@@ -184,7 +236,9 @@ class AnglePlanView:
         def show_coverage():
             #state.books = [b for b in state.books if b["id"] != book_id]
             print("view id")
-            self.view_model.show_coverage()
+            self.fig_c=self.view_model.show_coverage()
+            self.figure_coverage.update(self.fig_c)
+            self.figure_coverage.state.flush()
         with GridLayout(columns=3):
             vuetify.VBtn("Reset Strategy", click=self.view_model.reset_run, style="align-self: center;")
             vuetify.VBtn(
@@ -195,6 +249,11 @@ class AnglePlanView:
                             )
             vuetify.VBtn("Show Coverage", click="trigger('show_coverage')", style="align-self: center;")
             #vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")
+
+
+        with GridLayout(columns=2):
+            RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
+            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token, style="align-self: center;")
         with GridLayout(columns=2):
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
             #vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
@@ -203,7 +262,7 @@ class AnglePlanView:
 
 
         
-        with vuetify.VDialog(v_model="model_angleplan.show_coverage", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
+        with vuetify.VDialog(v_model="model_angleplan.is_showing_coverage", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
             with vuetify.VCard():
                 vuetify.VCardTitle(
                     "{{ model_angleplan.is_editing_run ? 'Edit' : 'Add' }} a Run" #todo handle bar syntax
@@ -212,25 +271,48 @@ class AnglePlanView:
                     "{{ model_angleplan.is_editing_run ? 'Update' : 'Create' }} run strategy"
                 )
  
-            fig_i=go.Figure()
-            fig_i.update_layout(
-                title={
-                'text': 'Prediction of Signal Noise Ratio',
-                'x': 0.5,
-                'xanchor': 'center'
-                },
-                xaxis_title='Time Steps (s)',
-                yaxis_title=' ',
-                xaxis=dict(range=[0, 2000]),
-                yaxis=dict(range=[0, 100]),
-                paper_bgcolor='rgba(10,10,10,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-            )
+            fig_coverage=go.Figure()
+            # Generate random points in 3D space
+            points = np.random.rand(30, 3)
+
+            # Compute the convex hull
+            hull = ConvexHull(points)
+
+            # Extract the vertices and simplices
+            vertices = points[hull.vertices]
+            simplices = hull.simplices
+
+            # Add the polyhedron to the figure
+            for simplex in simplices:
+                fig_coverage.add_trace(go.Mesh3d(
+                    x=points[simplex, 0],
+                    y=points[simplex, 1],
+                    z=points[simplex, 2],
+                    color='lightblue',
+                    opacity=0.50
+                ))
+            #fig_coverage.update_layout(
+            #    title={
+            #    'text': 'Prediction of Signal Noise Ratio',
+            #    'x': 0.5,
+            #    'xanchor': 'center'
+            #    },
+            #    xaxis_title='Time Steps (s)',
+            #    yaxis_title=' ',
+            #    xaxis=dict(range=[0, 2000]),
+            #    yaxis=dict(range=[0, 100]),
+            #    paper_bgcolor='rgba(10,10,10,0)',
+            #    plot_bgcolor='rgba(0,0,0,0)',
+            #)
             with HBoxLayout(halign="left", height="40vh"):
                 #vuetify.VCardTitle("Prediction of Intensity"),
         #        self.figure_intensity 
-                self.figure_intensity = plotly.Figure()
-                self.figure_intensity.update(fig_i)
+                self.figure_coverage = plotly.Figure()
+                self.figure_coverage.update(fig_coverage)
+                self.figure_coverage.update(self.fig_c)
+            with vuetify.VCardActions():
+                    vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False")
+                    vuetify.VSpacer()
         #######################################################################################
  
         #InputField(v_model="model_eiccontrol.IPTS_number")

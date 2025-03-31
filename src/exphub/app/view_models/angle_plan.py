@@ -1,7 +1,3 @@
-# copied from ExpHub/src/exphub/app/view_models/main.py
-# no use
-
-'''
 
 from typing import Any, Dict
 from nova.mvvm.interface import BindingInterface
@@ -11,13 +7,12 @@ from ..models.angle_plan import AnglePlanModel
 from ..models.experiment_info import ExperimentInfoModel
 from ..models.eic_control import EICControlModel
 from ..models.newtabtemplate import NewTabTemplateModel
-
+from .main import MainViewModel
 
 #from ..models.ccs_status import CCSStatusModel
 #from ..models.temporal_analysis import TemporalAnalysisModel    
 
-
-
+'''
 class AnglePlanViewModel:
     """Viewmodel class, used to create data<->view binding and react on changes from GUI."""
 
@@ -103,13 +98,17 @@ class MainViewModel:
 
 '''
 
-def angleplan_optimize(self):
+def angleplan_optimize(view_model:MainViewModel) -> None:
         import numpy as np
+        from mantid.simpleapi import mtd
+        import mantid.simpleapi as mtdapi
+        from mantid.geometry import PointGroupFactory
+
 
         #import NeuXtalViz.models.ap_test_v2 as ap_test_v2 
-        from angle_plan_engine_ import DetectorPane, DetectorInstrument, QGrids
-        from angle_plan_engine_ import optimize_angle_with_fixed_given
-        from angle_plan_engine_ import analyze_peaks
+        from ..models.angle_plan_engine import DetectorPane, DetectorInstrument, QGrids
+        from ..models.angle_plan_engine import optimize_angle_with_fixed_given
+        from ..models.angle_plan_engine import analyze_peaks
         #from ap_test_v2 import DetectorPane, DetectorInstrument, QGrids
         #from ap_test_v2 import optimize_angle_with_fixed_given as oa
         #from ap_test_v2 import analyze_peaks
@@ -117,17 +116,28 @@ def angleplan_optimize(self):
         print('==========================angle plan test================================')
         print('=========================================================================')
 
-        self.instrument = self.
-        print('self.instrument        ',self.instrument        )
-        print('self.wavelength        ',self.wavelength        )
-        print('self.axes              ',self.axes              )
-        print('self.limits            ',self.limits            )
-        print('self.UB                ',self.UB                )
-        print('self.d_min             ',self.d_min             )
-        print('self.d_max             ',self.d_max             )
-        print('self.offset            ',self.offset            )
-        print('self.point_group       ',self.point_group       )
-        print('self.lattice_centering ',self.lattice_centering )
+        instrument = view_model.model.experimentinfo.instrument
+        #wavelength = view_model.model.experimentinfo.wavelength
+        #axes = view_model.model.experimentinfo.axes
+        #limits = view_model.model.experimentinfo.limits
+        #UB = view_model.model.experimentinfo.UB
+        #d_min = view_model.model.experimentinfo.d_min
+        #d_max = view_model.model.experimentinfo.d_max
+        #offset = view_model.model.experimentinfo.offset
+        point_group = view_model.model.experimentinfo.pointGroup
+        #lattice_centering = view_model.model.experimentinfo.lattice_centering
+
+
+        print('self.instrument        ',instrument        )
+        #print('self.wavelength        ',wavelength        )
+        #print('self.axes              ',axes              )
+        #print('self.limits            ',limits            )
+        #print('self.UB                ',UB                )
+        #print('self.d_min             ',d_min             )
+        #print('self.d_max             ',d_max             )
+        #print('self.offset            ',offset            )
+        print('self.point_group       ',point_group       )
+        #print('self.lattice_centering ',lattice_centering )
 
         #####################
 
@@ -137,6 +147,9 @@ def angleplan_optimize(self):
         print('--------------------------peak input list--------------------------------')
         #print('peaks',peaks)
         print('--------------------------UB read--------------------------------')
+        UB=np.array([[-0.06196579 ,-0.0646735 ,  0.00629365],                                                                                                                                                                          
+                     [ 0.05857223, -0.05941086, -0.03262031],
+                     [ 0.02816059, -0.01873959,  0.08169699]])
         #if self.has_UB('coverage'): 
         #    UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
         #else:
@@ -162,16 +175,16 @@ def angleplan_optimize(self):
         #euler_angle_range=[[omega0,omega1,10],[chi0,chi1,0.5],[phi0,phi1,10]]
         #print('euler_angle_range ',euler_angle_range )
         print('--------------------------instrument setup--------------------------------')
-        #LoadEmptyInstrument(InstrumentName=instrument,
-        #                    OutputWorkspace='instrument')
+        mtdapi.LoadEmptyInstrument(InstrumentName=instrument,
+                            OutputWorkspace='instrument')
 
-        #ExtractMonitors(InputWorkspace='instrument',
-        #                DetectorWorkspace='instrument',
-        #                MonitorWorkspace='montitors')
+        mtdapi.ExtractMonitors(InputWorkspace='instrument',
+                        DetectorWorkspace='instrument',
+                        MonitorWorkspace='montitors')
 
-        #PreprocessDetectorsToMD(InputWorkspace='instrument',
-        #                        OutputWorkspace='detectors',
-        #                        GetMaskState=False)
+        mtdapi.PreprocessDetectorsToMD(InputWorkspace='instrument',
+                                OutputWorkspace='detectors',
+                                GetMaskState=False)
 
         L2 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256) 
         two_theta =  np.array(mtd['detectors'].column(2)).reshape(-1, 256,256) 
@@ -239,13 +252,13 @@ def angleplan_optimize(self):
 
         print('qhkl_irr shape',qhkl_irr.shape)
 
-        pg = PointGroupFactory.createPointGroup(self.point_group )
+        pg = PointGroupFactory.createPointGroup(point_group )
         so=pg.getSymmetryOperations()
         #qhkl_sym_list=[]
         qlab_sym_list=[]
         for sym in so:
             qhkl_sym=[sym.transformHKL(q) for q in qhkl_irr]
-            qlab=np.array(qhkl_sym)@(self.UB).T
+            qlab=np.array(qhkl_sym)@(UB).T
             #qhkl_sym_list.append(qlab)
             qlab_sym_list.append(qlab)
 

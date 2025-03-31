@@ -48,6 +48,7 @@ class AnglePlanModel(BaseModel):
     ###########################################################################################################################################
 
     is_editing_run: bool = Field(default=False, title="Is Editing", description="Flag to indicate if the angle plan is being edited")
+    is_showing_coverage: bool = Field(default=False, title="Is Showing Coverage", description="Flag to indicate if the coverage is being shown")
     run_record:Dict = Field(default={"id":0,
                                      "title": "title",
                                     "comment": "",
@@ -102,19 +103,22 @@ class AnglePlanModel(BaseModel):
     #plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
+    wait_for_list: List[str] = Field(default=["PCharge", "seconds"])
+
+    target_coverage: float = Field(default=0.9, title="Target coverage", description="Target coverage for the experiment")
 
 
 
     instrument        : str = Field(default="TOPAZ", title="Instrument Name", description="Name of the instrument" )
     wavelength        : float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam", type="float")
-    axes              : str = Field(default=["BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega"], title="Axes", description="List of axes to be used for the angle plan")
+    axes              : List = Field(default=[[0,1,0]], title="Axes", description="List of axes to be used for the angle plan")
     limits            : List = Field(default=[0, 360], title="Limits", description="Limits of the axes") 
     UB                : List = Field(default=[[-0.06196579 ,-0.0646735 ,  0.00629365],
                                         [ 0.05857223, -0.05941086, -0.03262031],
                                         [ 0.02816059, -0.01873959,  0.08169699]], title="UB Matrix", description="UB matrix of the crystal")
-    d_min             : float = Field(default="0.5", title="d_min", description="d_min of the crystal")
-    d_max             : float = Field(default="10", title="d_max", description="d_max of the crystal")
-    offset            : float = Field(default="0", title="Offset", description="Offset of the crystal")
+    d_min             : float = Field(default=0.5, title="d_min", description="d_min of the crystal")
+    d_max             : float = Field(default=10, title="d_max", description="d_max of the crystal")
+    offset            : float = Field(default=0, title="Offset", description="Offset of the crystal")
     point_group       : str = Field(default="m-3", title="Point Group", description="Point group of the crystal")
     lattice_centering : str = Field(default="P", title="Lattice Centering", description="Lattice centering of the crystal")
 

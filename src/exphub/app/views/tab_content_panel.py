@@ -21,6 +21,7 @@ class TabContentPanel:
         self.ctrl = server.controller
         self.create_ui()
         self.view_model.is_under_development_bind.connect("is_under_development")
+        self.view_model.is_uninterruptable_bind.connect("is_uninterruptable")
 
     def create_ui(self) -> None:
         with vuetify.VForm(ref="form") as self.f:
@@ -54,6 +55,15 @@ class TabContentPanel:
                     with vuetify.VCardActions():
                         vuetify.VBtn("OK", click=self.view_model.close_under_development_dialog, color="primary", block=True)
                         #vuetify.VBtn("OK",  color="primary", block=True)
+
+        with vuetify.VDialog(v_model="is_uninterruptable", max_width="500px"):
+                with vuetify.VCard():
+                    with vuetify.VCardTitle("Waiting for Algorithm"):
+                        vuetify.VCardText("Algorithm is running in background, waiting for completion.", classes="text-caption text-center")
+#                    with vuetify.VCardActions():
+#                        vuetify.VBtn("OK", click=self.view_model.close_under_development_dialog, color="primary", block=True)
+                        #vuetify.VBtn("OK",  color="primary", block=True)
+
 
     def open_data_visualization() -> None:
         """Open the Data Visualization tab."""
