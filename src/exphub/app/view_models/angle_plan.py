@@ -232,7 +232,9 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
             pane=multi_detector_system.detector_panes[idx_pane]
             qv0=pane.qvertices.copy()
             qf0=pane.qfaces.copy()
-            view_model.model.angleplan.qpane_cones.append({'pane_id':idx_pane,'qvertices':qv0,'qfaces':qf0})
+            qv1=[i.tolist() for i in qv0]
+            qf1=[[t.tolist() for t in qf0[i]] for i in qf0.keys()]
+            view_model.model.angleplan.qpane_cones.append({'pane_id':idx_pane,'qvertices':qv1,'qfaces':qf1})
         print('-------------------------grids setup-----------------------------')
         #Qmax=multi_detector_system.get_max_Q()
         #Qmin=multi_detector_system.get_min_Q()
