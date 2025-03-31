@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from typing import List, Dict
 import csv
+import plotly.graph_objects as go
+
+import numpy as np
 
 
 class RunPlan(BaseModel):
@@ -29,6 +32,7 @@ class AnglePlanModel(BaseModel):
         {"title":  "Action"   ,"value":"actions" ,"sortable":False, "align":"center"},
         ])
     show_coverage: bool = Field(default=False, title="Show Coverage", description="Flag to indicate if coverage is shown")
+    polyhedrons: List = Field(default=[], title="Polyhedrons", description="List of polyhedrons to be displayed")
 
     #table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     #test: str = Field(default="test", title="Test", description="Test field")
@@ -106,6 +110,7 @@ class AnglePlanModel(BaseModel):
     wait_for_list: List[str] = Field(default=["PCharge", "seconds"])
 
     target_coverage: float = Field(default=0.9, title="Target coverage", description="Target coverage for the experiment")
+    qpane_cones: List = Field(default=[], title="Q Pane Cones", description="List of Q pane cones to be displayed")
 
 
 
@@ -248,3 +253,164 @@ class AnglePlanModel(BaseModel):
     ####################
     #
     #def angleplan(self, instrument, logs, wavelength,peaks,laue):
+
+
+
+#
+#    def get_rotation_matrix(self, chi: float, phi: float, omega: float) -> np.array:
+#            rotation_matrix_omega = np.array([
+#                [np.cos(np.radians(omega)), 0, np.sin(np.radians(omega))],
+#                [0, 1, 0],
+#                [-np.sin(np.radians(omega)), 0, np.cos(np.radians(omega))]
+#            ])
+#            rotation_matrix_chi = np.array([
+#                [np.cos(np.radians(chi)), -np.sin(np.radians(chi)), 0],
+#                [np.sin(np.radians(chi)), np.cos(np.radians(chi)), 0],
+#                [0, 0, 1]
+#            ])
+#            rotation_matrix_phi = np.array([
+#                [np.cos(np.radians(phi)), 0, np.sin(np.radians(phi))],
+#                [0, 1, 0],
+#                [-np.sin(np.radians(phi)), 0, np.cos(np.radians(phi))]
+#            ])
+#            # Combine the rotation matrices
+#            rotation_matrix = rotation_matrix_omega @ rotation_matrix_chi @ rotation_matrix_phi
+#            return rotation_matrix
+ 
+    def get_rotation_matrix(self, chi: float, phi: float, omega: float) :
+            rotation_matrix_omega = [
+                [np.cos(np.radians(omega)), 0, np.sin(np.radians(omega))],
+                [0, 1, 0],
+                [-np.sin(np.radians(omega)), 0, np.cos(np.radians(omega))]
+            ]
+            rotation_matrix_chi = [
+                [np.cos(np.radians(chi)), -np.sin(np.radians(chi)), 0],
+                [np.sin(np.radians(chi)), np.cos(np.radians(chi)), 0],
+                [0, 0, 1]
+            ]
+            rotation_matrix_phi = [
+                [np.cos(np.radians(phi)), 0, np.sin(np.radians(phi))],
+                [0, 1, 0],
+                [-np.sin(np.radians(phi)), 0, np.cos(np.radians(phi))]
+            ]
+            # Combine the rotation matrices
+            rotation_matrix = (np.array(rotation_matrix_omega) @ np.array(rotation_matrix_chi) @ np.array(rotation_matrix_phi)).tolist()
+            return rotation_matrix
+ 
+
+
+
+
+    def update_polyhedron_angle_list(self) -> List:
+        polyhedron_original_list=self.qpane_cones.copy()
+
+        polyhedron_angle_list=[]
+        for p0 in polyhedron_original_list:
+            v0,f0=p0['qvertices'],p0['qfaces']
+            for angle in self.angle_list:
+                # Extract vertices and faces
+                chi,phi,omega = angle["chi"],angle["phi"],angle["omega"]
+                R=self.get_rotation_matrix(chi, phi, omega)
+                v = (R @ v0).tolist()  # Convert numpy array to list
+
+                polyhedron_angle_list.append((v, f0))
+        return polyhedron_angle_list
+
+
+    def get_figure_coverage(self) -> go.Figure:
+        # Implement the submit logic here
+       
+
+        def get_polyhedron_plot(vertices,faces) ->go.Mesh3d:
+            #px1 = vertices[:, 0].tolist()
+            #px2 = vertices[:, 0].tolist()
+            #px=np.array(px1+px2)
+            #py1 = vertices[:, 1].tolist()
+            #py2 = vertices[:, 1].tolist()
+            #py=np.array(py1+py2)
+            #pz1 = vertices[:, 2].tolist()
+            #pz2 = vertices[:, 2].tolist()
+            #pz=np.array(pz1+pz2)
+
+            #pi1=list(faces[:, 1])
+            #pi2=list(faces[:, 3])
+            #pi=np.array(pi1+pi2)
+            #pj1=list(faces[:, 2])
+            #pj2=list(faces[:, 4])
+            #pj=np.array(pj1+pj2)
+            #pk1=list(faces[:, 3])
+            #pk2=list(faces[:, 1])
+            #pk=np.array(pk1+pk2)
+            px1 = vertices[:, 0].tolist()
+            px2 = vertices[:, 0].tolist()
+            px=px1+px2
+            py1 = vertices[:, 1].tolist()
+            py2 = vertices[:, 1].tolist()
+            py=py1+py2
+            pz1 = vertices[:, 2].tolist()
+            pz2 = vertices[:, 2].tolist()
+            pz=pz1+pz2
+
+            pi1=list(faces[:, 1])
+            pi2=list(faces[:, 3])
+            pi=pi1+pi2
+            pj1=list(faces[:, 2])
+            pj2=list(faces[:, 4])
+            pj=pj1+pj2
+            pk1=list(faces[:, 3])
+            pk2=list(faces[:, 1])
+            pk=pk1+pk2
+            polyhedron_plot = go.Mesh3d( x=px, y=py, z=pz, i=pi, j=pj, k=pk,
+                    color='lightblue', opacity=0.50, alphahull=0)
+            return polyhedron_plot
+
+        #vertices = np.array([
+        #    [0, 0, 0],
+        #    [1, 0, 0],
+        #    [1, 1, 0],
+        #    [0, 1, 0],
+        #    [0, 0, 1],
+        #    [1, 0, 1],
+        #    [1, 1, 1],
+        #    [0, 1, 1],
+        #])
+        
+        ## Define faces
+        #faces = np.array([
+        #    [4, 0, 1, 2, 3],  # bottom
+        #    [4, 4, 5, 6, 7],  # top
+        #    [4, 0, 1, 5, 4],  # front
+        #    [4, 1, 2, 6, 5],  # right
+        #    [4, 2, 3, 7, 6],  # back
+        #    [4, 3, 0, 4, 7],  # left
+        #])
+
+        #polyhedrons=[
+        #    (vertices, faces),
+        #    (vertices+0.5, faces)
+        #]
+
+
+
+        fig=go.Figure()
+        for polyhedron in self.polyhedrons:
+            # Extract vertices and faces
+            vertices, faces = polyhedron
+            # Create a mesh plot
+            polyhedron_plot = get_polyhedron_plot(vertices,faces)
+            fig.add_trace(polyhedron_plot)
+
+        fig.update_layout(
+            scene=dict(
+            xaxis_title='X Axis',
+            yaxis_title='Y Axis',
+            zaxis_title='Z Axis',
+            aspectmode='data'
+            ),
+            title='3D Polyhedron Visualization'
+        )
+        return fig
+
+
+        #self.is_under_development = True
+

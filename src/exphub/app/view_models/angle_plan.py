@@ -220,9 +220,19 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         #det_ins_parameter=[det_ins_parameter[0]]
         multi_detector_system = DetectorInstrument(det_ins_parameter)
         multi_detector_system.initialize_detector()
-        #for det in multi_detector_system.detector_panes: 
-        #    print('detector pane id:',det.pane_id)
-        #    print('detector pane qfaces:',det.qfaces)
+
+
+        #############################################################
+        # pass to angle plan
+        ################################################################
+        view_model.model.angleplan.qpane_cones=[]
+
+
+        for idx_pane in range(num_pane):
+            pane=multi_detector_system.detector_panes[idx_pane]
+            qv0=pane.qvertices.copy()
+            qf0=pane.qfaces.copy()
+            view_model.model.angleplan.qpane_cones.append({'pane_id':idx_pane,'qvertices':qv0,'qfaces':qf0})
         print('-------------------------grids setup-----------------------------')
         #Qmax=multi_detector_system.get_max_Q()
         #Qmin=multi_detector_system.get_min_Q()
@@ -267,6 +277,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         print('qlab_sym_list length and shape',len(qlab_sym_list),qlab_sym_list[-1].shape)
 
 
+
         grid_parameter={'num_sym':len(qlab_sym_list),'qlist':qlab_sym_list}
         #grid_parameter={'Nx':10,'Ny':10,'Nz':10,'Qmax':Qmax,'Qmin':Qmin}
         grids=QGrids(grid_mode='input',grid_parameter=grid_parameter)
@@ -291,6 +302,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         print('            ---------------------not implemented---------------------------')
         print('-------------------------optimize angle-----------------------------')
         fixed_angle_list= np.array([ [0,135,0]])
+        fixed_angle_list= [ [0,135,0]]
         print('fixed_angle_list:',fixed_angle_list)
         euler_angle_range=[[0,360,1],[135,135,1],[0,360,1]]
         final_angle_list,final_coverage=optimize_angle_with_fixed_given(grids,multi_detector_system,fixed_angle_list,euler_angle_range)

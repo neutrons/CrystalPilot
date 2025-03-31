@@ -13,7 +13,7 @@ vtok= 1e4*m_neutron/hbar*1e-10 #v (cm/micros) to k (A^-1)
 vtok=15.8825361042
 
 class DetectorPane:
-    def __init__(self,pane_id,pane_shape:str,L1=1800, pane_parameter: Union[int,float,np.ndarray,Dict[str,Any],None]=None):
+    def __init__(self,pane_id,pane_shape:str,L1=1800, pane_parameter: Union[int,float,np.array,Dict[str,Any],None]=None):
         self.pane_shape    = pane_shape
         self.pane_id   = pane_id
         self.pane_parameter = pane_parameter
@@ -329,7 +329,7 @@ class DetectorInstrument:
 
 class QGrids:
         
-    def __init__(self,grid_mode:str, grid_parameter: Union[int,float,np.ndarray,Dict[str,Any],None]=None):
+    def __init__(self,grid_mode:str, grid_parameter: Union[int,float,np.array,Dict[str,Any],None]=None):
         self.grid_mode    = grid_mode
         # 'uniform' ,'input'
         self.grid_parameter = grid_parameter
@@ -476,8 +476,8 @@ def maximize_coverage(grids:QGrids,det_ins:DetectorInstrument):
 def optimize_angle_with_fixed_given(grids:QGrids,det_ins:DetectorInstrument,fixed_angle_list,euler_angle_ranges):
     angle_list=[]
     #angle_list=initial_angle_list+fixed_angle_list
-    #angle_list=list(fixed_angle_list).copy()
     angle_list=[tuple(a) for a in list(fixed_angle_list)]
+    angle_list=list(fixed_angle_list).copy()
     if len(angle_list)==0:
        angle_list=[(0,0,0)]
     angle_list.append([10,135,0])
@@ -763,7 +763,7 @@ def grid_ascend(det_ins, qgrids, euler_angle_ranges,last_coverage,last_angles):
         ascend_step+=1
 
     
-    return best_angles
+    return [float(i) for i in best_angles]
 
        
 

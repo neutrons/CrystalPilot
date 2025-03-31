@@ -20,7 +20,7 @@ class AnglePlanView:
         #self.view_model.angleplan_bind.connect("model.angleplan")
         self.view_model.angleplan_bind.connect("model_angleplan")
         self.view_model.eiccontrol_bind.connect("model_eiccontrol")
-        self.view_model.angleplan_updatefigure_converage_bind.connect(self.update_figure_converage)
+        #self.view_model.angleplan_updatefigure_converage_bind.connect(self.update_figure_converage)
         self.is_editing = False
         self.fig_c=go.Figure()
         vertices = np.array([
@@ -75,7 +75,7 @@ class AnglePlanView:
 
     def update_figure_converage(self, fig:go.Figure) -> None:
         pass
-    
+
     def create_ui(self) -> None:
         #with vuetify.VRow():
         trame_server=trame.app.get_server()
@@ -236,9 +236,12 @@ class AnglePlanView:
         def show_coverage():
             #state.books = [b for b in state.books if b["id"] != book_id]
             print("view id")
-            self.fig_c=self.view_model.show_coverage()
+
+            self.fig_c=self.view_model.get_figure_coverage()
             self.figure_coverage.update(self.fig_c)
             self.figure_coverage.state.flush()
+            self.view_model.show_coverage()
+
         with GridLayout(columns=3):
             vuetify.VBtn("Reset Strategy", click=self.view_model.reset_run, style="align-self: center;")
             vuetify.VBtn(
@@ -265,53 +268,18 @@ class AnglePlanView:
         with vuetify.VDialog(v_model="model_angleplan.is_showing_coverage", max_width="500px"): # only v_modle and inputfield-items auto wrap string to js,
             with vuetify.VCard():
                 vuetify.VCardTitle(
-                    "{{ model_angleplan.is_editing_run ? 'Edit' : 'Add' }} a Run" #todo handle bar syntax
+                    "Coverage" #todo handle bar syntax
                 )
                 vuetify.VCardSubtitle(
-                    "{{ model_angleplan.is_editing_run ? 'Update' : 'Create' }} run strategy"
+                    "Visualization of coverage of reflections by the instrument with sample orientations from the current strategy."
                 )
- 
-            fig_coverage=go.Figure()
-            # Generate random points in 3D space
-            points = np.random.rand(30, 3)
-
-            # Compute the convex hull
-            hull = ConvexHull(points)
-
-            # Extract the vertices and simplices
-            vertices = points[hull.vertices]
-            simplices = hull.simplices
-
-            # Add the polyhedron to the figure
-            for simplex in simplices:
-                fig_coverage.add_trace(go.Mesh3d(
-                    x=points[simplex, 0],
-                    y=points[simplex, 1],
-                    z=points[simplex, 2],
-                    color='lightblue',
-                    opacity=0.50
-                ))
-            #fig_coverage.update_layout(
-            #    title={
-            #    'text': 'Prediction of Signal Noise Ratio',
-            #    'x': 0.5,
-            #    'xanchor': 'center'
-            #    },
-            #    xaxis_title='Time Steps (s)',
-            #    yaxis_title=' ',
-            #    xaxis=dict(range=[0, 2000]),
-            #    yaxis=dict(range=[0, 100]),
-            #    paper_bgcolor='rgba(10,10,10,0)',
-            #    plot_bgcolor='rgba(0,0,0,0)',
-            #)
             with HBoxLayout(halign="left", height="40vh"):
                 #vuetify.VCardTitle("Prediction of Intensity"),
         #        self.figure_intensity 
                 self.figure_coverage = plotly.Figure()
-                self.figure_coverage.update(fig_coverage)
                 self.figure_coverage.update(self.fig_c)
             with vuetify.VCardActions():
-                    vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False")
+                    vuetify.VBtn("Close", click="model_angleplan.is_showing_coverage = False")
                     vuetify.VSpacer()
         #######################################################################################
  

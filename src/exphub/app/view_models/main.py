@@ -74,7 +74,7 @@ class MainViewModel:
 
         #self.create_auto_update_cssstatus_figure()
 
-        self.angleplan_updatefigure_converage_bind = binding.new_bind()
+        #self.angleplan_updatefigure_converage_bind = binding.new_bind()
 
 
 
@@ -251,95 +251,30 @@ class MainViewModel:
         print(self.model.angleplan.angle_list)
         self.update_view()
 
-    def update_coverage_figure(self, _: Any = None) -> None:
-        #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
-        self.angleplan_updatefigure_converage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
-    def show_coverage(self):
-        print("show_cov")
-        import numpy as np
-        vertices = np.array([
-            [0, 0, 0],
-            [1, 0, 0],
-            [1, 1, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-            [1, 0, 1],
-            [1, 1, 1],
-            [0, 1, 1],
-        ])
-        
-        # Define faces
-        faces = np.array([
-            [4, 0, 1, 2, 3],  # bottom
-            [4, 4, 5, 6, 7],  # top
-            [4, 0, 1, 5, 4],  # front
-            [4, 1, 2, 6, 5],  # right
-            [4, 2, 3, 7, 6],  # back
-            [4, 3, 0, 4, 7],  # left
-        ])
-        
-        import plotly.graph_objects as go
-
-        px1=list(vertices[:, 0])
-        px2=list(vertices[:, 0])
-        px=np.array(px1+px2)
-        py1=list(vertices[:, 1])
-        py2=list(vertices[:, 1])
-        py=np.array(py1+py2)
-        pz1=list(vertices[:, 2])
-        pz2=list(vertices[:, 2])
-        pz=np.array(pz1+pz2)
-
-        pi1=list(faces[:, 1])
-        pi2=list(faces[:, 3])
-        pi=np.array(pi1+pi2)
-        pj1=list(faces[:, 2])
-        pj2=list(faces[:, 4])
-        pj=np.array(pj1+pj2)
-        pk1=list(faces[:, 3])
-        pk2=list(faces[:, 6])
-        pk=np.array(pk1+pk2)
-
-        # Create a 3D mesh figure
-        fig = go.Figure(data=[
-            go.Mesh3d(
-            #x=vertices[:, 0],
-            #y=vertices[:, 1],
-            #z=vertices[:, 2],
-            #i=faces[:, 1],
-            #j=faces[:, 2],
-            #k=faces[:, 3],
-            x=px,
-            y=py,
-            z=pz,
-            i=pi,
-            j=pj,
-            k=pk,
-            color='lightblue',
-            opacity=0.50
-            )
-        ])
-
-        # Update layout for better visualization
-        fig.update_layout(
-            scene=dict(
-            xaxis_title='X Axis',
-            yaxis_title='Y Axis',
-            zaxis_title='Z Axis',
-            aspectmode='data'
-            ),
-            title='3D Polyhedron Visualization'
-        )
-        self.model.angleplan.is_showing_coverage = True
-
-
-        #self.is_under_development = True
-
+    #def update_coverage_figure(self, _: Any = None) -> None:
+    #    #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
+    #    self.angleplan_updatefigure_converage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
+    def get_figure_coverage(self) -> None:
+        print("get_figure_coverage")
+        fig=self.model.angleplan.get_figure_coverage()
         self.update_view()
         return fig
+
+    def show_coverage(self):
+        print("show_cov")
+        self.model.angleplan.is_showing_coverage = True
+        self.update_view()
+
     def reset_run(self):
         #if self.model.experimentinfo.c
         self.optimize_angleplan()
+        print("reset_run")
+        print(self.model.angleplan.angle_list)
+        print(self.model.angleplan.qpane_cones)
+        
+        self.update_view()
+        print("reset_run after update view")
+
         pass
     def show_under_development_dialog(self):
         print("show_underdev")
@@ -355,9 +290,10 @@ class MainViewModel:
         print("optimize_angleplan")
         ##self.is_uninterruptable = True
         ##self.update_view()
-        #angleplan_optimize(self)
+        final_angle_list=angleplan_optimize(self)
         ##self.is_uninterruptable = False
         ##self.update_view()
+        #print('optimize done. final_angle_list',final_angle_list)
 
         if self.model.experimentinfo.pointGroup == "1":
             final_angle_list=[(0,135,0), (10, 135, 0),(69.0, 135,5.0),(95.0, 135,43.0),(97.0, 135,82.0),(129.0, 135,100.0),(136.0, 135,124.0),
@@ -398,20 +334,25 @@ class MainViewModel:
             final_angle_list=[(0,135,0), (10, 135, 0),(69.0, 135,5.0),(95.0, 135,43.0),(97.0, 135,82.0),(129.0, 135,100.0),(136.0, 135,124.0),
                           (95.0, 135,240.0),(126.0, 135,249.0),(139.0, 135,251.0),(157.0, 135,271.0),(184.0, 135,296.0),(194.0, 135,309.0),
                           (200.0, 135,324.0),(215.0, 135,337.0),(234.0, 135,1.0),(262.0, 135,32.0),(265.0, 135,52.0),(277.0, 135,77.0),(317.0, 135,78.0),(324.0, 135,116.0)]
+        #final_angle_list=[(0,135,0), (10, 135, 40)]
  
+
+        print('update angle_list',)
         self.model.angleplan.angle_list=[]
         for i in range(len(final_angle_list)):
             r={
                 "id": i + 1,
                 "title":'pg:'+self.model.experimentinfo.pointGroup+'_'+str(i+1),
                 "comment":"resetted",
-                "phi":final_angle_list[i][0],
-                "chi":final_angle_list[i][1],
-                "omega":final_angle_list[i][2],
+                "phi":float(final_angle_list[i][0]),
+                "chi":float(final_angle_list[i][1]),
+                "omega":float(final_angle_list[i][2]),
                 "wait_for": "PCharge",
                 "value": 1,
             }
             self.model.angleplan.angle_list.append(r)
+        
+        print('vm optimize done for angle_list',self.model.angleplan.angle_list)
 
 
 
