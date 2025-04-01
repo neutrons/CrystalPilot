@@ -244,7 +244,7 @@ class AnglePlanView:
             self.view_model.show_coverage()
 
         with GridLayout(columns=3):
-            vuetify.VBtn("Reset Strategy", click=self.view_model.reset_run, style="align-self: center;")
+            vuetify.VBtn("Initialize Strategy", click=self.view_model.reset_run, style="align-self: center;")
             vuetify.VBtn(
                                 "Add a Run",
                                 prepend_icon="mdi-plus",
