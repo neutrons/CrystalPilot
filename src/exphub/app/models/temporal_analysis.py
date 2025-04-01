@@ -1131,7 +1131,8 @@ class TemporalAnalysisModel(BaseModel):
             intensity_figure_title='Prediction of Intensity'
             intensity_figure_yaxis='Intensity'
 
-        if len(time_steps)>0:
+        if False:
+        #if len(time_steps)>0:
             print("============================================================================================")
             print("time_steps = self.mtd_workflow.measure_times")
             print(time_steps , self.mtd_workflow.measure_times )
@@ -1265,7 +1266,8 @@ class TemporalAnalysisModel(BaseModel):
             x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
             y_range = slope * (1 / x_range**0.5) +0* intercept
     
-        if len(self.mtd_workflow.measure_times)>0:
+        #if len(self.mtd_workflow.measure_times)>0:
+        if False:
             uncertainty_data = np.array(uncertainty_data)
             time_steps = np.array(time_steps)
             X = np.array(time_steps).reshape(-1, 1)
