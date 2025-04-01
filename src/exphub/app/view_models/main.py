@@ -159,7 +159,7 @@ class MainViewModel:
     async def auto_update_temporalanalysis_figure(self) -> None:
         while True:
             self.update_temporalanalysis_figure()
-            await asyncio.sleep(1)
+            await asyncio.sleep(30)
 
     def create_auto_update_temporalanalysis_figure(self) -> None:
         self.model.temporalanalysis.start_reading_live_mtd_data()
