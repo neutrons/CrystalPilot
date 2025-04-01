@@ -40,11 +40,12 @@ class ExperimentInfoModel(BaseModel):
     sampleRadius: float = Field(default=0.0, title="Sample radius(mm)")
     centering: str = Field(default="P", title="Centering")
     crystalsystem: str = Field(
-        default="Triclinic",
+        default="Cubic",
         title="Crystal system",
         description="unconventional crystal systems",
     )
-    pointGroup: str = Field(default="-1", title="Point group")
+    pointGroup: str = Field(default="23", title="Point group")
+
     instrument: str = Field(default="TOPAZ", title="Instrument Name")
     ipts_number: str = Field(
         default="12345", title="IPTS Number", min_length=1, description="Proposal number for the experiment"

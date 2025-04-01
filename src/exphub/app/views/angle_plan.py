@@ -20,7 +20,7 @@ class AnglePlanView:
         #self.view_model.angleplan_bind.connect("model.angleplan")
         self.view_model.angleplan_bind.connect("model_angleplan")
         self.view_model.eiccontrol_bind.connect("model_eiccontrol")
-        #self.view_model.angleplan_updatefigure_converage_bind.connect(self.update_figure_converage)
+        self.view_model.angleplan_updatefigure_coverage_bind.connect(self.update_figure_coverage)
         self.is_editing = False
         self.fig_c=go.Figure()
         vertices = np.array([
@@ -314,9 +314,10 @@ class AnglePlanView:
         #        self.figure_intensity 
                 self.figure_coverage = plotly.Figure()
                 self.figure_coverage.update(self.fig_c)
-            with HBoxLayout(halign="left", height="40vh"):
+            with HBoxLayout(halign="left", ):
                 vuetify.VBtn("Close", click=self.view_model.close_coverage, style="align-self: center;")
-                vuetify.VBtn("Turn on Symmetry", click=self.view_model.get_coverage_figure_with_symmetry, style="align-self: center;")
+                vuetify.VBtn("Turn on Symmetry", click=self.view_model.update_coverage_figure_with_symmetry, style="align-self: center;")
+                vuetify.VBtn("Turn off Symmetry", click=self.view_model.update_coverage_figure, style="align-self: center;")
             #with vuetify.VCardActions():
             #        vuetify.VBtn("Close", click=self.view_model.close_coverage, style="align-self: center;")
                     #vuetify.VBtn("Close", click="model_angleplan.runedit_dialog = False")#TODO: this one not working at this git version
@@ -339,3 +340,6 @@ class AnglePlanView:
             InputField(v_model="model_eiccontrol.eic_auto_stop_uncertainty_threshold")
             InputField(v_model="model_eiccontrol.eic_submission_scan_id", label="Scan ID")
             vuetify.VBtn("Manual Stop Run", click=self.view_model.stoprun, style="align-self: center;")
+    def update_figure_coverage(self, fig:go.Figure) -> None:
+        self.figure_coverage.update(fig)
+        self.figure_coverage.state.flush()

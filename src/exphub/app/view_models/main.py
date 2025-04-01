@@ -76,7 +76,7 @@ class MainViewModel:
 
         #self.create_auto_update_cssstatus_figure()
 
-        #self.angleplan_updatefigure_converage_bind = binding.new_bind()
+        self.angleplan_updatefigure_coverage_bind = binding.new_bind()
 
 
 
@@ -257,9 +257,17 @@ class MainViewModel:
         print(self.model.angleplan.angle_list)
         self.update_view()
 
-    #def update_coverage_figure(self, _: Any = None) -> None:
-    #    #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
-    #    self.angleplan_updatefigure_converage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
+############################### coverage figure update ###########################################################
+    def update_coverage_figure(self, _: Any = None) -> None:
+        #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
+        self.angleplan_updatefigure_coverage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
+        self.update_view()
+
+    def update_coverage_figure_with_symmetry(self, _: Any = None) -> None:
+        self.angleplan_updatefigure_coverage_bind.update_in_view(self.model.angleplan.get_coverage_figure_with_symmetry())
+        self.update_view()
+
+
     def get_coverage_figure_with_symmetry(self) -> None:
         print("get_coverage_figure_with_symmetry")
         fig=self.model.angleplan.get_coverage_figure_with_symmetry()
@@ -281,6 +289,7 @@ class MainViewModel:
         self.model.angleplan.is_showing_coverage = False
         self.update_view()
 
+############################### coverage figure update ###########################################################
     def reset_run(self):
         #if self.model.experimentinfo.c
         self.optimize_angleplan()
@@ -350,6 +359,10 @@ class MainViewModel:
             final_angle_list=[(0,135,0), (10, 135, 0),(69.0, 135,5.0),(95.0, 135,43.0),(97.0, 135,82.0),(129.0, 135,100.0),(136.0, 135,124.0),
                           (95.0, 135,240.0),(126.0, 135,249.0),(139.0, 135,251.0),(157.0, 135,271.0),(184.0, 135,296.0),(194.0, 135,309.0),
                           (200.0, 135,324.0),(215.0, 135,337.0),(234.0, 135,1.0),(262.0, 135,32.0),(265.0, 135,52.0),(277.0, 135,77.0),(317.0, 135,78.0),(324.0, 135,116.0)]
+
+        if self.model.experimentinfo.pointGroup == "23":
+            final_angle_list=[(0,135,0), (10, 135, 0)]
+
         #final_angle_list=[(0,135,0), (10, 135, 40)]
  
 

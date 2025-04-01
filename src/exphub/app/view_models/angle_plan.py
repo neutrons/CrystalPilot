@@ -287,12 +287,17 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
             qhkl_sym=[sym.transformHKL(q) for q in qhkl_irr]
             qlab=np.array(qhkl_sym)@(UB).T
             #qhkl_sym_list.append(qlab)
+            print('symmetry operation:',sym)
             qlab_sym_list.append(qlab)
             tsyma=sym.transformHKL(a)
             tsymb=sym.transformHKL(b)
             tsymc=sym.transformHKL(c)
             tsym=np.array([tsyma,tsymb,tsymc]).tolist()
+            print(tsyma,tsymb,tsymc)
+            print('symmetry operation:',tsym)
             symmetry_operations.append(tsym)
+            print('symmetry operation:',symmetry_operations)
+        view_model.model.angleplan.symmetry_operations=symmetry_operations
 
         
         #print('qhkl_sym_list length and shape',len(qhkl_sym_list),qhkl_sym_list[-1].shape)

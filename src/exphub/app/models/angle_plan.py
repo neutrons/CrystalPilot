@@ -438,6 +438,8 @@ class AnglePlanModel(BaseModel):
                     newpt= np.dot(R, qpt).tolist()  # Convert numpy array to list
                     newf.append(newpt)
                 all_faces.append(newf)
+        print("all_faces")
+        print(len(all_faces))
                 
         def get_face_plot(face) ->go.Mesh3d:
             px=[face[0][0],face[1][0],face[2][0],face[3][0]]
@@ -476,18 +478,23 @@ class AnglePlanModel(BaseModel):
             faces=faces+pane['qfaces'] # 6 faces iters
 
         all_faces=[]
+        print("symmetry_operations")
+        #print(self.symmetry_operations)
         for f in faces:
             for angle in self.angle_list:
               
                 # Extract vertices and faces
                 chi,phi,omega = angle["chi"],angle["phi"],angle["omega"]
                 R=self.get_rotation_matrix(chi, phi, omega)
-                newf= []
-                for symop in self.model.angleplan.symmetry_operations:
+                for symop in self.symmetry_operations:
+                  newf= []
                   for qpt in f:
+                    #print(symop)
                     newpt= np.dot(symop,np.dot(R, qpt)).tolist()  # Convert numpy array to list
                     newf.append(newpt)
-                all_faces.append(newf)
+                  all_faces.append(newf)
+        print("all_faces")
+        print(len(all_faces))
                 
         def get_face_plot(face) ->go.Mesh3d:
             px=[face[0][0],face[1][0],face[2][0],face[3][0]]
