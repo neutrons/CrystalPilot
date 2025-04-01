@@ -235,6 +235,16 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
             qv1=[i.tolist() for i in qv0]
             qf1=[[t.tolist() for t in qf0[i]] for i in qf0.keys()]
             view_model.model.angleplan.qpane_cones.append({'pane_id':idx_pane,'qvertices':qv1,'qfaces':qf1})
+
+            ##################################################################################
+            # each qface is 6 surface of cube
+            # each face has 4 vertices[ 0,1,2,3]
+            # shaped as 
+            #  0---1
+            #  |   |
+            #  2---3
+            ##################################################################################
+        
         print('-------------------------grids setup-----------------------------')
         #Qmax=multi_detector_system.get_max_Q()
         #Qmin=multi_detector_system.get_min_Q()
@@ -266,13 +276,23 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
 
         pg = PointGroupFactory.createPointGroup(point_group )
         so=pg.getSymmetryOperations()
+        print('symmetry operations:',so)
         #qhkl_sym_list=[]
         qlab_sym_list=[]
+        a=np.array([1,0,0])
+        b=np.array([0,1,0])
+        c=np.array([0,0,1])
+        symmetry_operations=[]
         for sym in so:
             qhkl_sym=[sym.transformHKL(q) for q in qhkl_irr]
             qlab=np.array(qhkl_sym)@(UB).T
             #qhkl_sym_list.append(qlab)
             qlab_sym_list.append(qlab)
+            tsyma=sym.transformHKL(a)
+            tsymb=sym.transformHKL(b)
+            tsymc=sym.transformHKL(c)
+            tsym=np.array([tsyma,tsymb,tsymc]).tolist()
+            symmetry_operations.append(tsym)
 
         
         #print('qhkl_sym_list length and shape',len(qhkl_sym_list),qhkl_sym_list[-1].shape)
@@ -307,8 +327,13 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         fixed_angle_list= [ [0,135,0]]
         print('fixed_angle_list:',fixed_angle_list)
         euler_angle_range=[[0,360,1],[135,135,1],[0,360,1]]
-        final_angle_list,final_coverage=optimize_angle_with_fixed_given(grids,multi_detector_system,fixed_angle_list,euler_angle_range)
-        print("Detector Coverage Results: ", np.sum(final_coverage)/np.size(final_coverage)*100,'%')
+       
+      ############################################### optimization ####################################### 
+        #final_angle_list,final_coverage=optimize_angle_with_fixed_given(grids,multi_detector_system,fixed_angle_list,euler_angle_range)
+        #print("Detector Coverage Results: ", np.sum(final_coverage)/np.size(final_coverage)*100,'%')
+        #return final_angle_list
+        
+        final_angle_list=[]
         return final_angle_list
 
         exit('debug')

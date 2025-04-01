@@ -195,7 +195,8 @@ class AnglePlanView:
                             update_modelValue="flushState('model_angleplan')"   
                         )
                 with vuetify.VCardActions():
-                    vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False")
+                    vuetify.VBtn("Cancel", click=self.view_model.close_runedit_dialog, style="align-self: center;")
+                    #vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False") #TODO: this one not working at this git version
                     vuetify.VSpacer()
                     vuetify.VBtn("Save", click="trigger('save_run')")
                     #vuetify.VBtn("Save", click="trigger('save_run')")
@@ -273,14 +274,53 @@ class AnglePlanView:
                 vuetify.VCardSubtitle(
                     "Visualization of coverage of reflections by the instrument with sample orientations from the current strategy."
                 )
+            ''' 
+            fig_coverage=go.Figure()
+            # Generate random points in 3D space
+            points = np.random.rand(30, 3)
+
+            # Compute the convex hull
+            hull = ConvexHull(points)
+
+            # Extract the vertices and simplices
+            vertices = points[hull.vertices]
+            simplices = hull.simplices
+
+            # Add the polyhedron to the figure
+            for simplex in simplices:
+                fig_coverage.add_trace(go.Mesh3d(
+                    x=points[simplex, 0],
+                    y=points[simplex, 1],
+                    z=points[simplex, 2],
+                    color='lightblue',
+                    opacity=0.50
+                ))
+            #fig_coverage.update_layout(
+            #    title={
+            #    'text': 'Prediction of Signal Noise Ratio',
+            #    'x': 0.5,
+            #    'xanchor': 'center'
+            #    },
+            #    xaxis_title='Time Steps (s)',
+            #    yaxis_title=' ',
+            #    xaxis=dict(range=[0, 2000]),
+            #    yaxis=dict(range=[0, 100]),
+            #    paper_bgcolor='rgba(10,10,10,0)',
+            #    plot_bgcolor='rgba(0,0,0,0)',
+            #)
+            '''
             with HBoxLayout(halign="left", height="40vh"):
                 #vuetify.VCardTitle("Prediction of Intensity"),
         #        self.figure_intensity 
                 self.figure_coverage = plotly.Figure()
                 self.figure_coverage.update(self.fig_c)
-            with vuetify.VCardActions():
-                    vuetify.VBtn("Close", click="model_angleplan.is_showing_coverage = False")
-                    vuetify.VSpacer()
+            with HBoxLayout(halign="left", height="40vh"):
+                vuetify.VBtn("Close", click=self.view_model.close_coverage, style="align-self: center;")
+                vuetify.VBtn("Turn on Symmetry", click=self.view_model.get_coverage_figure_with_symmetry, style="align-self: center;")
+            #with vuetify.VCardActions():
+            #        vuetify.VBtn("Close", click=self.view_model.close_coverage, style="align-self: center;")
+                    #vuetify.VBtn("Close", click="model_angleplan.runedit_dialog = False")#TODO: this one not working at this git version
+                    #vuetify.VSpacer()
         #######################################################################################
  
         #InputField(v_model="model_eiccontrol.IPTS_number")

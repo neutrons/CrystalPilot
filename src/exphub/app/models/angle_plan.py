@@ -111,6 +111,9 @@ class AnglePlanModel(BaseModel):
 
     target_coverage: float = Field(default=0.9, title="Target coverage", description="Target coverage for the experiment")
     qpane_cones: List = Field(default=[], title="Q Pane Cones", description="List of Q pane cones to be displayed")
+    qpoints_all: List = Field(default=[], title="Q Points", description="List of Q points to be displayed")
+    qpoints_covered: List = Field(default=[], title="Q Points Covered", description="List of Q points covered by the experiment")
+
 
 
 
@@ -126,6 +129,7 @@ class AnglePlanModel(BaseModel):
     offset            : float = Field(default=0, title="Offset", description="Offset of the crystal")
     point_group       : str = Field(default="m-3", title="Point Group", description="Point group of the crystal")
     lattice_centering : str = Field(default="P", title="Lattice Centering", description="Lattice centering of the crystal")
+    symmetry_operations: List = Field(default=[], title="Symmetry Operations", description="List of symmetry operations to be used for the angle plan")
 
  
     
@@ -301,7 +305,8 @@ class AnglePlanModel(BaseModel):
 
 
 
-    def update_polyhedron_angle_list(self) -> List:
+    def update_polyhedron_angle_list_0(self) -> List:
+        qcones=self.qpane_cones.copy()
         polyhedron_original_list=self.qpane_cones.copy()
 
         polyhedron_angle_list=[]
@@ -317,7 +322,7 @@ class AnglePlanModel(BaseModel):
         return polyhedron_angle_list
 
 
-    def get_figure_coverage(self) -> go.Figure:
+    def get_figure_coverage_0(self) -> go.Figure:
         # Implement the submit logic here
        
 
@@ -414,3 +419,100 @@ class AnglePlanModel(BaseModel):
 
         #self.is_under_development = True
 
+
+
+    def get_figure_coverage(self) -> go.Figure:
+        qcones=self.qpane_cones.copy()
+        faces=[]
+        for pane in qcones: # x24 cone iters
+            faces=faces+pane['qfaces'] # 6 faces iters
+
+        all_faces=[]
+        for f in faces:
+            for angle in self.angle_list:
+                # Extract vertices and faces
+                chi,phi,omega = angle["chi"],angle["phi"],angle["omega"]
+                R=self.get_rotation_matrix(chi, phi, omega)
+                newf= []
+                for qpt in f:
+                    newpt= np.dot(R, qpt).tolist()  # Convert numpy array to list
+                    newf.append(newpt)
+                all_faces.append(newf)
+                
+        def get_face_plot(face) ->go.Mesh3d:
+            px=[face[0][0],face[1][0],face[2][0],face[3][0]]
+            py=[face[0][1],face[1][1],face[2][1],face[3][1]]
+            pz=[face[0][2],face[1][2],face[2][2],face[3][2]]
+            pi=[0,1]
+            pj=[1,2]
+            pk=[2,3]
+            # Create a mesh
+            face_plot = go.Mesh3d( x=px, y=py, z=pz, i=pi, j=pj, k=pk,
+                    color='lightblue', opacity=0.50, alphahull=0)
+            return face_plot
+
+        fig=go.Figure()
+        for f in all_faces:
+            face_plot = get_face_plot(f)
+            fig.add_trace(face_plot)
+
+        fig.update_layout(
+            scene=dict(
+            xaxis_title='X Axis',
+            yaxis_title='Y Axis',
+            zaxis_title='Z Axis',
+            aspectmode='data'
+            ),
+            title='3D Polyhedron Visualization'
+        )
+        return fig
+
+
+    def get_coverage_figure_with_symmetry(self, ) -> None:
+        print("update_coverage_figure_with_symmetry")
+        qcones=self.qpane_cones.copy()
+        faces=[]
+        for pane in qcones: # x24 cone iters
+            faces=faces+pane['qfaces'] # 6 faces iters
+
+        all_faces=[]
+        for f in faces:
+            for angle in self.angle_list:
+              
+                # Extract vertices and faces
+                chi,phi,omega = angle["chi"],angle["phi"],angle["omega"]
+                R=self.get_rotation_matrix(chi, phi, omega)
+                newf= []
+                for symop in self.model.angleplan.symmetry_operations:
+                  for qpt in f:
+                    newpt= np.dot(symop,np.dot(R, qpt)).tolist()  # Convert numpy array to list
+                    newf.append(newpt)
+                all_faces.append(newf)
+                
+        def get_face_plot(face) ->go.Mesh3d:
+            px=[face[0][0],face[1][0],face[2][0],face[3][0]]
+            py=[face[0][1],face[1][1],face[2][1],face[3][1]]
+            pz=[face[0][2],face[1][2],face[2][2],face[3][2]]
+            pi=[0,1]
+            pj=[1,2]
+            pk=[2,3]
+            # Create a mesh
+            face_plot = go.Mesh3d( x=px, y=py, z=pz, i=pi, j=pj, k=pk,
+                    color='lightblue', opacity=0.50, alphahull=0)
+            return face_plot
+
+        fig=go.Figure()
+        for f in all_faces:
+            face_plot = get_face_plot(f)
+            fig.add_trace(face_plot)
+
+        fig.update_layout(
+            scene=dict(
+            xaxis_title='X Axis',
+            yaxis_title='Y Axis',
+            zaxis_title='Z Axis',
+            aspectmode='data'
+            ),
+            title='3D Polyhedron Visualization'
+        )
+        return fig

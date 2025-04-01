@@ -21,6 +21,8 @@ import asyncio
 #from ..models.css_status import CSSStatusModel
 #from ..models.temporal_analysis import TemporalAnalysisModel    
 
+import numpy as np
+import plotly.graph_objects as go
 
 
 class MainViewModel:
@@ -227,6 +229,10 @@ class MainViewModel:
             self.model.angleplan.run_record = run.copy()
             self.model.angleplan.runedit_dialog = True
         self.update_view()
+    def close_runedit_dialog(self) -> None:
+        print("close_runedit_dialog")
+        self.model.angleplan.runedit_dialog = False
+        self.update_view()
 
     #@trame_server.controller.trigger('save_run')
     def save_run(self) -> None:
@@ -254,6 +260,12 @@ class MainViewModel:
     #def update_coverage_figure(self, _: Any = None) -> None:
     #    #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
     #    self.angleplan_updatefigure_converage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
+    def get_coverage_figure_with_symmetry(self) -> None:
+        print("get_coverage_figure_with_symmetry")
+        fig=self.model.angleplan.get_coverage_figure_with_symmetry()
+        self.update_view()
+        return fig
+    
     def get_figure_coverage(self) -> None:
         print("get_figure_coverage")
         fig=self.model.angleplan.get_figure_coverage()
@@ -263,6 +275,10 @@ class MainViewModel:
     def show_coverage(self):
         print("show_cov")
         self.model.angleplan.is_showing_coverage = True
+        self.update_view()
+    def close_coverage(self):
+        print("hide_cov")
+        self.model.angleplan.is_showing_coverage = False
         self.update_view()
 
     def reset_run(self):
@@ -353,6 +369,7 @@ class MainViewModel:
             self.model.angleplan.angle_list.append(r)
         
         print('vm optimize done for angle_list',self.model.angleplan.angle_list)
+
 
 
 
