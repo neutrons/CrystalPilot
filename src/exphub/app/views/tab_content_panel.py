@@ -65,13 +65,16 @@ class TabContentPanel:
                         #vuetify.VBtn("OK",  color="primary", block=True)
 
 
-    def open_data_visualization() -> None:
+    def open_data_visualization(self) -> None:
         """Open the Data Visualization tab."""
+        #self.view_model.call_nxv()
+        import os
+        os.system("~/run-nxv.sh")
         print("Open Data Visualization tab")
-    def open_data_reduction() -> None:
+    def open_data_reduction(self) -> None:
         """Open the Data Reduction tab."""
         print("Open Data Reduction tab")
-    def open_data_refinement() -> None:
+    def open_data_refinement(self) -> None:
         """Open the Data Refinement tab."""
         print("Open Data Refinement tab")
         

@@ -282,7 +282,9 @@ class MainViewModel:
 
     def show_coverage(self):
         print("show_cov")
-        self.model.angleplan.is_showing_coverage = True
+        #self.model.angleplan.is_showing_coverage = True
+        import os
+        os.system("~/run-nxv.sh")
         self.update_view()
     def close_coverage(self):
         print("hide_cov")
