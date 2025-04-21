@@ -99,9 +99,10 @@ class EICControlModel(BaseModel):
         #if self.scan_id
         print(self.eic_submission_scan_id)
         print(self.eic_submission_scan_id_list)
-        eic_client.abort_scan(scan_id=self.eic_submission_scan_id_list[self.current_scan_idx])
-        self.current_scan_idx+=1
-        self.eic_submission_scan_id=self.eic_submission_scan_id_list[self.current_scan_idx]
+        #eic_client.abort_scan(scan_id=self.eic_submission_scan_id_list[self.current_scan_idx])
+        eic_client.abort_scan(scan_id=self.eic_submission_scan_id)
+        #self.current_scan_idx+=1
+        #self.eic_submission_scan_id=self.eic_submission_scan_id_list[self.current_scan_idx]
         
 
         pass

@@ -28,6 +28,9 @@ class MantidWorkflow():
         self.ipts=34069
         self.ipts=35078
         self.ipts=35036
+        print(self.ipts)
+    #TODO: connect ipts
+        self.ipts=34655
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
         self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
@@ -908,10 +911,10 @@ class MantidWorkflow():
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
         refine_ub_of_current_run()
-        #integrate_peaks_of_current_run()
-        #check_peaks_of_current_run()
+        integrate_peaks_of_current_run()
+        check_peaks_of_current_run()
         
-        get_time_series_data_sim_linear()
+        #get_time_series_data_sim_linear()
         
         time.sleep(0)
 
@@ -1131,8 +1134,8 @@ class TemporalAnalysisModel(BaseModel):
             intensity_figure_title='Prediction of Intensity'
             intensity_figure_yaxis='Intensity'
 
-        if False:
-        #if len(time_steps)>0:
+        #if False:
+        if len(time_steps)>0:
             print("============================================================================================")
             print("time_steps = self.mtd_workflow.measure_times")
             print(time_steps , self.mtd_workflow.measure_times )
@@ -1229,7 +1232,7 @@ class TemporalAnalysisModel(BaseModel):
         #if self.prediction_model_type=='Poisson Model':
         if self.prediction_model_type=='Linear Interpolation':
             time_steps=self.mtd_workflow.timeseries_plt
-            uncertainty_data=self.mtd_workflow.temporal_poisson_uncertainty/6
+            uncertainty_data=self.mtd_workflow.temporal_poisson_uncertainty
             uncertainty_figure_title='Prediction of Uncertainty'
             uncertainty_figure_yaxis='Uncertainty (%)'
             time_steps=np.array(time_steps)
@@ -1266,8 +1269,8 @@ class TemporalAnalysisModel(BaseModel):
             x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
             y_range = slope * (1 / x_range**0.5) +0* intercept
     
-        #if len(self.mtd_workflow.measure_times)>0:
-        if False:
+        if len(self.mtd_workflow.measure_times)>0:
+        #if False:
             uncertainty_data = np.array(uncertainty_data)
             time_steps = np.array(time_steps)
             X = np.array(time_steps).reshape(-1, 1)
