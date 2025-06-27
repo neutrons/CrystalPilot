@@ -8,6 +8,7 @@ from .temporal_analysis import TemporalAnalysisView  # Import the new view
 from .angle_plan import AnglePlanView
 from .eic_control import EICControlView
 from .css_status import CSSStatusView
+from .data_analysis import DataAnalysisView
 from .experiment_info import ExperimentInfoView
 from .newtabtemplate import NewTabTemplateView
 
@@ -38,12 +39,14 @@ class TabContentPanel:
                        #     EICControlView(self.view_model)
                         with vuetify.VWindowItem(value=5):
                             CSSStatusView(self.view_model)
+                        with vuetify.VWindowItem(value=6):
+                            DataAnalysisView(self.view_model)
                        # with vuetify.VWindowItem(value=6):
                        #     NewTabTemplateView(self.view_model)
-            with vuetify.VCardActions():
-                vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
-                vuetify.VBtn("Data Reduction", click=self.open_data_reduction)
-                vuetify.VBtn("Structure Analysis", click=self.open_data_refinement)
+            #with vuetify.VCardActions():
+            #    vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
+            #    vuetify.VBtn("Data Reduction", click=self.open_data_reduction)
+            #    vuetify.VBtn("Structure Analysis", click=self.open_data_refinement)
                 #vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
                 #vuetify.VBtn("Data Reduction", click=self.open_data_reduction)
                 #vuetify.VBtn("Data Refinement", click=self.open_data_refinement)

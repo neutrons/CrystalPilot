@@ -20,5 +20,6 @@ class TabsPanel:
             vuetify.VTab("Experiment Steering",     value=3)
             #vuetify.VTab("EIC Control",         value=4)
             vuetify.VTab("Instrument Status",   value=5) 
+            vuetify.VTab("Data Analysis",   value=6) 
             
             #vuetify.VTab("New Tab Template",    value=6) 

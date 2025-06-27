@@ -9,6 +9,8 @@ from ..models.main_model import MainModel
 from ..models.angle_plan import AnglePlanModel
 from ..models.experiment_info import ExperimentInfoModel
 from ..models.eic_control import EICControlModel
+from ..models.data_analysis import DataAnalysisModel
+
 from ..models.newtabtemplate import NewTabTemplateModel
 
 #from ..models.plotly import PlotlyConfig
@@ -45,6 +47,8 @@ class MainViewModel:
         self.eiccontrol_bind = binding.new_bind(self.model.eiccontrol, callback_after_update=self.change_callback)
         #self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis, callback_after_update=self.change_callback)
         self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis, callback_after_update=self.update_temporalanalysis_figure)
+
+        self.dataanalysis_bind = binding.new_bind(self.model.dataanalysis, callback_after_update=self.change_callback)
 
         #self.cssstatus_bind = binding.new_bind(self.model.cssstatus, callback_after_update=self.change_callback)
         self.cssstatus_bind = binding.new_bind(self.model.cssstatus, callback_after_update=self.update_cssstatus_figure)

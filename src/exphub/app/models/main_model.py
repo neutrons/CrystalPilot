@@ -6,6 +6,7 @@ from .eic_control import EICControlModel
 from .experiment_info import ExperimentInfoModel
 from .css_status import CSSStatusModel
 from .temporal_analysis import TemporalAnalysisModel
+from .data_analysis import DataAnalysisModel
 
 from .newtabtemplate import NewTabTemplateModel 
 
@@ -33,6 +34,7 @@ class MainModel(BaseModel):
     experimentinfo: ExperimentInfoModel = Field(default_factory=ExperimentInfoModel, title="Experiment Info")
     cssstatus: CSSStatusModel = Field(default_factory=CSSStatusModel, title="CSS Status")
     temporalanalysis: TemporalAnalysisModel = Field(default_factory=TemporalAnalysisModel, title="Temporal Analysis")
+    dataanalysis: DataAnalysisModel = Field(default_factory=DataAnalysisModel, title="Data Analysis")
 
     newtabtemplate: NewTabTemplateModel = Field(default_factory=NewTabTemplateModel, title="New Tab Template")
     #plotly: PlotlyModel = Field(default_factory=PlotlyModel, title="Plotly")

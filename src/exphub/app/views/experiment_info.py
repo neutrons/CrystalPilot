@@ -3,7 +3,7 @@
 from trame.widgets import vuetify3 as vuetify
 
 
-from nova.trame.view.components import InputField
+from nova.trame.view.components import InputField, RemoteFileInput
 from nova.trame.view.layouts import GridLayout
 
 class ExperimentInfoView:
@@ -45,7 +45,7 @@ class ExperimentInfoView:
                 items="config.options.centering_list",
                 type="select",
             )
-            InputField(
+            RemoteFileInput(
                 v_model="config.UBFileName",
             )
         with GridLayout(columns=2):

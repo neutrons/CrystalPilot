@@ -72,7 +72,7 @@ class ExperimentInfoModel(BaseModel):
         description="NXS file for the background measurement of the current cycle.",
     )
     read_UB: Optional[bool] = Field(default=False, title="Read UB Matrix")
-    UBFileName: Optional[str] = Field(default=None, title="UB File", description="Optional UB matrix file.")
+    UBFileName: Optional[str] = Field(default="/home/zx5/1-todo/4-integrate/nxv/nxv-git-zhongcanxiao/src/TOPAZ_44752_Tetragonal.mat", title="UB File", description="Optional UB matrix file.")
     maxQ: float = Field(default=17.0, title="maxQ")
     splitThreshold: int = Field(default=80, title="Split Threshold")
     edgePixels: int = Field(default=0, title="Edge Pixels")
