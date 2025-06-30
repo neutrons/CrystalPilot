@@ -42,20 +42,30 @@ class DataAnalysisView:
 
         with GridLayout(columns=2, classes="mb-2"):
             InputField(v_model="model_dataanalysis.output_dir_reduction", type="text", label="Output Directory for Reduction")
-           
+        #vuetify.VBtn(
+        #    "Data Reduction & Structure Analysis",
+        #    href="https://nova.ornl.gov/single-crystal-diffraction",
+        #    target="_blank",
+        #    color="primary",
+        #    style="align-self: center;",
+        #    raw_attrs=['rel="noopener noreferrer"']
+        #)
+        #vuetify.VIcon("mdi-open-in-new")
             vuetify.VBtn(
-                    "Data Reduction & Structure Analysis",
-                    href="https://nova.ornl.gov/single-crystal-diffraction",
-                    target="_blank",
-                    color="primary",
-                    style="align-self: center;"
-                )
+                "Data Reduction & Structure Analysis",
+                click="window.open('https://nova.ornl.gov/single-crystal-diffraction', '_blank')",
+                target="_blank",
+                color="primary",
+                style="align-self: center;",
+                raw_attrs=['rel="noopener noreferrer"']
+            )
+        #    vuetify.VIcon("mdi-open-in-new")
 
         with GridLayout(columns=2, classes="mb-2"):
             InputField(v_model="model_dataanalysis.output_dir_discus", type="text", label="Output Directory for Discus")
             vuetify.VBtn(
                     "Diffuse Scattering Analysis",
-                    href="http://localhost:8888/notebooks/demo/test.ipynb",
+                    click="window.open('http://10.159.209.93:8888/notebooks/demo/test.ipynb', '_blank')",
                     target="_blank",
                     color="primary",
                     style="align-self: center;"
