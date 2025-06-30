@@ -74,6 +74,10 @@ class DataAnalysisView:
             InputField(v_model="model_dataanalysis.output_dir_olex2", type="text", label="Output Directory for Olex2")
             vuetify.VBtn("Olex2", click=self.open_olex2, color="primary",style="align-self: center;")
 
+        with GridLayout(columns=2, classes="mb-2"):
+            InputField(v_model="model_dataanalysis.output_dir_shelx", type="text", label="Output Directory for ShelX")
+            vuetify.VBtn("ShelX", click=self.open_shelx, color="primary",style="align-self: center;")
+
 #            with vuetify.VCardActions():
 #                vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
 #
@@ -124,7 +128,17 @@ class DataAnalysisView:
         print("Open Olex2 tab")
         import os
         #os.system("~/run-olex2.sh")
-        os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/olex2")
+        os.system("olex2")
+        #os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/olex2")
+
+    def open_shelx(self) -> None:
+        """Open the Olex2 tab."""
+        print("Open ShelX tab")
+        import os
+        #os.system("~/run-olex2.sh")
+        os.system("shelxle")
+        #os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/olex2")
+
 
     def open_data_reduction(self) -> None:
         """Open the Data Reduction tab."""

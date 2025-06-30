@@ -12,6 +12,7 @@ class DataAnalysisModel(BaseModel):
     data_dir: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/", title="Data Directory")
     output_dir_nxv: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/nxv/", title="Output Directory for NeuXstalViz")
     output_dir_olex2: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/olex2/", title="Output Directory for Olex2")
+    output_dir_shelx: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/shelx/", title="Output Directory for ShelX")
     output_dir_discus: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/discus/", title="Output Directory for Discus")
     output_dir_reduction: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/reduction/", title="Output Directory for Reduction")
 
