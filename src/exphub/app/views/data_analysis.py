@@ -116,13 +116,15 @@ class DataAnalysisView:
         """Open the Data Visualization tab."""
         #self.view_model.call_nxv()
         import os
-        os.system("~/run-nxv-0.sh")
+       # os.system("~/run-nxv-0.sh")
+        os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/nxv.sh")
         print("Open Data Visualization tab")
     def open_olex2(self) -> None:
         """Open the Olex2 tab."""
         print("Open Olex2 tab")
         import os
-        os.system("~/run-olex2.sh")
+        #os.system("~/run-olex2.sh")
+        os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/olex2")
 
     def open_data_reduction(self) -> None:
         """Open the Data Reduction tab."""
