@@ -32,6 +32,17 @@ class MainViewModel:
 
     def __init__(self, model: MainModel, binding: BindingInterface):
         self.model = model
+        # Guard to prevent recursive / re-entrant updates for temporalanalysis
+        self._temporalanalysis_updating: bool = False
+        # Debounce: avoid repeated updates in a short interval (seconds)
+        self._temporalanalysis_last_update_time: float = 0.0
+        self._temporalanalysis_min_interval: float = 1.0
+        # Set parent link for temporalanalysis model so it can access sibling models
+        try:
+            if hasattr(self.model, "temporalanalysis") and hasattr(self.model.temporalanalysis, "set_parent"):
+                self.model.temporalanalysis.set_parent(self.model)
+        except Exception as e:
+            print("Warning: failed to set parent for temporalanalysis:", e)
         #self.angleplan = AnglePlanModel()
 
         # here we create a bind that connects ViewModel with View. It returns a communicator object,
@@ -45,8 +56,8 @@ class MainViewModel:
         self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.update_experimentinfo_options)
         self.angleplan_bind = binding.new_bind(self.model.angleplan, callback_after_update=self.change_callback)
         self.eiccontrol_bind = binding.new_bind(self.model.eiccontrol, callback_after_update=self.change_callback)
-        #self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis, callback_after_update=self.change_callback)
-        self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis, callback_after_update=self.update_temporalanalysis_figure)
+        # Create temporalanalysis bind WITHOUT a callback to avoid feedback loops
+        self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis)
 
         self.dataanalysis_bind = binding.new_bind(self.model.dataanalysis, callback_after_update=self.change_callback)
 
@@ -81,6 +92,12 @@ class MainViewModel:
         #self.create_auto_update_cssstatus_figure()
 
         self.angleplan_updatefigure_coverage_bind = binding.new_bind()
+
+        # Initialize temporalanalysis figures once at startup (no continuous callback)
+        try:
+            self.update_temporalanalysis_figure()
+        except Exception:
+            pass
 
 
 
@@ -154,11 +171,36 @@ class MainViewModel:
 
  
     def update_temporalanalysis_figure(self, _: Any = None) -> None:
-        #self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
-        self.temporalanalysis_updatefigure_intensity_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity())
-        self.temporalanalysis_updatefigure_uncertainty_bind.update_in_view(self.model.temporalanalysis.get_figure_uncertainty())
-        self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
-        #time.sleep(7)
+        # Prevent re-entrant calls (can happen if view updates cause model callbacks)
+        if self._temporalanalysis_updating:
+            return
+        # Debounce: skip if last update was very recent
+        try:
+            now = time.time()
+            if now - self._temporalanalysis_last_update_time < self._temporalanalysis_min_interval:
+                return
+            self._temporalanalysis_last_update_time = now
+        except Exception:
+            # If time isn't available for some reason, continue without debounce
+            pass
+        self._temporalanalysis_updating = True
+        try:
+            # Push the new figures to the view
+            self.temporalanalysis_updatefigure_intensity_bind.update_in_view(
+                self.model.temporalanalysis.get_figure_intensity()
+            )
+            self.temporalanalysis_updatefigure_uncertainty_bind.update_in_view(
+                self.model.temporalanalysis.get_figure_uncertainty()
+            )
+            # Update the model representation in view (avoid triggering view->model callbacks here)
+            try:
+                self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
+            except Exception:
+                # Some binding implementations may attempt to invoke callbacks; swallow
+                # exceptions here to avoid causing an update loop.
+                pass
+        finally:
+            self._temporalanalysis_updating = False
 
     async def auto_update_temporalanalysis_figure(self) -> None:
         while True:
@@ -177,6 +219,8 @@ class MainViewModel:
             print("get_live_mtd_data")
             try:
                 #self.update_temporalanalysis_figure()
+                exp_info_model=self.model.temporalanalysis.get_experimentinfo()
+                self.model.temporalanalysis.mtd_workflow.update_experiment_info(exp_info_model)
                 self.model.temporalanalysis.mtd_workflow.live_data_reduction()
                 print("get_live_mtd_data done")
                 print("============================================================================================")

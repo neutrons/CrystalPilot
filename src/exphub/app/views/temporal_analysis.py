@@ -25,6 +25,14 @@ class TemporalAnalysisView:
 
     def __init__(self,view_model:MainViewModel) -> None:
         self.view_model = view_model
+        # guards to avoid re-entrant or too-frequent view updates
+        self._updating_intensity = False
+        self._last_intensity_time = 0.0
+        self._min_interval_intensity = 0.5
+
+        self._updating_uncertainty = False
+        self._last_uncertainty_time = 0.0
+        self._min_interval_uncertainty = 0.5
         self.view_model.temporalanalysis_bind.connect("model_temporalanalysis")
         self.view_model.temporalanalysis_updatefigure_intensity_bind.connect(self.update_figure_intensity)
         self.view_model.temporalanalysis_updatefigure_uncertainty_bind.connect(self.update_figure_uncertainty)
@@ -114,11 +122,24 @@ class TemporalAnalysisView:
 
 
     def update_figure_intensity(self, figure_intensity: go.Figure) -> None:
-        self.figure_intensity.update(figure_intensity)
-        self.figure_intensity.state.flush()
-        print("============================================================================================")
-        print("update_figure_intensity")
-        print("============================================================================================")
+        # debounce / re-entrancy guard
+        now = time.time()
+        if self._updating_intensity:
+            return
+        if now - self._last_intensity_time < self._min_interval_intensity:
+            return
+        self._updating_intensity = True
+        try:
+            self.figure_intensity.update(figure_intensity)
+            # flush view state to ensure it is rendered; this can trigger state listeners,
+            # so keep it guarded to avoid feedback loops
+            self.figure_intensity.state.flush()
+            self._last_intensity_time = now
+            print("============================================================================================")
+            print("update_figure_intensity")
+            print("============================================================================================")
+        finally:
+            self._updating_intensity = False
         #print("Currently plotted data:", self.figure_intensity.data)
         #print("Currently plotted data:", self.figure_intensity.layout)
         #print("Currently plotted data:", self.figure_intensity.layout.title)
@@ -131,11 +152,23 @@ class TemporalAnalysisView:
         #print(er, "update_figure")
         #self.figure.state.flush()  # 
     def update_figure_uncertainty(self,figure_uncertainty:go.Figure) -> None:
-        self.figure_uncertainty.update(figure_uncertainty)
-        self.figure_uncertainty.state.flush()
-        print("============================================================================================")
-        print("update_figure_uncertainty")
-        print("============================================================================================")
+        # debounce / re-entrancy guard
+        now = time.time()
+        if self._updating_uncertainty:
+            return
+        if now - self._last_uncertainty_time < self._min_interval_uncertainty:
+            return
+        self._updating_uncertainty = True
+        try:
+            self.figure_uncertainty.update(figure_uncertainty)
+            # flush view state; keep guarded to avoid feedback loops
+            self.figure_uncertainty.state.flush()
+            self._last_uncertainty_time = now
+            print("============================================================================================")
+            print("update_figure_uncertainty")
+            print("============================================================================================")
+        finally:
+            self._updating_uncertainty = False
         #print("Currently plotted data:", self.figure.data)
         #print("Currently plotted data:", self.figure.layout)
         #print(er, "update_figure")

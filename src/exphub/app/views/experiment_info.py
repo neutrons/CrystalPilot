@@ -22,6 +22,7 @@ class ExperimentInfoView:
             
             InputField(v_model="config.expName")
             InputField(v_model="config.ipts_number")
+    
 
         with GridLayout():
             InputField(
@@ -47,6 +48,9 @@ class ExperimentInfoView:
             )
             RemoteFileInput(
                 v_model="config.UBFileName",
+            )
+            RemoteFileInput(
+                v_model="config.calFileName",
             )
         with GridLayout(columns=2):
             InputField(

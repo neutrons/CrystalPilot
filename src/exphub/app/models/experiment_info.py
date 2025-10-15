@@ -61,7 +61,7 @@ class ExperimentInfoModel(BaseModel):
         description="Will be used to create a directory in the shared folder under the IPTS directory.",
     )
     calFileName: str = Field(
-        default="/SNS/TOPAZ/shared/calibrations/2019A/Calibration/TOPAZ_2019A.DetCal",
+        default="/SNS/TOPAZ/shared/calibrations/2025B/TOPAZ_2025B_AG_2-3BN_AG.DetCal",
         title="Calibration File",
         description="Calibration file for the current cycle.",
     )

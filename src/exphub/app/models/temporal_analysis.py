@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from typing import List, Dict
+from typing import List, Dict, TYPE_CHECKING, Optional
 import plotly.graph_objects as go
 from plotly.data import iris
 from plotly.subplots import make_subplots
@@ -33,10 +34,14 @@ class MantidWorkflow():
         self.ipts=34655
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
+        self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
         self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
         self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
+        self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
 
-        # Sample information
+
+
+       # Sample information
         self.min_d = 7   # shortest lattice parameter
         self.max_d = 40  # longest lattice parameter
 
@@ -141,6 +146,24 @@ class MantidWorkflow():
         self.temporal_poisson_intensity=[0]
         self.temporal_poisson_uncertainty=[0]
             # Run the SortHKL algorithm
+
+    def update_experiment_info(self,exp_info_model)->None:
+        self.ipts=exp_info_model.ipts_number
+        self.cell_type=exp_info_model.crystalsystem
+        self.centering=exp_info_model.centering
+        self.min_d=exp_info_model.minDSpacing
+        self.max_d=exp_info_model.maxDSpacing
+        self.calib_fname=exp_info_model.calFileName
+        print("update experiment info" )
+        #print(self.ipts,self.cell_type,self.centering,self.min_d,self.max_d,self.calib_fname)
+        self.ub_failsafe=exp_info_model.UBFileName
+        self.output_path = '/SNS/TOPAZ/IPTS-{}/shared/autoreduce/live_data/'.format(self.ipts)
+        
+
+        #self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
+        #self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
+        #self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
+
     def update_peak_output_filenames(self):
         if not self.cell_type is None:
             self.live_peaks_fname = 'live_topaz-ipts-%s_%s_%s_%s.integrate'%(str(self.ipts),str(self.current_run),self.cell_type,self.centering)
@@ -255,6 +278,7 @@ class MantidWorkflow():
             #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             mtdapi.LoadIsawDetCal(InputWorkspace='live_event_ws', Filename=self.calib_fname)
+            print("load isaw detcal",self.calib_fname)
             #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("second filterbytime")
@@ -907,6 +931,7 @@ class MantidWorkflow():
         print("============================================================================================")
         print("live data reduction started")
         print("============================================================================================")
+        print("?")
         #get_time_series_data_sim()
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
@@ -1093,7 +1118,11 @@ class PoissonModelAnalysis(BaseModel):
 
         #plt.close('all')
 '''
-        
+
+if TYPE_CHECKING:
+    from .main_model import MainModel
+
+
 class TemporalAnalysisModel(BaseModel):
     table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     prediction_model_type: str = Field(default="Poisson Model", title="Prediction Model")
@@ -1113,6 +1142,34 @@ class TemporalAnalysisModel(BaseModel):
     time_interval : float=Field(default=40,title="Time Interval")
     mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow()
     #mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
+    # Optional back-reference to MainModel. Set by MainViewModel when wiring.
+    _parent: Optional["MainModel"] = None
+
+    def set_parent(self, parent: "MainModel") -> None:
+        """Set a back-reference to the owning MainModel.
+
+        Use this to access sibling models (for example, experimentinfo) without
+        importing MainModel at runtime (TYPE_CHECKING prevents circular imports).
+        """
+        self._parent = parent
+
+    def get_experimentinfo(self):
+        """Return the ExperimentInfoModel instance from the parent MainModel, or None.
+
+        Use this helper to access up-to-date experiment info without importing
+        ExperimentInfoModel here (avoids circular imports). Callers should
+        defensively check for None.
+        """
+        try:
+            print("try get experimentinfo from parent")
+            if getattr(self, "_parent", None) is not None:
+                print("get experimentinfo from parent")
+                print(self._parent.experimentinfo)
+                return self._parent.experimentinfo
+        except Exception:
+            return None
+        return None
+    
 
     def get_figure_intensity(self) -> go.Figure:
         #self.timestamp = time.time()
@@ -1123,6 +1180,19 @@ class TemporalAnalysisModel(BaseModel):
         if self.prediction_model_type=='Poisson Model':
             time_steps=self.mtd_workflow.measure_times
             intensity_data = self.mtd_workflow.intensity_ratios
+            ## Example of reading up-to-date experiment info from parent if available
+            ## (e.g., to change behavior based on point group or other settings).
+            #try:
+            #    if getattr(self, "_parent", None) is not None:
+            #        pg = self._parent.experimentinfo.pointGroup
+            #        # Use pointGroup for conditional behavior or logging
+            #        # e.g., change figure title suffix
+            #        intensity_figure_title_suffix = f" (PG={pg})"
+            #    else:
+            #        intensity_figure_title_suffix = ""
+            #except Exception:
+            #    intensity_figure_title_suffix = ""
+            #intensity_figure_title='Prediction of Signal Noise Ratio' + intensity_figure_title_suffix
             intensity_figure_title='Prediction of Signal Noise Ratio'
             intensity_figure_yaxis='Signal Noise Ratio'
         if self.prediction_model_type=='Linear Interpolation':
@@ -1369,8 +1439,11 @@ class TemporalAnalysisModel(BaseModel):
         #return mtd_workflow
         #return mtd_workflow
 
-    def get_live_mtd_data(self) -> None:
+    def get_live_mtd_data(self) -> None: # nolonger used
         while True:
+            print("================================get_live_mtd_data===========================")
+            exp_info_model=self.get_experimentinfo()
+            self.mtd_workflow.update_experiment_info(exp_info_model)
             self.mtd_workflow.live_data_reduction()
             print("live data reduction")
             asyncio.sleep(10)
