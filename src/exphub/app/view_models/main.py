@@ -219,8 +219,8 @@ class MainViewModel:
             print("get_live_mtd_data")
             try:
                 #self.update_temporalanalysis_figure()
-                exp_info_model=self.model.temporalanalysis.get_experimentinfo()
-                self.model.temporalanalysis.mtd_workflow.update_experiment_info(exp_info_model)
+                models=self.model.temporalanalysis.get_models()
+                self.model.temporalanalysis.mtd_workflow.update_experiment_info(models)
                 self.model.temporalanalysis.mtd_workflow.live_data_reduction()
                 print("get_live_mtd_data done")
                 print("============================================================================================")

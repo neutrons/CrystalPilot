@@ -72,6 +72,7 @@ class MantidWorkflow():
         self.min_monitor_tof = 500
         self.max_monitor_tof = 13000
         self.use_monitor_counts = False
+        
 
 
         #=================================================================================================
@@ -147,18 +148,20 @@ class MantidWorkflow():
         self.temporal_poisson_uncertainty=[0]
             # Run the SortHKL algorithm
 
-    def update_experiment_info(self,exp_info_model)->None:
-        self.ipts=exp_info_model.ipts_number
-        self.cell_type=exp_info_model.crystalsystem
-        self.centering=exp_info_model.centering
-        self.min_d=exp_info_model.minDSpacing
-        self.max_d=exp_info_model.maxDSpacing
-        self.calib_fname=exp_info_model.calFileName
+    def update_experiment_info(self,models)->None:
+        self.ipts=models.experimentinfo.ipts_number
+        self.cell_type=models.experimentinfo.crystalsystem
+        self.point_group=models.experimentinfo.pointGroup
+        self.centering=models.experimentinfo.centering
+        self.min_d=models.experimentinfo.minDSpacing
+        self.max_d=models.experimentinfo.maxDSpacing
+        self.calib_fname=models.experimentinfo.calFileName
         print("update experiment info" )
         #print(self.ipts,self.cell_type,self.centering,self.min_d,self.max_d,self.calib_fname)
-        self.ub_failsafe=exp_info_model.UBFileName
+        self.ub_failsafe=models.experimentinfo.UBFileName
         self.output_path = '/SNS/TOPAZ/IPTS-{}/shared/autoreduce/live_data/'.format(self.ipts)
         
+        self.selection=models.temporalanalysis.data_selection
 
         #self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
         #self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
@@ -456,11 +459,13 @@ class MantidWorkflow():
 
             num_peaks = live_predict_peaks_ws.getNumberPeaks()
             intIlist=np.zeros(num_peaks)
+            sigIlist=np.zeros(num_peaks)
             for i in range(num_peaks):
               peak = live_predict_peaks_ws.getPeak(i)
               intI = peak.getIntensity()
               intIlist[i]=intI
               sigI = peak.getSigmaIntensity()
+              sigIlist[i]=sigI
               self.sum = self.sum + 1
               if intI > (2.0 * sigI):
                 self.sig2 = self.sig2 + 1
@@ -490,7 +495,7 @@ class MantidWorkflow():
             # Run the SortHKL algorithm
 
             sorted, statistics_table, equivI = mtdapi.StatisticsOfPeaksWorkspace(InputWorkspace='live_predict_peaks_ws', 
-                PointGroup='2/m', LatticeCentering='P', SortBy='Overall', WeightedZScore=True)
+                PointGroup=self.point_group, LatticeCentering=self.centering, SortBy='Overall', WeightedZScore=True)
 
             statistics = statistics_table.row(0)
 
@@ -510,11 +515,22 @@ class MantidWorkflow():
                 Filename= self.output_path + self.live_peaks_ub_fname)
 
             # Check the overall peak intensity in live_peaks_ws
-            self.intensity_ratio =statistics['Mean ((I)/sd(I))']
+            #data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]
 
+            # default
+            if self.selection=='All Peaks':
+                self.intensity_ratio =statistics['Mean ((I)/sd(I))']
+            #TODO: intensity ratio selection
+            if self.selection=='Max Peak':
+                idx=self.maxpeak_idx
+                self.intensity_ratio =intIlist[idx]/sigIlist[idx]
+            
+            elif self.selection=='Total Peaks':
+                self.intensity_ratio = np.sum(intIlist)/np.sqrt(np.sum(sigIlist**2))
+                self.intensity_ratio = np.mean(intIlist/sigIlist)
+            #
             self.Rsig = 100.0/self.intensity_ratio
             print("Rsig = %.2f" % self.Rsig)
-
             if self.intensity_ratio is not None and self.Rsig is not None and self.proton_charge is not None:
                 self.proton_charges.append(self.proton_charge)
                 self.intensity_ratios.append(self.intensity_ratio)
@@ -1129,7 +1145,7 @@ class TemporalAnalysisModel(BaseModel):
     prediction_model_type_options: List[str] = ["Poisson Model", "Bayesian Model", "Linear Interpolation"]
     #prediction_model_type_options: List[str] = ["Poisson Model", "Linear Interpolation"]
     data_selection: str = Field(default="All Peaks", title="Peak Selection")
-    data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Satellite Peaks","Diffuse scattering"]
+    data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]
     #data_selection_options: List[str] = ["All Peaks", "Strongest Peak Center", "Strongest Peak Edge","Smart Selection"]
     time_steps: List[float] = Field(default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps")
     intensity_data: List[float] = Field(default=[0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0, 64.0, 81.0], title="Intensity Data")
@@ -1153,7 +1169,7 @@ class TemporalAnalysisModel(BaseModel):
         """
         self._parent = parent
 
-    def get_experimentinfo(self):
+    def get_models(self):
         """Return the ExperimentInfoModel instance from the parent MainModel, or None.
 
         Use this helper to access up-to-date experiment info without importing
@@ -1161,11 +1177,11 @@ class TemporalAnalysisModel(BaseModel):
         defensively check for None.
         """
         try:
-            print("try get experimentinfo from parent")
+            print("try get models from parent")
             if getattr(self, "_parent", None) is not None:
-                print("get experimentinfo from parent")
+                print("get models from parent")
                 print(self._parent.experimentinfo)
-                return self._parent.experimentinfo
+                return self._parent
         except Exception:
             return None
         return None
@@ -1442,8 +1458,8 @@ class TemporalAnalysisModel(BaseModel):
     def get_live_mtd_data(self) -> None: # nolonger used
         while True:
             print("================================get_live_mtd_data===========================")
-            exp_info_model=self.get_experimentinfo()
-            self.mtd_workflow.update_experiment_info(exp_info_model)
+            models=self.get_models()
+            self.mtd_workflow.update_experiment_info(models)
             self.mtd_workflow.live_data_reduction()
             print("live data reduction")
             asyncio.sleep(10)
