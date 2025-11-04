@@ -460,6 +460,7 @@ class MantidWorkflow():
             num_peaks = live_predict_peaks_ws.getNumberPeaks()
             intIlist=np.zeros(num_peaks)
             sigIlist=np.zeros(num_peaks)
+            #TODO: check getErrorSquaredArray  method
             for i in range(num_peaks):
               peak = live_predict_peaks_ws.getPeak(i)
               intI = peak.getIntensity()
