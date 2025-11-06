@@ -10,11 +10,13 @@ stages:
   - lint
   - test
   - tag
+  - build-prototype
   - publish
 
 variables:
   GIT_STRATEGY: clone
   IMAGE_NAME: ${NDIP_DOCKER_REPOSITORY}/${CI_PROJECT_PATH}
+  PROTOTYPE_IMAGE_DESTINATION: ${NDIP_DOCKER_REPOSITORY}/${CI_PROJECT_PATH}/prototypes
 
 before_script:
   - curl https://code.ornl.gov/rse-deployment/rse-sharables/raw/master/rse-bash-modules.sh -O
@@ -22,6 +24,7 @@ before_script:
   - func_rse_docker_cleanup
   - docker login -u $NDIP_DOCKER_USER -p $NDIP_DOCKER_PASSWORD $NDIP_DOCKER_REPOSITORY
   - export VERSION=$(cat pyproject.toml | grep "version =" | head -n 1 | awk '{ print $3 }' | tr -d '"')
+
 after_script:
   - curl https://code.ornl.gov/rse-deployment/rse-sharables/raw/master/rse-bash-modules.sh -O
   - source rse-bash-modules.sh
@@ -31,21 +34,22 @@ lint-check:
   stage: lint
   script:
     - docker build -f dockerfiles/Dockerfile --target source -t image .
-    - docker run -u `id -u`:`id -g` image poetry run ruff check
-    - docker run -u `id -u`:`id -g` image poetry run ruff format --check
-    - docker run -u `id -u`:`id -g` image poetry run mypy .
+    - docker run -u `id -u`:`id -g` image ruff check
+    - docker run -u `id -u`:`id -g` image ruff format --check
+    - docker run -u `id -u`:`id -g` image mypy .
     - docker tag image ${IMAGE_NAME}:src-${CI_COMMIT_SHA}
     - docker push ${IMAGE_NAME}:src-${CI_COMMIT_SHA}
   tags:
     - rse-multi-builder
 
+
 unit-tests:
   stage: test
   script:
     - mkdir reports
-    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} poetry run coverage run
-    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} poetry run coverage report
-    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} poetry run coverage xml -o reports/coverage.xml
+    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} coverage run
+    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} coverage report
+    - docker run -u `id -u`:`id -g` -v `pwd`/reports:/src/reports ${IMAGE_NAME}:src-${CI_COMMIT_SHA} coverage xml -o reports/coverage.xml
     - sed -i "s:<source>/src:<source>${CI_BUILDS_DIR}/${CI_PROJECT_PATH}:" reports/coverage.xml
 
   coverage: '/TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
@@ -58,6 +62,7 @@ unit-tests:
         path: reports/coverage.xml
   tags:
     - rse-multi-builder
+
 
 docs-test:
   stage: test
@@ -74,37 +79,61 @@ tag-release:
       when: always
     - when: never
   script:
+    - echo "Attempting to tag release $VERSION"
     - git config user.email "$GITLAB_USER_EMAIL"
     - git config user.name "$GITLAB_USER_NAME"
     - >
       if [ -z $(git ls-remote --tags origin "$VERSION") ]; then
-        git remote add gitlab https://oauth2:${NDIP_GROUP_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+        echo "Tag $VERSION does not exist remotely. Creating and pushing..."
+        git remote add gitlab https://oauth2:${NDIP_GROUP_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git || echo "Remote gitlab already exists or failed to add."
         git tag ${VERSION}
         git push gitlab --tags
+      else
+        echo "Tag $VERSION already exists remotely. Skipping tag creation."
       fi
   tags:
   - rse-multi-builder
 
+build-prototype-image:
+  stage: build-prototype
+  script:
+    - echo "Building prototype image for commit ${CI_COMMIT_SHA}"
+    # Build using source image for non-minimal types, which is at ${IMAGE_NAME}:src-${CI_COMMIT_SHA}
+    - echo "Building prototype run image for ${PROTOTYPE_IMAGE_DESTINATION}:${CI_COMMIT_SHA} using source image ${IMAGE_NAME}:src-${CI_COMMIT_SHA}"
+    - docker build -f dockerfiles/Dockerfile -t prototype-image-built --target run --build-arg SOURCE_IMAGE=${IMAGE_NAME}:src-${CI_COMMIT_SHA} .
+    # Tagging and pushing logic for prototype
+    - docker tag prototype-image-built ${PROTOTYPE_IMAGE_DESTINATION}:${CI_COMMIT_SHA}
+    - docker push ${PROTOTYPE_IMAGE_DESTINATION}:${CI_COMMIT_SHA}
+    - docker tag prototype-image-built ${PROTOTYPE_IMAGE_DESTINATION}:latest-prototype
+    - docker push ${PROTOTYPE_IMAGE_DESTINATION}:latest-prototype
+  tags:
+    - rse-multi-builder
 
-build-image:
+build-prod-image:
   stage: publish
   variables:
     OVERWRITE_IMAGE: "false"
   when: manual
   script:
     - IMAGE_TAG=${VERSION}
+    # Build using source image for non-minimal types
+    - echo "Building run image for $IMAGE_NAME:$IMAGE_TAG using source image ${IMAGE_NAME}:src-${CI_COMMIT_SHA}"
     - docker build -f dockerfiles/Dockerfile -t image --target run --build-arg SOURCE_IMAGE=${IMAGE_NAME}:src-${CI_COMMIT_SHA} .
     - docker tag image ${IMAGE_NAME}:bin-${CI_COMMIT_SHA}
     - docker push ${IMAGE_NAME}:bin-${CI_COMMIT_SHA}
+    # Tagging and pushing logic (common)
     - docker tag image ${IMAGE_NAME}:latest
     - docker push ${IMAGE_NAME}:latest
     - >
       if ! docker pull ${IMAGE_NAME}:${IMAGE_TAG} || [ "$OVERWRITE_IMAGE" == "true" ]; then
+        echo "Pushing tag ${IMAGE_NAME}:${IMAGE_TAG}"
         docker tag image ${IMAGE_NAME}:${IMAGE_TAG}
         docker push ${IMAGE_NAME}:${IMAGE_TAG}
       else
-        echo tag ${IMAGE_TAG} already exists in ${NDIP_DOCKER_REPOSITORY}. Use OVERWRITE_IMAGE="true", delete image in the repository or change the tag
-        exit 1
+        echo "Tag ${IMAGE_TAG} already exists in ${NDIP_DOCKER_REPOSITORY}. Skipping push."
+        echo "To overwrite, set OVERWRITE_IMAGE=true in CI variables or delete the tag manually."
+        # Optionally exit 1 here if overwriting is strictly forbidden by default
+        # exit 1
       fi
   tags:
     - rse-multi-builder
@@ -117,8 +146,8 @@ package-build:
       -u `id -u`:`id -g`
       ${IMAGE_NAME}:src-${CI_COMMIT_SHA}
       bash -c "
-      poetry config repositories.gitlab_repo ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi &&
-      poetry publish -u gitlab-ci-token -p ${CI_JOB_TOKEN} -r gitlab_repo
+      pixi run hatch build &&
+      pixi run hatch publish -r ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi -u gitlab-ci-token -p ${CI_JOB_TOKEN} -r gitlab_repo
       "
   when: manual
   tags:

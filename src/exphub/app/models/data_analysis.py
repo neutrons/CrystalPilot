@@ -1,9 +1,9 @@
-from typing import List, Dict
 import plotly.graph_objects as go
 from plotly.data import iris
 from pydantic import BaseModel, Field, computed_field
 
 IRIS_DATA = iris()
+
 
 class DataAnalysisModel(BaseModel):
     """Configuration class for the Plotly example."""
@@ -14,9 +14,9 @@ class DataAnalysisModel(BaseModel):
     output_dir_olex2: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/olex2/", title="Output Directory for Olex2")
     output_dir_shelx: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/shelx/", title="Output Directory for ShelX")
     output_dir_discus: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/discus/", title="Output Directory for Discus")
-    output_dir_reduction: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/reduction/", title="Output Directory for Reduction")
-
-
+    output_dir_reduction: str = Field(
+        default="/SNS/TOPAZ/IPTS-12132/shared/reduction/", title="Output Directory for Reduction"
+    )
 
     axis_options: list[str] = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
     x_axis: str = Field(default="sepal_length", title="X Axis")
@@ -29,20 +29,19 @@ class DataAnalysisModel(BaseModel):
     @property
     def is_not_heatmap(self) -> bool:
         return self.plot_type != "heatmap"
+
     def get_figure(self) -> go.Figure:
         match self.plot_type:
             case "heatmap":
                 plot_data = go.Heatmap(
                     x=IRIS_DATA[self.x_axis].tolist(),
                     y=IRIS_DATA[self.y_axis].tolist(),
-                    z=IRIS_DATA[self.z_axis].tolist()
+                    z=IRIS_DATA[self.z_axis].tolist(),
                 )
-                
+
             case "scatter":
                 plot_data = go.Scatter(
-                    x=IRIS_DATA[self.x_axis].tolist(),
-                    y=IRIS_DATA[self.y_axis].tolist(),
-                    mode="markers"
+                    x=IRIS_DATA[self.x_axis].tolist(), y=IRIS_DATA[self.y_axis].tolist(), mode="markers"
                 )
             case _:
                 raise ValueError(f"Invalid plot type: {self.plot_type}")

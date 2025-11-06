@@ -1,115 +1,107 @@
-from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
-from typing import List, Dict
-from typing import List, Dict, TYPE_CHECKING, Optional
-import plotly.graph_objects as go
-from plotly.data import iris
-from plotly.subplots import make_subplots
-
-#from mantid.simpleapi import *
-import mantid.simpleapi as mtdapi
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import time
-import sys
-
 import asyncio
-from typing import ClassVar
+import sys
+import time
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional
+
+# from mantid.simpleapi import *
+import mantid.simpleapi as mtdapi
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pydantic import BaseModel, Field
 from sklearn.linear_model import LinearRegression
+
 # import mantid algorithms, numpy and matplotlib
-#matplotlib.use("Qt5Agg")
-#sys.path.append('/SNS/TOPAZ/shared/PythonPrograms/Python3Library')
-#from SCDTools import recenter_peaks_workspace
+# matplotlib.use("Qt5Agg")
+# sys.path.append('/SNS/TOPAZ/shared/PythonPrograms/Python3Library')
+# from SCDTools import recenter_peaks_workspace
 
-class MantidWorkflow():
-    def __init__(self)->None:
-    #def __init__(self,temporal_time_interval)->None:
-    #def set_up_mantid_info(self)->None:
+
+class MantidWorkflow:
+    def __init__(self) -> None:
+        # def __init__(self,temporal_time_interval)->None:
+        # def set_up_mantid_info(self)->None:
         print("initializing mtd workflow")
-        self.ipts=34069
-        self.ipts=35078
-        self.ipts=35036
+        self.ipts = 34069
+        self.ipts = 35078
+        self.ipts = 35036
         print(self.ipts)
-    #TODO: connect ipts
-        self.ipts=34655
-        self.ub_failsafe="/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
-        self.ub_failsafe="/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
-        self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
-        self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
-        self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
-        self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
+        # TODO: connect ipts
+        self.ipts = 34655
+        self.ub_failsafe = "/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
+        self.ub_failsafe = "/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
+        self.ub_failsafe = "/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
+        self.output_path = "/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/".format(self.ipts)
+        self.calib_fname = "/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal".format(self.ipts)
+        self.calib_fname = "/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal".format(self.ipts)
 
-
-
-       # Sample information
-        self.min_d = 7   # shortest lattice parameter
+        # Sample information
+        self.min_d = 7  # shortest lattice parameter
         self.max_d = 40  # longest lattice parameter
 
-        self.cell_type  = 'Monoclinic'
-        self.centering  = 'P'
+        self.cell_type = "Monoclinic"
+        self.centering = "P"
 
         self.tolerance = 0.12
 
-        #Specify ellipse integration control parameters for satellite peaks
-        self.satellite_peak_size             = '0.07'
-        self.satellite_background_inner_size = '0.09'
-        self.satellite_background_outer_size = '0.12'
-        self.satellite_region_radius         = '0.13'
+        # Specify ellipse integration control parameters for satellite peaks
+        self.satellite_peak_size = "0.07"
+        self.satellite_background_inner_size = "0.09"
+        self.satellite_background_outer_size = "0.12"
+        self.satellite_region_radius = "0.13"
 
         #
-        self.mod_vector1 = '0,0,0'
-        self.mod_vector2 = '0,0,0'
-        self.mod_vector3 = '0,0,0'
+        self.mod_vector1 = "0,0,0"
+        self.mod_vector2 = "0,0,0"
+        self.mod_vector3 = "0,0,0"
         #
-        self.max_order = '1'
+        self.max_order = "1"
         self.cross_terms = False
 
         self.tolerance_satellite = 0.10
         #
-        #User specified q-vector if save_mod_info is True
+        # User specified q-vector if save_mod_info is True
         self.save_mod_info = False
         #
         self.min_monitor_tof = 500
         self.max_monitor_tof = 13000
         self.use_monitor_counts = False
-        
 
+        # =================================================================================================
+        #'''
+        # def update_plot():
+        #    """Update plot with current run data dynamically."""
+        #    ax_intensity.clear()
+        #    ax_rsig.clear()
+        #    ax_intensity.plot(measure_times, intensity_ratios, '-o', label='Peak I/σ(I)')
+        #    ax_rsig.plot(measure_times, rsigs, '-o', label='Rsig')
+        #    ax_intensity.set_ylabel('Peak I/σ(I)')
+        #    ax_rsig.set_ylabel('Rsig')
+        #    ax_rsig.set_xlabel('Run time, seconds')
+        #    ax_intensity.grid(True)
+        #    ax_rsig.grid(True)
+        #    plt.suptitle(f"Live Data Reduction - Run {current_run}")
+        #    plt.draw()
+        #    plt.pause(0.1)
+        #'''
 
-        #=================================================================================================
-    #'''
-    #def update_plot():
-    #    """Update plot with current run data dynamically."""
-    #    ax_intensity.clear()
-    #    ax_rsig.clear()
-    #    ax_intensity.plot(measure_times, intensity_ratios, '-o', label='Peak I/σ(I)')
-    #    ax_rsig.plot(measure_times, rsigs, '-o', label='Rsig')
-    #    ax_intensity.set_ylabel('Peak I/σ(I)')
-    #    ax_rsig.set_ylabel('Rsig')
-    #    ax_rsig.set_xlabel('Run time, seconds')
-    #    ax_intensity.grid(True)
-    #    ax_rsig.grid(True)
-    #    plt.suptitle(f"Live Data Reduction - Run {current_run}")
-    #    plt.draw()
-    #    plt.pause(0.1)
-    #'''
+        #'''
+        # def plot_data(x, y1, y2, xlabel, ylabel1, ylabel2):
+        #    print('plot_data')
+        #    plt.clf()  # Clear the figure to start a new plot
+        #    plt.plot(x, y1, '-o', label=ylabel1)
+        #    plt.plot(x, y2, '-o', label=ylabel2)
+        #    plt.xlabel(xlabel)
+        #    #plt.xlim(0,1000)
+        #    plt.grid(True)
+        #    plt.suptitle(f"Live Data Reduction - TOPAZ_{current_run}")
+        #    plt.legend()
+        #    #plt.draw()  # Use draw() instead of show() to update the plot
+        #    plt.show()  # Use draw() instead of show() to update the plot
+        #'''
 
-    #'''
-    #def plot_data(x, y1, y2, xlabel, ylabel1, ylabel2):
-    #    print('plot_data')
-    #    plt.clf()  # Clear the figure to start a new plot
-    #    plt.plot(x, y1, '-o', label=ylabel1)
-    #    plt.plot(x, y2, '-o', label=ylabel2)
-    #    plt.xlabel(xlabel)
-    #    #plt.xlim(0,1000) 
-    #    plt.grid(True)
-    #    plt.suptitle(f"Live Data Reduction - TOPAZ_{current_run}")
-    #    plt.legend()
-    #    #plt.draw()  # Use draw() instead of show() to update the plot
-    #    plt.show()  # Use draw() instead of show() to update the plot
-    #'''
-
-    #def init_measurement_data():
-    #    """Initialize the plot with empty data."""
+        # def init_measurement_data():
+        #    """Initialize the plot with empty data."""
 
         self.proton_charges: list[float] = []
         self.intensity_ratios: list[float] = []
@@ -124,90 +116,102 @@ class MantidWorkflow():
         self.sig3s = np.array([])
         self.sig5s = np.array([])
         self.sig10s = np.array([])
-        self.missing_ub_number=0
+        self.missing_ub_number = 0
 
         self.current_run_end_time = 0
         self.measure_time = 0
-        self.proton_charge = 0       
+        self.proton_charge = 0
         self.maxpeak_idx = -1
         self.timeseries = np.array([])
-        self.timeseries_data = []#np.array([])
-    # Check if live data is already running
+        self.timeseries_data = []  # np.array([])
+        # Check if live data is already running
 
-        self.maxpeak_intI=0
+        self.maxpeak_intI = 0
 
-        self.time_interval=40
-        #self.time_interval=temporal_time_interval
-        self.total_time_of_run=0
-        self.total_numberof_time_intervals=1
-        self.time_of_poissonprocess=0
-        self.hkl=[]
-        self.timeseries_plt=[]
-        self.timeseries_data_plt=[]
-        self.temporal_poisson_intensity=[0]
-        self.temporal_poisson_uncertainty=[0]
-            # Run the SortHKL algorithm
+        self.time_interval = 40
+        # self.time_interval=temporal_time_interval
+        self.total_time_of_run = 0
+        self.total_numberof_time_intervals = 1
+        self.time_of_poissonprocess = 0
+        self.hkl = []
+        self.timeseries_plt = []
+        self.timeseries_data_plt = []
+        self.temporal_poisson_intensity = [0]
+        self.temporal_poisson_uncertainty = [0]
+        # Run the SortHKL algorithm
 
-    def update_experiment_info(self,models)->None:
-        self.ipts=models.experimentinfo.ipts_number
-        self.cell_type=models.experimentinfo.crystalsystem
-        self.point_group=models.experimentinfo.pointGroup
-        self.centering=models.experimentinfo.centering
-        self.min_d=models.experimentinfo.minDSpacing
-        self.max_d=models.experimentinfo.maxDSpacing
-        self.calib_fname=models.experimentinfo.calFileName
-        print("update experiment info" )
-        #print(self.ipts,self.cell_type,self.centering,self.min_d,self.max_d,self.calib_fname)
-        self.ub_failsafe=models.experimentinfo.UBFileName
-        self.output_path = '/SNS/TOPAZ/IPTS-{}/shared/autoreduce/live_data/'.format(self.ipts)
-        
-        self.selection=models.temporalanalysis.data_selection
+    def update_experiment_info(self, models) -> None:
+        self.ipts = models.experimentinfo.ipts_number
+        self.cell_type = models.experimentinfo.crystalsystem
+        self.point_group = models.experimentinfo.pointGroup
+        self.centering = models.experimentinfo.centering
+        self.min_d = models.experimentinfo.minDSpacing
+        self.max_d = models.experimentinfo.maxDSpacing
+        self.calib_fname = models.experimentinfo.calFileName
+        print("update experiment info")
+        # print(self.ipts,self.cell_type,self.centering,self.min_d,self.max_d,self.calib_fname)
+        self.ub_failsafe = models.experimentinfo.UBFileName
+        self.output_path = "/SNS/TOPAZ/IPTS-{}/shared/autoreduce/live_data/".format(self.ipts)
 
-        #self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
-        #self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
-        #self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
+        self.selection = models.temporalanalysis.data_selection
+
+        # self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
+        # self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
+        # self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
 
     def update_peak_output_filenames(self):
-        if not self.cell_type is None:
-            self.live_peaks_fname = 'live_topaz-ipts-%s_%s_%s_%s.integrate'%(str(self.ipts),str(self.current_run),self.cell_type,self.centering)
-            self.live_peaks_ub_fname = 'live_topaz-ipts-%s_%s__%s_%s.mat'%(str(self.ipts), str(self.current_run),self.cell_type,self.centering)
+        if self.cell_type is not None:
+            self.live_peaks_fname = "live_topaz-ipts-%s_%s_%s_%s.integrate" % (
+                str(self.ipts),
+                str(self.current_run),
+                self.cell_type,
+                self.centering,
+            )
+            self.live_peaks_ub_fname = "live_topaz-ipts-%s_%s__%s_%s.mat" % (
+                str(self.ipts),
+                str(self.current_run),
+                self.cell_type,
+                self.centering,
+            )
         else:
-            self.live_peaks_fname = 'live_topaz-ipts-%s_%s_Niggli.integrate'%(str(self.ipts),str(self.current_run))
-            self.live_peaks_ub_fname = 'live_topaz-ipts-%s_%s_Niggli.mat'%(str(self.ipts), str(self.current_run))
-
+            self.live_peaks_fname = "live_topaz-ipts-%s_%s_Niggli.integrate" % (str(self.ipts), str(self.current_run))
+            self.live_peaks_ub_fname = "live_topaz-ipts-%s_%s_Niggli.mat" % (str(self.ipts), str(self.current_run))
 
     def start_live_data_collection_instances(self):
-
         """Start live data instances: worksapce mtd['live_event_wc], self.currentrun,self.run."""
         try:
             mtdapi.StartLiveData(
-                    Instrument='TOPAZ',
-                    Listener='SNSLiveEventDataListener',
-                    #UpdateEvery=10,
-                    UpdateEvery=self.time_interval,
-                    AccumulationMethod='Add',
-                    PreserveEvents=True,
-                    OutputWorkspace='live_event_ws')    
-            self.monitor_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+                Instrument="TOPAZ",
+                Listener="SNSLiveEventDataListener",
+                # UpdateEvery=10,
+                UpdateEvery=self.time_interval,
+                AccumulationMethod="Add",
+                PreserveEvents=True,
+                OutputWorkspace="live_event_ws",
+            )
+            self.monitor_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
             time.sleep(1)
-            #time.sleep(60)
+            # time.sleep(60)
         except RuntimeError as e:
-            if 'Another MonitorLiveData thread is running' in str(e):
-                conflict_current_run=mtdapi.mtd['live_event_ws'].getRunNumber()
-                print("Warning: Another MonitorLiveData thread is already running for TOPAZ run %s."%(str(conflict_current_run)),
-                      "\nIt will continue with the current run unless you stop the existing instance manually or use a different OutputWorkspace.")
+            if "Another MonitorLiveData thread is running" in str(e):
+                conflict_current_run = mtdapi.mtd["live_event_ws"].getRunNumber()
+                print(
+                    "Warning: Another MonitorLiveData thread is already running for TOPAZ run %s."
+                    % (str(conflict_current_run)),
+                    "\nIt will continue with the current run unless you stop the existing instance manually or use a different OutputWorkspace.",
+                )
                 sys.exit(1)
             else:
                 print(f"Unexpected error occurred: {str(e)}")
                 raise
-        #self.run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
-            
+        # self.run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+
         # Proceed with data processing
-        if not mtdapi.mtd.doesExist('live_event_ws'):
+        if not mtdapi.mtd.doesExist("live_event_ws"):
             print("Live data workspace does not exist. Exiting.")
             exit(1)
-        self.initial_run = mtdapi.mtd['live_event_ws'].getRunNumber()
-        self.initial_run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+        self.initial_run = mtdapi.mtd["live_event_ws"].getRunNumber()
+        self.initial_run_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
         print(f"initial run: {self.initial_run}")
 
         # update the run number for live data reduction
@@ -215,44 +219,52 @@ class MantidWorkflow():
         self.current_run_start_time = self.initial_run_start_time
         self.update_peak_output_filenames()
 
-
-       # self.run = self.current_run
+    # self.run = self.current_run
 
     ## Initialize the plot with two subplots
     #'''
-    #def init_visualization():
+    # def init_visualization():
     #    fig, (ax_intensity, ax_rsig) = plt.subplots(2, 1, sharex=True)
     #    ax_intensity.grid(True)
     #    ax_rsig.grid(True)
-    #'''   
-
+    #'''
 
     def live_data_reduction(self):
-        #while True:
+        # while True:
         def get_and_update_run_info_of_current_run():
             #############################################################################################################################################################
             # ''' check if the run number has changed, if so, save the results and clear the existing data , and update the run infos'''
             #############################################################################################################################################################
-            current_run=mtdapi.mtd['live_event_ws'].getRunNumber()
+            current_run = mtdapi.mtd["live_event_ws"].getRunNumber()
 
             # Get the first event list
-            print("====================================================================================================")
+            print(
+                "===================================================================================================="
+            )
             print("Getting the first event list")
-            #evList = mtdapi.mtd['live_event_ws'].getSpectrum(0)
+            # evList = mtdapi.mtd['live_event_ws'].getSpectrum(0)
 
             # Add an offset to the pulsetime (wall-clock time) of each event in the list.
-            #print("First pulse time before addPulsetime: {}".format(evList.getPulseTimes()[0]))
-            current_run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+            # print("First pulse time before addPulsetime: {}".format(evList.getPulseTimes()[0]))
+            current_run_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
 
             if current_run != self.current_run:
                 # Save the results
                 results = np.column_stack((self.measure_times, self.proton_charges, self.intensity_ratios, self.rsigs))
-                np.savetxt(self.output_path + 'live_data_%s_results.csv'%(str(self.current_run)), results, delimiter=',', header='', comments='')
+                np.savetxt(
+                    self.output_path + "live_data_%s_results.csv" % (str(self.current_run)),
+                    results,
+                    delimiter=",",
+                    header="",
+                    comments="",
+                )
                 # save results
-                mtdapi.SaveIsawPeaks(Inputworkspace='live_predict_peaks_ws', 
-                        Filename= self.output_path + self.live_peaks_fname )
-                mtdapi.SaveIsawUB(Inputworkspace='live_predict_peaks_ws',  
-                        Filename= self.output_path + self.live_peaks_fname )
+                mtdapi.SaveIsawPeaks(
+                    Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_fname
+                )
+                mtdapi.SaveIsawUB(
+                    Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_fname
+                )
 
                 # Clear the existing data and plot if run changes
                 self.current_run = current_run
@@ -261,276 +273,374 @@ class MantidWorkflow():
                 self.intensity_ratios.clear()
                 self.rsigs.clear()
                 self.measure_times.clear()
-                self.timeseries_plt=[]
-                self.timeseries_data_plt=[]
+                self.timeseries_plt = []
+                self.timeseries_data_plt = []
                 time.sleep(1)
-                #time.sleep(60)
-                #plt.clf()  # Clear the plot
+                # time.sleep(60)
+                # plt.clf()  # Clear the plot
 
             self.update_peak_output_filenames()
-       
+
         def load_config_of_current_run():
             #############################################################################################################################################################
             #''' Load the calibration file and monitor data, and integrate the peaks'''
             #############################################################################################################################################################
-            #mtdapi.CloneWorkspace(InputWorkspace='live_event_ws', OutputWorkspace='live_event_ws')
-            print("====================================================================================================")
-            print("Loading the calibration file and monitor data, and integrating the peaks")   
+            # mtdapi.CloneWorkspace(InputWorkspace='live_event_ws', OutputWorkspace='live_event_ws')
+            print(
+                "===================================================================================================="
+            )
+            print("Loading the calibration file and monitor data, and integrating the peaks")
             print("first filterbytime")
-            print("====================================================================================================")
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            print(
+                "===================================================================================================="
+            )
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            mtdapi.LoadIsawDetCal(InputWorkspace='live_event_ws', Filename=self.calib_fname)
-            print("load isaw detcal",self.calib_fname)
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            mtdapi.LoadIsawDetCal(InputWorkspace="live_event_ws", Filename=self.calib_fname)
+            print("load isaw detcal", self.calib_fname)
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("second filterbytime")
-            print("====================================================================================================")
-            monitor_ws=mtdapi.mtd['live_event_ws'].getMonitorWorkspace()
+            print(
+                "===================================================================================================="
+            )
+            monitor_ws = mtdapi.mtd["live_event_ws"].getMonitorWorkspace()
             print("monitorws")
-            print("====================================================================================================")
-            integrated_monitor_ws = mtdapi.Integration( InputWorkspace=monitor_ws, 
-                              RangeLower=self.min_monitor_tof, RangeUpper=self.max_monitor_tof, 
-                              StartWorkspaceIndex=0, 
-                              EndWorkspaceIndex=0 )
+            print(
+                "===================================================================================================="
+            )
+            integrated_monitor_ws = mtdapi.Integration(
+                InputWorkspace=monitor_ws,
+                RangeLower=self.min_monitor_tof,
+                RangeUpper=self.max_monitor_tof,
+                StartWorkspaceIndex=0,
+                EndWorkspaceIndex=0,
+            )
             print("int filterbytime")
-            print("====================================================================================================")
+            print(
+                "===================================================================================================="
+            )
             monitor_count = integrated_monitor_ws.dataY(0)[0]
             print("\n", self.current_run, " has integrated monitor count", monitor_count, "\n")
 
             #
-            mtdapi.SetGoniometer(Workspace='live_event_ws', Goniometers='Universal')
+            mtdapi.SetGoniometer(Workspace="live_event_ws", Goniometers="Universal")
             print("getgonio filterbytime")
-            print("====================================================================================================")
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            print(
+                "===================================================================================================="
+            )
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("3rd filterbytime")
-            print("====================================================================================================")
+            print(
+                "===================================================================================================="
+            )
 
         def refine_ub_of_current_run():
             #############################################################################################################################################################
             #''' Refine the UB matrix'''
             #############################################################################################################################################################
-            #TODO: why convert to md
-            mtdapi.CloneWorkspace(InputWorkspace='live_event_ws', OutputWorkspace='live_event_ws_peak')
-            mtdapi.ConvertToMD(InputWorkspace='live_event_ws_peak', 
-                QDimensions="Q3D", dEAnalysisMode="Elastic", 
-                Q3DFrames='Q_sample',
-                QConversionScales="Q in A^-1", 
-                LorentzCorrection='1',
-                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
-                OutputWorkspace='live_event_md_Qsample', MinValues='-12,-12,-12', MaxValues='12,12,12')
-            
-            #mtdapi.ConvertToMD(InputWorkspace='live_event_ws', 
-            #    QDimensions="Q3D", dEAnalysisMode="Elastic", 
+            # TODO: why convert to md
+            mtdapi.CloneWorkspace(InputWorkspace="live_event_ws", OutputWorkspace="live_event_ws_peak")
+            mtdapi.ConvertToMD(
+                InputWorkspace="live_event_ws_peak",
+                QDimensions="Q3D",
+                dEAnalysisMode="Elastic",
+                Q3DFrames="Q_sample",
+                QConversionScales="Q in A^-1",
+                LorentzCorrection="1",
+                Uproj="1,0,0",
+                Vproj="0,1,0",
+                Wproj="0,0,1",
+                OutputWorkspace="live_event_md_Qsample",
+                MinValues="-12,-12,-12",
+                MaxValues="12,12,12",
+            )
+
+            # mtdapi.ConvertToMD(InputWorkspace='live_event_ws',
+            #    QDimensions="Q3D", dEAnalysisMode="Elastic",
             #    Q3DFrames='Q_sample',
-            #    QConversionScales="Q in A^-1", 
+            #    QConversionScales="Q in A^-1",
             #    LorentzCorrection='1',
             #    Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
             #    OutputWorkspace='live_event_md_Qsample', MinValues='-12,-12,-12', MaxValues='12,12,12')
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("4 filterbytime")
-            print("====================================================================================================")
-            
-            mtdapi.FindPeaksMD(InputWorkspace='live_event_md_Qsample', PeakDistanceThreshold=0.6, 
-                MaxPeaks=1000, DensityThresholdFactor=100, OutputWorkspace='live_peaks_ws', EdgePixels=18)
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            print(
+                "===================================================================================================="
+            )
+
+            mtdapi.FindPeaksMD(
+                InputWorkspace="live_event_md_Qsample",
+                PeakDistanceThreshold=0.6,
+                MaxPeaks=1000,
+                DensityThresholdFactor=100,
+                OutputWorkspace="live_peaks_ws",
+                EdgePixels=18,
+            )
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("5 filterbytime")
-            print("====================================================================================================")
-            
+            print(
+                "===================================================================================================="
+            )
+
             try:
-                mtdapi.FindUBUsingFFT(PeaksWorkspace='live_peaks_ws', MinD=self.min_d, MaxD=self.max_d, Tolerance=0.12,Iterations=100)
+                mtdapi.FindUBUsingFFT(
+                    PeaksWorkspace="live_peaks_ws", MinD=self.min_d, MaxD=self.max_d, Tolerance=0.12, Iterations=100
+                )
             except ValueError as ub_error:
                 print("Warning: FindUBUsingFFT error - Four or more indexed peaks needed to find UB")
                 print("Error message: ", ub_error)
-                #TODO: should use next two commands or not?
-                #mtdapi.LoadIsawUB(InputWorkspace='live_peaks_ws',Filename='/SNS/TOPAZ/IPTS-33641/shared/S5-1_5K/S5-1_5K_Monoclinic_P.mat')
-                #mtdapi.IndexPeaks(PeaksWorkspace='live_peaks_ws', Tolerance=0.12, ToleranceForSatellite=0.10000000000000001, RoundHKLs=False, CommonUBForAll=True)
-                self.current_run_end_time = mtdapi.mtd['live_event_ws'].getRun().endTime().totalNanoseconds() * 1e-9  # Convert nanoseconds to seconds
+                # TODO: should use next two commands or not?
+                # mtdapi.LoadIsawUB(InputWorkspace='live_peaks_ws',Filename='/SNS/TOPAZ/IPTS-33641/shared/S5-1_5K/S5-1_5K_Monoclinic_P.mat')
+                # mtdapi.IndexPeaks(PeaksWorkspace='live_peaks_ws', Tolerance=0.12, ToleranceForSatellite=0.10000000000000001, RoundHKLs=False, CommonUBForAll=True)
+                self.current_run_end_time = (
+                    mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
+                )  # Convert nanoseconds to seconds
 
-                self.measure_time = self.current_run_end_time -self.initial_run_start_time
-                if self.measure_time >100000: 
+                self.measure_time = self.current_run_end_time - self.initial_run_start_time
+                if self.measure_time > 100000:
                     print("Please check if neutron beam is on, or if the crystal is diffracting.")
             #        exit()
-                #continue
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            # continue
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("6 filterbytime")
-            print("====================================================================================================")
-            
-
+            print(
+                "===================================================================================================="
+            )
 
         def integrate_peaks_of_current_run():
             #############################################################################################################################################################
             #''' Integrate the peaks and predict the peaks'''
             #############################################################################################################################################################
-            mtdapi.CloneWorkspace(InputWorkspace='live_event_ws', OutputWorkspace='live_event_ws_peak')
-            
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            mtdapi.CloneWorkspace(InputWorkspace="live_event_ws", OutputWorkspace="live_event_ws_peak")
+
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            #print("7 filterbytime")
-            #print("====================================================================================================")
-            
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            # print("7 filterbytime")
+            # print("====================================================================================================")
+
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("7.0 filterbytime")
-            print("====================================================================================================")
-            
-            ## cause error in filter by time
-            mtdapi.IndexPeaks(PeaksWorkspace='live_peaks_ws', Tolerance=0.12, ToleranceForSatellite=0.10000000000000001, RoundHKLs=False, CommonUBForAll=True)
+            print(
+                "===================================================================================================="
+            )
 
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            ## cause error in filter by time
+            mtdapi.IndexPeaks(
+                PeaksWorkspace="live_peaks_ws",
+                Tolerance=0.12,
+                ToleranceForSatellite=0.10000000000000001,
+                RoundHKLs=False,
+                CommonUBForAll=True,
+            )
+
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("7.1 filterbytime")
-            print("====================================================================================================")
-            
-            mtdapi.IntegrateEllipsoids(InputWorkspace='live_event_ws_peak', PeaksWorkspace='live_peaks_ws', 
-                RegionRadius=0.18, SpecifySize=True, PeakSize=0.09, BackgroundInnerSize=0.11, BackgroundOuterSize=0.14, 
-                OutputWorkspace='live_peaks_ws', CutoffIsigI=5, 
-                AdaptiveQBackground=True, 
-                AdaptiveQMultiplier=0.001, UseOnePercentBackgroundCorrection=False)
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            print(
+                "===================================================================================================="
+            )
+
+            mtdapi.IntegrateEllipsoids(
+                InputWorkspace="live_event_ws_peak",
+                PeaksWorkspace="live_peaks_ws",
+                RegionRadius=0.18,
+                SpecifySize=True,
+                PeakSize=0.09,
+                BackgroundInnerSize=0.11,
+                BackgroundOuterSize=0.14,
+                OutputWorkspace="live_peaks_ws",
+                CutoffIsigI=5,
+                AdaptiveQBackground=True,
+                AdaptiveQMultiplier=0.001,
+                UseOnePercentBackgroundCorrection=False,
+            )
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("7.2 filterbytime")
-            print("====================================================================================================")
-            
-            mtdapi.PredictPeaks(InputWorkspace='live_peaks_ws', 
-                WavelengthMin=0.4, 
-                WavelengthMax=3.5, 
-                MinDSpacing=0.6, 
-                MaxDSpacing=11, 
-                OutputWorkspace='live_predict_peaks_ws', EdgePixels=18)
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            print(
+                "===================================================================================================="
+            )
+
+            mtdapi.PredictPeaks(
+                InputWorkspace="live_peaks_ws",
+                WavelengthMin=0.4,
+                WavelengthMax=3.5,
+                MinDSpacing=0.6,
+                MaxDSpacing=11,
+                OutputWorkspace="live_predict_peaks_ws",
+                EdgePixels=18,
+            )
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("7 filterbytime")
-            print("====================================================================================================")
-            
-            #TODO: local variables to be taken out
-            peak_radius = 0.08
-            search_radius = 0.8*float(peak_radius)
-            mtdapi.CentroidPeaksMD(InputWorkspace='live_event_md_Qsample', PeakRadius=search_radius, 
-                PeaksWorkspace='live_predict_peaks_ws', OutputWorkspace='live_predict_peaks_ws')
-            mtdapi.IndexPeaks(PeaksWorkspace='live_predict_peaks_ws', Tolerance=0.12, CommonUBForAll=True)
-            mtdapi.FindUBUsingIndexedPeaks(PeaksWorkspace='live_predict_peaks_ws', Tolerance=0.12, CommonUBForAll=True)
-            mtdapi.IndexPeaks(PeaksWorkspace='live_predict_peaks_ws', Tolerance=0.12, RoundHKLs=False, CommonUBForAll=True)
+            print(
+                "===================================================================================================="
+            )
 
-            #TODO: protoncharge not updated for live ws
-            self.proton_charge = mtdapi.mtd['live_event_ws'].getRun().getProtonCharge() * 0.0036
+            # TODO: local variables to be taken out
+            peak_radius = 0.08
+            search_radius = 0.8 * float(peak_radius)
+            mtdapi.CentroidPeaksMD(
+                InputWorkspace="live_event_md_Qsample",
+                PeakRadius=search_radius,
+                PeaksWorkspace="live_predict_peaks_ws",
+                OutputWorkspace="live_predict_peaks_ws",
+            )
+            mtdapi.IndexPeaks(PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, CommonUBForAll=True)
+            mtdapi.FindUBUsingIndexedPeaks(PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, CommonUBForAll=True)
+            mtdapi.IndexPeaks(
+                PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, RoundHKLs=False, CommonUBForAll=True
+            )
+
+            # TODO: protoncharge not updated for live ws
+            self.proton_charge = mtdapi.mtd["live_event_ws"].getRun().getProtonCharge() * 0.0036
             print("\n", self.current_run, " has integrated proton charge x 0.0036 of", self.proton_charge, "C \n")
 
-            self.current_run_end_time = mtdapi.mtd['live_event_ws'].getRun().endTime().totalNanoseconds() * 1e-9  # Convert nanoseconds to seconds
+            self.current_run_end_time = (
+                mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
+            )  # Convert nanoseconds to seconds
 
-            self.measure_time = self.current_run_end_time -self.current_run_start_time
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            self.measure_time = self.current_run_end_time - self.current_run_start_time
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("8 filterbytime")
-            print("====================================================================================================")
-            
-            mtdapi.IntegrateEllipsoids(InputWorkspace='live_event_ws_peak', 
-                PeaksWorkspace='live_predict_peaks_ws', 
-                RegionRadius=0.2, SpecifySize=True, 
-                PeakSize=0.09, BackgroundInnerSize=0.11, BackgroundOuterSize=0.14, 
-                OutputWorkspace='live_predict_peaks_ws', 
-                CutoffIsigI=5, 
-                AdaptiveQBackground=True, 
-                AdaptiveQMultiplier=0.001, UseOnePercentBackgroundCorrection=False)
+            print(
+                "===================================================================================================="
+            )
 
-            if not self.cell_type is None:
-                mtdapi.SelectCellOfType(PeaksWorkspace='live_predict_peaks_ws', 
-                    CellType=self.cell_type, Centering=self.centering, Tolerance = self.tolerance, Apply=True, )
-                mtdapi.IndexPeaks(PeaksWorkspace='live_predict_peaks_ws', 
-                    Tolerance=self.tolerance, ToleranceForSatellite=self.tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
+            mtdapi.IntegrateEllipsoids(
+                InputWorkspace="live_event_ws_peak",
+                PeaksWorkspace="live_predict_peaks_ws",
+                RegionRadius=0.2,
+                SpecifySize=True,
+                PeakSize=0.09,
+                BackgroundInnerSize=0.11,
+                BackgroundOuterSize=0.14,
+                OutputWorkspace="live_predict_peaks_ws",
+                CutoffIsigI=5,
+                AdaptiveQBackground=True,
+                AdaptiveQMultiplier=0.001,
+                UseOnePercentBackgroundCorrection=False,
+            )
 
-            #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
+            if self.cell_type is not None:
+                mtdapi.SelectCellOfType(
+                    PeaksWorkspace="live_predict_peaks_ws",
+                    CellType=self.cell_type,
+                    Centering=self.centering,
+                    Tolerance=self.tolerance,
+                    Apply=True,
+                )
+                mtdapi.IndexPeaks(
+                    PeaksWorkspace="live_predict_peaks_ws",
+                    Tolerance=self.tolerance,
+                    ToleranceForSatellite=self.tolerance_satellite,
+                    RoundHKLs=False,
+                    CommonUBForAll=True,
+                )
+
+            # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             print("9 filterbytime")
-            print("====================================================================================================")
-            
+            print(
+                "===================================================================================================="
+            )
 
         def check_peaks_of_current_run():
-            live_predict_peaks_ws=mtdapi.mtd['live_predict_peaks_ws']
+            live_predict_peaks_ws = mtdapi.mtd["live_predict_peaks_ws"]
 
-            #peaks_fname = 'live_%s_Niggli.integrate'%(str(current_run))
-            #peaks_ub_fname = 'live_%s_Niggli.mat'%(str(current_run))
+            # peaks_fname = 'live_%s_Niggli.integrate'%(str(current_run))
+            # peaks_ub_fname = 'live_%s_Niggli.mat'%(str(current_run))
 
             # Set the monitor counts for all the peaks that will be integrated
 
             num_peaks = live_predict_peaks_ws.getNumberPeaks()
-            intIlist=np.zeros(num_peaks)
-            sigIlist=np.zeros(num_peaks)
-            #TODO: check getErrorSquaredArray  method
+            intIlist = np.zeros(num_peaks)
+            sigIlist = np.zeros(num_peaks)
+            # TODO: check getErrorSquaredArray  method
             for i in range(num_peaks):
-              peak = live_predict_peaks_ws.getPeak(i)
-              intI = peak.getIntensity()
-              intIlist[i]=intI
-              sigI = peak.getSigmaIntensity()
-              sigIlist[i]=sigI
-              self.sum = self.sum + 1
-              if intI > (2.0 * sigI):
-                self.sig2 = self.sig2 + 1
-              if intI > (3.0 * sigI):
-                self.sig3 = self.sig3 + 1
-              if intI > (5.0 * sigI):
-                self.sig5 = self.sig5 + 1
-              if intI > (10.0 * sigI):
-                self.sig10 = self.sig10 + 1
-            #TODO peaks update
-            if self.maxpeak_idx >-1 and self.maxpeak_idx != np.argmax(intIlist):
-              print("Warning: Max peak index has changed from ", self.maxpeak_idx, " to ", np.argmax(intIlist))
-              self.maxpeak_idx=np.argmax(intIlist)
-           
-            if self.maxpeak_idx==-1:
-              self.maxpeak_idx=np.argmax(intIlist)
-           
-            #self.maxpeak_idx=np.argmax(intIlist)
+                peak = live_predict_peaks_ws.getPeak(i)
+                intI = peak.getIntensity()
+                intIlist[i] = intI
+                sigI = peak.getSigmaIntensity()
+                sigIlist[i] = sigI
+                self.sum = self.sum + 1
+                if intI > (2.0 * sigI):
+                    self.sig2 = self.sig2 + 1
+                if intI > (3.0 * sigI):
+                    self.sig3 = self.sig3 + 1
+                if intI > (5.0 * sigI):
+                    self.sig5 = self.sig5 + 1
+                if intI > (10.0 * sigI):
+                    self.sig10 = self.sig10 + 1
+            # TODO peaks update
+            if self.maxpeak_idx > -1 and self.maxpeak_idx != np.argmax(intIlist):
+                print("Warning: Max peak index has changed from ", self.maxpeak_idx, " to ", np.argmax(intIlist))
+                self.maxpeak_idx = np.argmax(intIlist)
 
-            self.maxpeak_intI=intIlist[self.maxpeak_idx]
-            
+            if self.maxpeak_idx == -1:
+                self.maxpeak_idx = np.argmax(intIlist)
+
+            # self.maxpeak_idx=np.argmax(intIlist)
+
+            self.maxpeak_intI = intIlist[self.maxpeak_idx]
+
             peak = live_predict_peaks_ws.getPeak(int(self.maxpeak_idx))
-            
-            #peak = live_predict_peaks_ws.getPeak(int(0))
-            self.hkl=peak.getHKL()
-            
+
+            # peak = live_predict_peaks_ws.getPeak(int(0))
+            self.hkl = peak.getHKL()
+
             # Run the SortHKL algorithm
 
-            sorted, statistics_table, equivI = mtdapi.StatisticsOfPeaksWorkspace(InputWorkspace='live_predict_peaks_ws', 
-                PointGroup=self.point_group, LatticeCentering=self.centering, SortBy='Overall', WeightedZScore=True)
+            sorted, statistics_table, equivI = mtdapi.StatisticsOfPeaksWorkspace(
+                InputWorkspace="live_predict_peaks_ws",
+                PointGroup=self.point_group,
+                LatticeCentering=self.centering,
+                SortBy="Overall",
+                WeightedZScore=True,
+            )
 
             statistics = statistics_table.row(0)
 
             peak = sorted.getPeak(0)
-            print("HKL of first peak in table {} {} {}".format(peak.getH(),peak.getK(),peak.getL()))
-            print("Multiplicity = %.2f" % statistics['Multiplicity'])
-            print("Resolution Min = %.2f" % statistics['Resolution Min'])
-            print("Resolution Max = %.2f" % statistics['Resolution Max'])
-            print("No. of Unique Reflections = %i" % statistics['No. of Unique Reflections'])
-            print("Mean ((I)/sd(I)) = %.2f" % statistics['Mean ((I)/sd(I))'])
-            print("Rmerge = %.2f" % statistics['Rmerge'])
-            print("Rpim = %.2f" % statistics['Rpim'])
+            print("HKL of first peak in table {} {} {}".format(peak.getH(), peak.getK(), peak.getL()))
+            print("Multiplicity = %.2f" % statistics["Multiplicity"])
+            print("Resolution Min = %.2f" % statistics["Resolution Min"])
+            print("Resolution Max = %.2f" % statistics["Resolution Max"])
+            print("No. of Unique Reflections = %i" % statistics["No. of Unique Reflections"])
+            print("Mean ((I)/sd(I)) = %.2f" % statistics["Mean ((I)/sd(I))"])
+            print("Rmerge = %.2f" % statistics["Rmerge"])
+            print("Rpim = %.2f" % statistics["Rpim"])
 
-            mtdapi.SaveIsawPeaks(Inputworkspace='live_predict_peaks_ws', 
-                Filename= self.output_path + self.live_peaks_fname)
-            mtdapi.SaveIsawUB(Inputworkspace='live_predict_peaks_ws',  
-                Filename= self.output_path + self.live_peaks_ub_fname)
+            mtdapi.SaveIsawPeaks(
+                Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_fname
+            )
+            mtdapi.SaveIsawUB(
+                Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_ub_fname
+            )
 
             # Check the overall peak intensity in live_peaks_ws
-            #data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]
+            # data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]
 
             # default
-            if self.selection=='All Peaks':
-                self.intensity_ratio =statistics['Mean ((I)/sd(I))']
-            #TODO: intensity ratio selection
-            if self.selection=='Max Peak':
-                idx=self.maxpeak_idx
-                self.intensity_ratio =intIlist[idx]/sigIlist[idx]
-            
-            elif self.selection=='Total Peaks':
-                self.intensity_ratio = np.sum(intIlist)/np.sqrt(np.sum(sigIlist**2))
-                self.intensity_ratio = np.mean(intIlist/sigIlist)
+            if self.selection == "All Peaks":
+                self.intensity_ratio = statistics["Mean ((I)/sd(I))"]
+            # TODO: intensity ratio selection
+            if self.selection == "Max Peak":
+                idx = self.maxpeak_idx
+                self.intensity_ratio = intIlist[idx] / sigIlist[idx]
+
+            elif self.selection == "Total Peaks":
+                self.intensity_ratio = np.sum(intIlist) / np.sqrt(np.sum(sigIlist**2))
+                self.intensity_ratio = np.mean(intIlist / sigIlist)
             #
-            self.Rsig = 100.0/self.intensity_ratio
+            self.Rsig = 100.0 / self.intensity_ratio
             print("Rsig = %.2f" % self.Rsig)
             if self.intensity_ratio is not None and self.Rsig is not None and self.proton_charge is not None:
                 self.proton_charges.append(self.proton_charge)
@@ -539,239 +649,264 @@ class MantidWorkflow():
                 self.measure_times.append(self.measure_time)  # Only append if all other values exist
             else:
                 print("Skipping entry due to missing data.")
-            self.sig2s  = np.append(self.sig2s , self.sig2 )
-            self.sig3s  = np.append(self.sig3s , self.sig3 )
-            self.sig5s  = np.append(self.sig5s , self.sig5 )
+            self.sig2s = np.append(self.sig2s, self.sig2)
+            self.sig3s = np.append(self.sig3s, self.sig3)
+            self.sig5s = np.append(self.sig5s, self.sig5)
             self.sig10s = np.append(self.sig10s, self.sig10)
             # Save the plot data
-            print('measure_times, proton_charges, intensity_ratios, rsigs')
+            print("measure_times, proton_charges, intensity_ratios, rsigs")
             print(self.measure_times, self.proton_charges, self.intensity_ratios, self.rsigs)
             results = np.column_stack((self.measure_times, self.proton_charges, self.intensity_ratios, self.rsigs))
-            np.savetxt(self.output_path + 'live_data_%s_results.csv'%(str(self.current_run)), results, delimiter=',', header='', comments='')
+            np.savetxt(
+                self.output_path + "live_data_%s_results.csv" % (str(self.current_run)),
+                results,
+                delimiter=",",
+                header="",
+                comments="",
+            )
 
+        #        def get_time_series_data(start_record_time:float)->np.array:
+        #        #def get_time_series_data(start_record_time:float, end_record_time:float)->np.array:
+        #            ##############################################################################################
+        #            # time series data
+        #            ##############################################################################################
+        #            start_record_time = self.monitor_start_time
+        #            end_record_time = self.monitor_start_time
+        #            mtdapi.StartLiveData(
+        #                    Instrument='TOPAZ',
+        #                    Listener='SNSLiveEventDataListener',
+        #                    FromTime=True,
+        #                    StartTime=start_record_time,
+        #                    LastTimeStamp=end_record_time,
+        #                    UpdateEvery=0,
+        #                    AccumulationMethod='Add',
+        #                    PreserveEvents=True,
+        #                    OutputWorkspace='live_event_ws_interval')
 
-#        def get_time_series_data(start_record_time:float)->np.array:
-#        #def get_time_series_data(start_record_time:float, end_record_time:float)->np.array:
-#            ##############################################################################################
-#            # time series data
-#            ##############################################################################################
-#            start_record_time = self.monitor_start_time
-#            end_record_time = self.monitor_start_time 
-#            mtdapi.StartLiveData(
-#                    Instrument='TOPAZ',
-#                    Listener='SNSLiveEventDataListener',
-#                    FromTime=True,
-#                    StartTime=start_record_time,
-#                    LastTimeStamp=end_record_time,
-#                    UpdateEvery=0,
-#                    AccumulationMethod='Add',
-#                    PreserveEvents=True,
-#                    OutputWorkspace='live_event_ws_interval')
+        ##        def get_time_series_data()->np.array:
+        ##        #def get_time_series_data(start_record_time:float, end_record_time:float)->np.array:
+        #            ##############################################################################################
+        #            # time series data
+        #            ##############################################################################################
+        #            start_record_time = self.monitor_start_time
+        #            end_record_time = self.monitor_start_time
+        #            mtdapi.StartLiveData(
+        #                    Instrument='TOPAZ',
+        #                    Listener='SNSLiveEventDataListener',
+        #                    FromTime=True,
+        #                    StartTime=start_record_time,
+        #                    LastTimeStamp=end_record_time,
+        #                    UpdateEvery=0,
+        #                    AccumulationMethod='Add',
+        #                    PreserveEvents=True,
+        #                    OutputWorkspace='live_event_ws_interval')
+        #
+        #
+        #
+        #            self.monitor_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+        #            time.sleep(1)
+        #            try:
+        #                mtdapi.StartLiveData(
+        #                        Instrument='TOPAZ',
+        #                        Listener='SNSLiveEventDataListener',
+        #                        UpdateEvery=10,
+        #                        AccumulationMethod='Add',
+        #                        PreserveEvents=True,
+        #                        OutputWorkspace='live_event_ws')
+        #                self.monitor_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+        #                time.sleep(1)
+        #                #time.sleep(60)
+        #            except RuntimeError as e:
+        #                if 'Another MonitorLiveData thread is running' in str(e):
+        #                    conflict_current_run=mtdapi.mtd['live_event_ws'].getRunNumber()
+        #                    print("Warning: Another MonitorLiveData thread is already running for TOPAZ run %s."%(str(conflict_current_run)),
+        #                          "\nIt will continue with the current run unless you stop the existing instance manually or use a different OutputWorkspace.")
+        #                    sys.exit(1)
+        #                else:
+        #                    print(f"Unexpected error occurred: {str(e)}")
+        #                    raise
+        #            #self.run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
+        #
 
-
-##        def get_time_series_data()->np.array:
-##        #def get_time_series_data(start_record_time:float, end_record_time:float)->np.array:
-#            ##############################################################################################
-#            # time series data
-#            ##############################################################################################
-#            start_record_time = self.monitor_start_time
-#            end_record_time = self.monitor_start_time 
-#            mtdapi.StartLiveData(
-#                    Instrument='TOPAZ',
-#                    Listener='SNSLiveEventDataListener',
-#                    FromTime=True,
-#                    StartTime=start_record_time,
-#                    LastTimeStamp=end_record_time,
-#                    UpdateEvery=0,
-#                    AccumulationMethod='Add',
-#                    PreserveEvents=True,
-#                    OutputWorkspace='live_event_ws_interval')
-#
-#
-#
-#            self.monitor_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
-#            time.sleep(1)
-#            try:
-#                mtdapi.StartLiveData(
-#                        Instrument='TOPAZ',
-#                        Listener='SNSLiveEventDataListener',
-#                        UpdateEvery=10,
-#                        AccumulationMethod='Add',
-#                        PreserveEvents=True,
-#                        OutputWorkspace='live_event_ws')    
-#                self.monitor_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
-#                time.sleep(1)
-#                #time.sleep(60)
-#            except RuntimeError as e:
-#                if 'Another MonitorLiveData thread is running' in str(e):
-#                    conflict_current_run=mtdapi.mtd['live_event_ws'].getRunNumber()
-#                    print("Warning: Another MonitorLiveData thread is already running for TOPAZ run %s."%(str(conflict_current_run)),
-#                          "\nIt will continue with the current run unless you stop the existing instance manually or use a different OutputWorkspace.")
-#                    sys.exit(1)
-#                else:
-#                    print(f"Unexpected error occurred: {str(e)}")
-#                    raise
-#            #self.run_start_time = mtdapi.mtd['live_event_ws'].getRun().startTime().totalNanoseconds() * 1e-9
-# 
-            
-            #self.time_interval=10
+        # self.time_interval=10
 
         ########sim##########
-            #self.total_time_of_run=self.measure_time
-            #self.total_numberof_time_intervals=int(self.total_time_of_run/self.time_interval)-len(self.timeseries_plt)
-            ##TODO: copy in init
-            #time_of_poissonprocess_start=self.time_interval*len(self.timeseries_plt)
-            #self.time_of_poissonprocess=self.time_interval*self.total_numberof_time_intervals
-            #time_of_poissonprocess_stop=time_of_poissonprocess_start+self.time_of_poissonprocess
-            #self.timeseries = list(np.linspace(start=time_of_poissonprocess_start, stop= time_of_poissonprocess_stop,num=self.total_numberof_time_intervals+1,endpoint=True))
+        # self.total_time_of_run=self.measure_time
+        # self.total_numberof_time_intervals=int(self.total_time_of_run/self.time_interval)-len(self.timeseries_plt)
+        ##TODO: copy in init
+        # time_of_poissonprocess_start=self.time_interval*len(self.timeseries_plt)
+        # self.time_of_poissonprocess=self.time_interval*self.total_numberof_time_intervals
+        # time_of_poissonprocess_stop=time_of_poissonprocess_start+self.time_of_poissonprocess
+        # self.timeseries = list(np.linspace(start=time_of_poissonprocess_start, stop= time_of_poissonprocess_stop,num=self.total_numberof_time_intervals+1,endpoint=True))
         ########sim##########
-        
+
         #######sim##########
         def get_time_series_data_sim():
-            self.total_time_of_run=self.total_time_of_run+200
-            self.total_numberof_time_intervals=int(self.total_time_of_run/self.time_interval)-len(self.timeseries_plt)
-            time_of_poissonprocess_start=self.time_interval*len(self.timeseries_plt)
-            self.time_of_poissonprocess=self.time_interval*self.total_numberof_time_intervals
-            time_of_poissonprocess_stop=time_of_poissonprocess_start+self.time_of_poissonprocess
-            self.timeseries = list(np.linspace(start=time_of_poissonprocess_start, stop= time_of_poissonprocess_stop,num=self.total_numberof_time_intervals+1,endpoint=True))
-            self.timeseries_data = list(np.random.random(len(self.timeseries))+27)
-            self.timeseries_plt=self.timeseries_plt+self.timeseries
-            self.timeseries_data_plt=self.timeseries_data_plt+self.timeseries_data
-            self.temporal_poisson_uncertainty=np.array(self.timeseries_data_plt)**-0.5*np.array(self.timeseries_plt)**-0.5*10000
-            self.timeseries_data_plt[0]=0
-            if len(self.timeseries_data_plt)>0:
-                self.timeseries_data_plt[1]+=2
-                if len(self.timeseries_data_plt)>2:
-                    self.timeseries_data_plt[2]+=.2
-                    if len(self.timeseries_data_plt)>3:
-                        self.timeseries_data_plt[2]+=.2
+            self.total_time_of_run = self.total_time_of_run + 200
+            self.total_numberof_time_intervals = int(self.total_time_of_run / self.time_interval) - len(
+                self.timeseries_plt
+            )
+            time_of_poissonprocess_start = self.time_interval * len(self.timeseries_plt)
+            self.time_of_poissonprocess = self.time_interval * self.total_numberof_time_intervals
+            time_of_poissonprocess_stop = time_of_poissonprocess_start + self.time_of_poissonprocess
+            self.timeseries = list(
+                np.linspace(
+                    start=time_of_poissonprocess_start,
+                    stop=time_of_poissonprocess_stop,
+                    num=self.total_numberof_time_intervals + 1,
+                    endpoint=True,
+                )
+            )
+            self.timeseries_data = list(np.random.random(len(self.timeseries)) + 27)
+            self.timeseries_plt = self.timeseries_plt + self.timeseries
+            self.timeseries_data_plt = self.timeseries_data_plt + self.timeseries_data
+            self.temporal_poisson_uncertainty = (
+                np.array(self.timeseries_data_plt) ** -0.5 * np.array(self.timeseries_plt) ** -0.5 * 10000
+            )
+            self.timeseries_data_plt[0] = 0
+            if len(self.timeseries_data_plt) > 0:
+                self.timeseries_data_plt[1] += 2
+                if len(self.timeseries_data_plt) > 2:
+                    self.timeseries_data_plt[2] += 0.2
+                    if len(self.timeseries_data_plt) > 3:
+                        self.timeseries_data_plt[2] += 0.2
+
         #######sim##########
 
         def get_time_series_data_sim_linear():
-            print("self.time_interval",self.time_interval)
+            print("self.time_interval", self.time_interval)
             print("get_time_series_data_sim_linear")
-            if len(self.measure_times_sim)>0:
-                self.measure_times_sim.append(self.measure_times_sim[-1]+self.time_interval)
-                self.intensity_ratios_sim.append((self.measure_times_sim[-1]+1)**0.5 *(np.random.random()*0.1+1)*0.4+1)
-                self.rsigs_sim.append(self.intensity_ratios_sim[-1]**-1*100)
+            if len(self.measure_times_sim) > 0:
+                self.measure_times_sim.append(self.measure_times_sim[-1] + self.time_interval)
+                self.intensity_ratios_sim.append(
+                    (self.measure_times_sim[-1] + 1) ** 0.5 * (np.random.random() * 0.1 + 1) * 0.4 + 1
+                )
+                self.rsigs_sim.append(self.intensity_ratios_sim[-1] ** -1 * 100)
             else:
                 self.measure_times_sim.append(0)
                 self.intensity_ratios_sim.append(1.1)
                 self.rsigs_sim.append(90.9)
-            print("self.measure_times",self.measure_times)
-            print("self.intensity_ratios",self.intensity_ratios)
-            print("self.rsigs",self.rsigs)
-            self.measure_times=self.measure_times_sim
-            self.intensity_ratios=self.intensity_ratios_sim
-            self.rsigs=self.rsigs_sim
-
+            print("self.measure_times", self.measure_times)
+            print("self.intensity_ratios", self.intensity_ratios)
+            print("self.rsigs", self.rsigs)
+            self.measure_times = self.measure_times_sim
+            self.intensity_ratios = self.intensity_ratios_sim
+            self.rsigs = self.rsigs_sim
 
         def get_pixel_data():
-            print("self.time_interval",self.time_interval)
-            print("self.measure_time",self.measure_time)
-            print("self.total_time_of_run",self.total_time_of_run)
-            print("self.total_numberof_time_intervals",self.total_numberof_time_intervals)
-            print("self.timeseries",self.timeseries)    
+            print("self.time_interval", self.time_interval)
+            print("self.measure_time", self.measure_time)
+            print("self.total_time_of_run", self.total_time_of_run)
+            print("self.total_numberof_time_intervals", self.total_numberof_time_intervals)
+            print("self.timeseries", self.timeseries)
 
-            q_frame = 'lab' 
-            Q_box = 'Q_' + q_frame            
+            q_frame = "lab"
+            Q_box = "Q_" + q_frame
 
-            Q_box = 'HKL'            
+            Q_box = "HKL"
             ## get hkl limits
-            #cell = peaks_ws.mutableSample().getOrientedLattice()
+            # cell = peaks_ws.mutableSample().getOrientedLattice()
 
-            #max_h = math.ceil(cell.a()*(float(Qmax)/2.0/math.pi))
-            #max_k = math.ceil(cell.b()*(float(Qmax)/2.0/math.pi))
-            #max_l = math.ceil(cell.c()*(float(Qmax)/2.0/math.pi))
-            #max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
-            #min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
+            # max_h = math.ceil(cell.a()*(float(Qmax)/2.0/math.pi))
+            # max_k = math.ceil(cell.b()*(float(Qmax)/2.0/math.pi))
+            # max_l = math.ceil(cell.c()*(float(Qmax)/2.0/math.pi))
+            # max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
+            # min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
 
             bin_size = [32, 32, 32]
             bin_size = [3, 3, 3]
-            box_size_inhkl=[0.05,0.05,0.05]
-            h_box_len,k_box_len,l_box_len = box_size_inhkl
-            
+            box_size_inhkl = [0.05, 0.05, 0.05]
+            h_box_len, k_box_len, l_box_len = box_size_inhkl
+
             h_bin_num = bin_size[0]
             k_bin_num = bin_size[1]
             l_bin_num = bin_size[2]
-        
-            peak = live_predict_peaks_ws.getPeak(int(self.maxpeak_idx))
-            
-            #peak = live_predict_peaks_ws.getPeak(int(0))
-            h,k,l=peak.getHKL()
-            h,k,l=self.hkl
 
-            print("self.maxpeak_idx",self.maxpeak_idx)
-            print('peak,hkl',h,k,l,peak.getIntensity())
-            print('peakint',self.maxpeak_intI)
-            max_h = 20           
+            peak = live_predict_peaks_ws.getPeak(int(self.maxpeak_idx))
+
+            # peak = live_predict_peaks_ws.getPeak(int(0))
+            h, k, l = peak.getHKL()
+            h, k, l = self.hkl
+
+            print("self.maxpeak_idx", self.maxpeak_idx)
+            print("peak,hkl", h, k, l, peak.getIntensity())
+            print("peakint", self.maxpeak_intI)
+            max_h = 20
             max_k = 20
             max_l = 20
-            max_HKL ='%s,%s,%s'%(max_h,max_k,max_l)
-            min_HKL ='-%s,-%s,-%s'%(max_h,max_k,max_l)
-            self.timeseries_data   = []#np.array([])
-            mtdapi.LoadIsawUB(Inputworkspace='live_event_ws',  
-                    Filename= self.output_path + self.live_peaks_ub_fname)
-            if len(self.timeseries_plt)==0:
-                timeseries_loop=self.timeseries.copy()
+            max_HKL = "%s,%s,%s" % (max_h, max_k, max_l)
+            min_HKL = "-%s,-%s,-%s" % (max_h, max_k, max_l)
+            self.timeseries_data = []  # np.array([])
+            mtdapi.LoadIsawUB(Inputworkspace="live_event_ws", Filename=self.output_path + self.live_peaks_ub_fname)
+            if len(self.timeseries_plt) == 0:
+                timeseries_loop = self.timeseries.copy()
             else:
-                timeseries_loop=[self.timeseries_plt[-1]]+self.timeseries
+                timeseries_loop = [self.timeseries_plt[-1]] + self.timeseries
 
-            for i in range(len(timeseries_loop)-1):
-                st=mtdapi.mtd['live_event_ws'].getRun().startTime()
-                print("start time:",st)
-                
-                start_time = timeseries_loop[i+0]*1.0
-                stop_time = timeseries_loop[i+1]*1.0
+            for i in range(len(timeseries_loop) - 1):
+                st = mtdapi.mtd["live_event_ws"].getRun().startTime()
+                print("start time:", st)
 
-                if self.current_run!=mtdapi.mtd['live_event_ws'].getRunNumber():
+                start_time = timeseries_loop[i + 0] * 1.0
+                stop_time = timeseries_loop[i + 1] * 1.0
+
+                if self.current_run != mtdapi.mtd["live_event_ws"].getRunNumber():
                     print("run finished")
                     break
-                print("filter 10.0",start_time,stop_time)
-                #TODO: if starttime is >10, all steps other than first are 0, including same time range second part
-                mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
-                                StartTime=0, StopTime=stop_time)
-                                #StartTime=start_time, StopTime=stop_time)
-                start_time = st+int(timeseries_loop[i])*1000000000
-                stop_time = st+int(timeseries_loop[i+1])*1000000000
-                
-                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
-                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                                Q3DFrames=Q_box, QConversionScales='HKL', 
-                                Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
-                                MinValues=min_HKL, MaxValues=max_HKL
-                    ,OutputWorkspace='timestep_event_ws_md')
-                #mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
+                print("filter 10.0", start_time, stop_time)
+                # TODO: if starttime is >10, all steps other than first are 0, including same time range second part
+                mtdapi.FilterByTime(
+                    InputWorkspace="live_event_ws", OutputWorkspace="timestep_event_ws", StartTime=0, StopTime=stop_time
+                )
+                # StartTime=start_time, StopTime=stop_time)
+                start_time = st + int(timeseries_loop[i]) * 1000000000
+                stop_time = st + int(timeseries_loop[i + 1]) * 1000000000
+
+                mtdapi.ConvertToMD(
+                    InputWorkspace="timestep_event_ws",
+                    QDimensions="Q3D",
+                    dEAnalysisMode="Elastic",
+                    Q3DFrames=Q_box,
+                    QConversionScales="HKL",
+                    Uproj="1,0,0",
+                    Vproj="0,1,0",
+                    Wproj="0,0,1",
+                    MinValues=min_HKL,
+                    MaxValues=max_HKL,
+                    OutputWorkspace="timestep_event_ws_md",
+                )
+                # mtdapi.BinMD(InputWorkspace='timestep_event_ws', AlignedDim0='Q_sample_x,-0.5,0.5,1',
                 #    AlignedDim1='Q_sample_y,-0.5,0.5,1', AlignedDim2='Q_sample_z,-0.5,0.5,1',
                 #    OutputWorkspace='timestep_HKL_ws')
 
-
-                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
-                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
-                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
-                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
-                                            OutputWorkspace='timestep_HKL_ws')
-                    #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
+                mtdapi.BinMD(
+                    InputWorkspace="timestep_event_ws_md",
+                    AlignedDim0="[H,0,0],{},{},{}".format(h - h_box_len, h + h_box_len, h_bin_num),
+                    AlignedDim1="[0,K,0],{},{},{}".format(k - k_box_len, k + k_box_len, k_bin_num),
+                    AlignedDim2="[0,0,L],{},{},{}".format(l - l_box_len, l + l_box_len, l_bin_num),
+                    OutputWorkspace="timestep_HKL_ws",
+                )
+                #                         OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
                 print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
-                print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
-                print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
-                                            
-                print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
-                data = mtdapi.mtd['timestep_HKL_ws']
+                print("[H,0,0],{},{},{}".format(h - h_box_len, h + h_box_len, h_bin_num))
+                print(" AlignedDim1=", "[0,K,0],{},{},{}".format(k - k_box_len, k + k_box_len, k_bin_num))
+
+                print("AlignedDim2=", "[0,0,L],{},{},{}".format(l - l_box_len, l + l_box_len, l_bin_num))
+                data = mtdapi.mtd["timestep_HKL_ws"]
                 signal_array = data.getSignalArray().copy()
-                #self.timeseries_data = np.append(self.timeseries_data,signal_array)
+                # self.timeseries_data = np.append(self.timeseries_data,signal_array)
                 self.timeseries_data.append(signal_array)
                 print(signal_array)
                 print(signal_array.shape)
                 print("==========================")
-                '''
+                """
                 print("filter 10.0",start_time,stop_time)
                 mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
                                 AbsoluteStartTime=str(start_time), AbsoluteStopTime=str(stop_time))
                 #mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
                 #                StartTime=start_time, StopTime=stop_time)
                 #print("filter 10.1")
-                
+
                 #start_record_time=self.current_run_start_time+self.time_interval
 
                 #mtdapi.StartLiveData(
@@ -785,9 +920,9 @@ class MantidWorkflow():
                 #        PreserveEvents=True,
                 #        OutputWorkspace='timestep_event_ws')
 
-                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws', 
-                                QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                                Q3DFrames=Q_box, QConversionScales='HKL', 
+                mtdapi.ConvertToMD(InputWorkspace='timestep_event_ws',
+                                QDimensions='Q3D', dEAnalysisMode='Elastic',
+                                Q3DFrames=Q_box, QConversionScales='HKL',
                                 Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
                                 MinValues=min_HKL, MaxValues=max_HKL
                     ,OutputWorkspace='timestep_event_ws_md')
@@ -796,8 +931,8 @@ class MantidWorkflow():
                 #    OutputWorkspace='timestep_HKL_ws')
 
 
-                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md', 
-                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), 
+                mtdapi.BinMD(InputWorkspace='timestep_event_ws_md',
+                                            AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num),
                                              AlignedDim1='[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num),
                                              AlignedDim2='[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num),
                                             OutputWorkspace='timestep_HKL_ws')
@@ -805,7 +940,7 @@ class MantidWorkflow():
                 print("AlignedDim0='[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num), ")
                 print('[H,0,0],{},{},{}'.format(h-h_box_len,h+h_box_len,h_bin_num))
                 print(" AlignedDim1=",'[0,K,0],{},{},{}'.format(k-k_box_len,k+k_box_len,k_bin_num))
-                                            
+
                 print("AlignedDim2=",'[0,0,L],{},{},{}'.format(l-l_box_len,l+l_box_len,l_bin_num))
                 data = mtdapi.mtd['timestep_HKL_ws']
                 signal_array = data.getSignalArray().copy()
@@ -813,125 +948,153 @@ class MantidWorkflow():
                 self.timeseries_data.append(signal_array)
                 print(signal_array)
                 print(signal_array.shape)
-                '''
+                """
             print("====================================")
-            print("self.timeseries_data") 
+            print("self.timeseries_data")
             print(len(self.timeseries_data))
             print(len(self.timeseries))
-#            print(self.timeseries_data)
+            #            print(self.timeseries_data)
             print(len(self.timeseries_data_plt))
 
             print(len(self.timeseries_plt))
 
-            self.timeseries_plt=self.timeseries_plt+self.timeseries
-            self.timeseries_data_plt=self.timeseries_data_plt+self.timeseries_data
+            self.timeseries_plt = self.timeseries_plt + self.timeseries
+            self.timeseries_data_plt = self.timeseries_data_plt + self.timeseries_data
 
-            #print(len(self.timeseries_data))
+            # print(len(self.timeseries_data))
 
             print(len(self.timeseries_plt))
 
             print(len(self.timeseries_data_plt))
-
-
 
             print(self.timeseries_plt)
 
-            print('self.timeseries_data_plt')
+            print("self.timeseries_data_plt")
             print(self.timeseries_data_plt)
-            #print(self.timeseries_data_plt)
-            self.timeseries_data_plt=self.timeseries_data_plt[2:]
-            self.timeseries_plt=self.timeseries_plt[2:]
+            # print(self.timeseries_data_plt)
+            self.timeseries_data_plt = self.timeseries_data_plt[2:]
+            self.timeseries_plt = self.timeseries_plt[2:]
 
-            self.temporal_poisson_intensity=[self.timeseries_data_plt[0][1,1,1]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1][1,1,1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
-            #self.temporal_poisson_intensity=[0,self.timeseries_data_plt[0][1,1,1]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1][1,1,1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
-            print('self.temporal_poisson_intensity')
+            self.temporal_poisson_intensity = [self.timeseries_data_plt[0][1, 1, 1]] + [
+                (self.timeseries_data_plt[i][1, 1, 1] - self.timeseries_data_plt[i - 1][1, 1, 1]) / self.time_interval
+                for i in range(1, len(self.timeseries_data_plt))
+            ]
+            # self.temporal_poisson_intensity=[0,self.timeseries_data_plt[0][1,1,1]]+[ (self.timeseries_data_plt[i][1,1,1]-self.timeseries_data_plt[i-1][1,1,1])/self.time_interval for i in range(1,len(self.timeseries_data_plt))]
+            print("self.temporal_poisson_intensity")
             print(self.temporal_poisson_intensity)
-            self.temporal_poisson_intensity=[0]+[np.mean(np.array(self.temporal_poisson_intensity[:i+1])) for i in range(0,len(self.temporal_poisson_intensity))]
+            self.temporal_poisson_intensity = [0] + [
+                np.mean(np.array(self.temporal_poisson_intensity[: i + 1]))
+                for i in range(0, len(self.temporal_poisson_intensity))
+            ]
             print(self.temporal_poisson_intensity)
-            self.temporal_poisson_intensity=[0]+[ self.timeseries_data_plt[i][1,1,1]/(i+1)/self.time_interval for i in range(0,len(self.timeseries_data_plt))]
+            self.temporal_poisson_intensity = [0] + [
+                self.timeseries_data_plt[i][1, 1, 1] / (i + 1) / self.time_interval
+                for i in range(0, len(self.timeseries_data_plt))
+            ]
             print(self.temporal_poisson_intensity)
-            self.temporal_poisson_uncertainty=[0]+[np.var(np.array(self.temporal_poisson_intensity[:i+1])) for i in range(0,len(self.temporal_poisson_intensity))]
-            self.temporal_poisson_uncertainty=np.array(self.temporal_poisson_uncertainty)**0.5**np.array(self.timeseries)**-0.5*100
+            self.temporal_poisson_uncertainty = [0] + [
+                np.var(np.array(self.temporal_poisson_intensity[: i + 1]))
+                for i in range(0, len(self.temporal_poisson_intensity))
+            ]
+            self.temporal_poisson_uncertainty = (
+                np.array(self.temporal_poisson_uncertainty) ** 0.5 ** np.array(self.timeseries) ** -0.5 * 100
+            )
 
-            self.temporal_poisson_intensity=[0]+[ 
-                self.timeseries_data_plt[i][1,1,1]*.1e-4/self.timeseries[i+1](-1)**i+27 
-                for i in range(0,len(self.timeseries_data_plt))]
+            self.temporal_poisson_intensity = [0] + [
+                self.timeseries_data_plt[i][1, 1, 1] * 0.1e-4 / self.timeseries[i + 1](-1) ** i + 27
+                for i in range(0, len(self.timeseries_data_plt))
+            ]
             print(self.temporal_poisson_intensity)
-            self.temporal_poisson_uncertainty=np.array(self.temporal_poisson_intensity)**0.5**np.array(self.timeseries)**-0.5*100
+            self.temporal_poisson_uncertainty = (
+                np.array(self.temporal_poisson_intensity) ** 0.5 ** np.array(self.timeseries) ** -0.5 * 100
+            )
 
+        def get_time_series_data_0() -> np.array:
+            peaks_ws = mtdapi.LoadIsawPeaks(Filename=peaks_filename)
+            mtdapi.LoadIsawUB(InputWorkspace="peaks_ws", Filename=UB_filename)
+            mtdapi.IndexPeaks(
+                PeaksWorkspace="peaks_ws",
+                Tolerance=tolerance,
+                ToleranceForSatellite=tolerance_satellite,
+                RoundHKLs=False,
+                CommonUBForAll=True,
+            )
 
-        def get_time_series_data_0()->np.array:
-            
-
-            peaks_ws=mtdapi.LoadIsawPeaks(Filename=peaks_filename)
-            mtdapi.LoadIsawUB(InputWorkspace='peaks_ws', Filename=UB_filename)
-            mtdapi.IndexPeaks(PeaksWorkspace='peaks_ws', Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, 
-                    RoundHKLs=False, CommonUBForAll=True)
-
-            MDEW=mtdapi.ConvertToMD(InputWorkspace='event_ws', 
-                            QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                            Q3DFrames=Q_box, QConversionScales='HKL', 
-                            Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
-                            MinValues=min_HKL, MaxValues=max_HKL)
+            MDEW = mtdapi.ConvertToMD(
+                InputWorkspace="event_ws",
+                QDimensions="Q3D",
+                dEAnalysisMode="Elastic",
+                Q3DFrames=Q_box,
+                QConversionScales="HKL",
+                Uproj="1,0,0",
+                Vproj="0,1,0",
+                Wproj="0,0,1",
+                MinValues=min_HKL,
+                MaxValues=max_HKL,
+            )
 
             # if not os.path.exists(plot_folder):
             #     os.makedirs(plot_folder)
 
             UB = peaks_ws.sample().getOrientedLattice().getUB()
-            banks = mtd['peaks_ws'].column(13)
+            banks = mtd["peaks_ws"].column(13)
 
             peak_numbers = [1]
-            #peak_numbers = [167,168,169,170,171,172,173,174,175,176]
+            # peak_numbers = [167,168,169,170,171,172,173,174,175,176]
             print(len(peak_numbers))
 
             for i in peak_numbers:
-            #for i in range(peaks_ws.getNumberPeaks()):
+                # for i in range(peaks_ws.getNumberPeaks()):
                 signal_array = []
                 H_array = []
                 K_array = []
                 L_array = []
 
-                peak =peaks_ws.getPeak(i)
-                peak_index=peak.getPeakNumber()
-                h,k,l=peak.getHKL()
-                col=peak.getCol()
-                row=peak.getRow()
-                dn = int(banks[i].strip('bank'))
+                peak = peaks_ws.getPeak(i)
+                peak_index = peak.getPeakNumber()
+                h, k, l = peak.getHKL()
+                col = peak.getCol()
+                row = peak.getRow()
+                dn = int(banks[i].strip("bank"))
 
                 # l_min = l-fracHKL[2]
                 # l_max = l+fracHKL[2]
 
                 # l_step = (l_max-l_min)/(l_bins-1)
 
-                # BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num), 
+                # BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num),
                 #                              AlignedDim1='[0,K,0],{},{},{}'.format(k-0.5,k+0.5,k_bin_num),
-                #                              AlignedDim2='[0,0,L],{},{},1'.format(l-l_step,l+l_step), 
-                #                              OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l)) 
+                #                              AlignedDim2='[0,0,L],{},{},1'.format(l-l_step,l+l_step),
+                #                              OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
 
-                BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num), 
-                                             AlignedDim1='[0,K,0],{},{},{}'.format(k-0.5,k+0.5,k_bin_num),
-                                             AlignedDim2='[0,0,L],{},{},{}'.format(l-0.5,l+0.5,l_bin_num),
-                                             OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
+                BinMD(
+                    InputWorkspace="MDEW",
+                    AlignedDim0="[H,0,0],{},{},{}".format(h - 0.5, h + 0.5, h_bin_num),
+                    AlignedDim1="[0,K,0],{},{},{}".format(k - 0.5, k + 0.5, k_bin_num),
+                    AlignedDim2="[0,0,L],{},{},{}".format(l - 0.5, l + 0.5, l_bin_num),
+                    OutputWorkspace="HKL=({:.2f},{:.2f},{:.2f})_binslice".format(h, k, l),
+                )
 
-                data = mtd['HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l)]
+                data = mtd["HKL=({:.2f},{:.2f},{:.2f})_binslice".format(h, k, l)]
 
                 signal_array = data.getSignalArray().copy()
             return signal_array
 
-    
         def clear_data_after_data_saturation():
-            #TODO: to be taken out
-            self.cancel_threshold =30 
+            # TODO: to be taken out
+            self.cancel_threshold = 30
 
             if self.intensity_ratio > self.cancel_threshold:
                 time.sleep(2)
                 # This will cancel both algorithms
-                #AlgorithmManager.cancelAll()
+                # AlgorithmManager.cancelAll()
                 # save results
-                mtdapi.SaveIsawPeaks(Inputworkspace='live_predict_peaks_ws', 
-                        Filename= self.output_path + self.live_peaks_fname )
-                mtdapi.SaveIsawUB(Inputworkspace='live_predict_peaks_ws',  
-                        Filename= self.output_path + self.live_peaks_fname )
+                mtdapi.SaveIsawPeaks(
+                    Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_fname
+                )
+                mtdapi.SaveIsawUB(
+                    Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_fname
+                )
 
                 # Clear the lists to start plotting fresh data points
                 self.proton_charges.clear()
@@ -941,33 +1104,35 @@ class MantidWorkflow():
 
                 # Pause briefly to let the plots be updated
                 time.sleep(1)
-                #print("Intensity ratio exceeds the cancel threshold. Exiting...")
+                # print("Intensity ratio exceeds the cancel threshold. Exiting...")
 
             # Pause briefly to let the plots be updated
-            #time.sleep(15)
+            # time.sleep(15)
+
         print("============================================================================================")
         print("live data reduction started")
         print("============================================================================================")
         print("?")
-        #get_time_series_data_sim()
+        # get_time_series_data_sim()
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
         refine_ub_of_current_run()
         integrate_peaks_of_current_run()
         check_peaks_of_current_run()
-        
-        #get_time_series_data_sim_linear()
-        
+
+        # get_time_series_data_sim_linear()
+
         time.sleep(0)
 
-#class TemporalData(BaseModel):
+
+# class TemporalData(BaseModel):
 #    time: float
 #    intensity: float
 #    variance: float
 #    uncertainty: float
 #
-#import math
-'''
+# import math
+"""
 class PoissonModelAnalysis(BaseModel):
 
     # Load the monitor data and get the counting time in seconds
@@ -985,11 +1150,11 @@ class PoissonModelAnalysis(BaseModel):
         print('\nnumber_of_steps = ', number_of_steps)
         print('')
     else:
-        print('\data collection time is less than the time interval of {:0f} seconds'.format(time_interval))
+        print('\\data collection time is less than the time interval of {:0f} seconds'.format(time_interval))
 
     peaks_ws=mtdapi.LoadIsawPeaks(Filename=peaks_filename)
     mtdapi.LoadIsawUB(InputWorkspace='peaks_ws', Filename=UB_filename)
-    mtdapi.IndexPeaks(PeaksWorkspace='peaks_ws', Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, 
+    mtdapi.IndexPeaks(PeaksWorkspace='peaks_ws', Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite,
             RoundHKLs=False, CommonUBForAll=True)
 
     # Begin loop to integrate peaks and analyze statistics
@@ -997,56 +1162,56 @@ class PoissonModelAnalysis(BaseModel):
 
     print(f'Total time: {total_time}')
 
-    n_step = 1                
+    n_step = 1
     while True:
         #time_stop = time_interval * MultiplierBase**n_step
         time_stop = time_interval * MultiplierBase * n_step
         print('--- time_stop: {}, time_interval: {}, MultiplierBase: {}, n_step: {}, total_time: {}'
             .format(time_stop, time_interval, MultiplierBase, n_step, total_time))
         if time_stop <= total_time:
-            event_ws = mtdapi.Load( Filename=data_filename, 
+            event_ws = mtdapi.Load( Filename=data_filename,
                                FilterByTofMin=min_tof, FilterByTofMax=max_tof,
                                FilterByTimeStop = time_stop
                             )
             event_ws = mtdapi.FilterBadPulses(InputWorkspace=event_ws, LowerCutoff = 85)
             proton_charge = event_ws.getRun().getProtonCharge() * 1000.0  # proton charge scaled up to match detector counts
-            mtdapi.LoadIsawDetCal(event_ws, Filename=calibration_file) 
+            mtdapi.LoadIsawDetCal(event_ws, Filename=calibration_file)
             mtdapi.LoadIsawUB(InputWorkspace=event_ws, Filename=UB_filename)
 
-            #MDEW=ConvertToMD(InputWorkspace=event_ws, QDimensions='Q3D', 
-            #    dEAnalysisMode='Elastic', Q3DFrames='Q_sample', LorentzCorrection=True, 
-            #    MinValues=minQ, MaxValues=maxQ, SplitInto='2', 
+            #MDEW=ConvertToMD(InputWorkspace=event_ws, QDimensions='Q3D',
+            #    dEAnalysisMode='Elastic', Q3DFrames='Q_sample', LorentzCorrection=True,
+            #    MinValues=minQ, MaxValues=maxQ, SplitInto='2',
             #    SplitThreshold=60, MaxRecursionDepth=13, MinRecursionDepth=7)
 
             #peaks_ws=LoadIsawPeaks(Filename=peaks_filename)
             #LoadIsawUB(InputWorkspace='peaks_ws', Filename=UB_filename)
             #IndexPeaks(PeaksWorkspace='peaks_ws', Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
 
-            #FindUBUsingIndexedPeaks(PeaksWorkspace=peaks_ws, 
+            #FindUBUsingIndexedPeaks(PeaksWorkspace=peaks_ws,
             #                Tolerance=tolerance,
             #                ToleranceForSatellite=tolerance_satellite, CommonUBForAll=True)
             #SelectCellOfType(PeaksWorkspace=peaks_ws, CellType='Hexagonal', Apply=True, AllowPermutations=True)
-            #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, 
-            #    RoundHKLs=False, 
-            #    ModVector1='0,0,0.5', 
-            #    MaxOrder=1, 
-            #    CrossTerms=False, 
+            #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite,
+            #    RoundHKLs=False,
+            #    ModVector1='0,0,0.5',
+            #    MaxOrder=1,
+            #    CrossTerms=False,
             #    SaveModulationInfo=True,
             #    CommonUBForAll=True)
             #peaks_ws=FilterPeaks(InputWorkspace=peaks_ws, FilterVariable='h^2+k^2+l^2', FilterValue=0, Operator='>')
-            #FindUBUsingIndexedPeaks(PeaksWorkspace=peaks_ws, 
+            #FindUBUsingIndexedPeaks(PeaksWorkspace=peaks_ws,
             #                Tolerance=tolerance,
             #                ToleranceForSatellite=tolerance_satellite,CommonUBForAll=True)
             #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
             #OptimizeLatticeForCellType(PeaksWorkspace=peaks_ws, CellType='Hexagonal', Apply=True, Tolerance=0.06, EdgePixels=19, OutputDirectory='/SNS/TOPAZ/shared/test/Integrate_satellite_peaks')
             #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
 
-            mtdapi.CopySample(InputWorkspace=peaks_ws, 
+            mtdapi.CopySample(InputWorkspace=peaks_ws,
                     OutputWorkspace='event_ws', CopyName=False, CopyMaterial=False, CopyEnvironment=False, CopyShape=False)
             if q_frame == ('lab' or 'sample'):
                 Q_box = 'Q_' + q_frame
-                MDEW = mtdapi.ConvertToMD(InputWorkspace=event_ws, QDimensions='Q3D', 
-                        dEAnalysisMode='Elastic', Q3DFrames=Q_box, 
+                MDEW = mtdapi.ConvertToMD(InputWorkspace=event_ws, QDimensions='Q3D',
+                        dEAnalysisMode='Elastic', Q3DFrames=Q_box,
                         LorentzCorrection=False,
                         MinValues=minQ, MaxValues=maxQ)
 
@@ -1064,9 +1229,9 @@ class PoissonModelAnalysis(BaseModel):
                 print('Error: No UB matrix')
                 #break
             print('\nReducing data in HKL space ...')
-            MDEW=mtdapi.ConvertToMD(InputWorkspace='event_ws', 
-                            QDimensions='Q3D', dEAnalysisMode='Elastic', 
-                            Q3DFrames=Q_box, QConversionScales='HKL', 
+            MDEW=mtdapi.ConvertToMD(InputWorkspace='event_ws',
+                            QDimensions='Q3D', dEAnalysisMode='Elastic',
+                            Q3DFrames=Q_box, QConversionScales='HKL',
                             Uproj='1,0,0', Vproj='0,1,0', Wproj='0,0,1',
                             MinValues=min_HKL, MaxValues=max_HKL)
 
@@ -1098,12 +1263,12 @@ class PoissonModelAnalysis(BaseModel):
 
                 # l_step = (l_max-l_min)/(l_bins-1)
 
-                # BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num), 
+                # BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num),
                 #                              AlignedDim1='[0,K,0],{},{},{}'.format(k-0.5,k+0.5,k_bin_num),
-                #                              AlignedDim2='[0,0,L],{},{},1'.format(l-l_step,l+l_step), 
-                #                              OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l)) 
+                #                              AlignedDim2='[0,0,L],{},{},1'.format(l-l_step,l+l_step),
+                #                              OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
 
-                BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num), 
+                BinMD(InputWorkspace='MDEW', AlignedDim0='[H,0,0],{},{},{}'.format(h-0.5,h+0.5,h_bin_num),
                                              AlignedDim1='[0,K,0],{},{},{}'.format(k-0.5,k+0.5,k_bin_num),
                                              AlignedDim2='[0,0,L],{},{},{}'.format(l-0.5,l+0.5,l_bin_num),
                                              OutputWorkspace='HKL=({:.2f},{:.2f},{:.2f})_binslice'.format(h,k,l))
@@ -1121,7 +1286,7 @@ class PoissonModelAnalysis(BaseModel):
 
                 peakdir=output_directory+'npy/peak_{0:d}_res_{1:d}/'.format(i, bin_size[0])
                 peakfilename='run_{0:d}_peak_number_{1:d}_time_step_{2:d}_data.npy'.format( run,i,n_step)
-                if not os.path.exists(peakdir): os.makedirs(peakdir) 
+                if not os.path.exists(peakdir): os.makedirs(peakdir)
                 np.save(peakdir+peakfilename, signal_array)
                 # np.save(output_directory+'/npy/peak_{0:d}/run_{1:d}_peak_number_{2:d}_time_step_{3:d}_grid_H.npy'.format(i, run,i,n_step), H_array)
                 # np.save(output_directory+'/npy/peak_{0:d}/run_{1:d}_peak_number_{2:d}_time_step_{3:d}_grid_K.npy'.format(i, run,i,n_step), K_array)
@@ -1134,31 +1299,43 @@ class PoissonModelAnalysis(BaseModel):
         n_step = n_step + 1
 
         #plt.close('all')
-'''
+"""
 
 if TYPE_CHECKING:
     from .main_model import MainModel
 
 
 class TemporalAnalysisModel(BaseModel):
-    table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
+    table_test: List[Dict] = Field(default=[{"title": "1", "header": "h"}])
     prediction_model_type: str = Field(default="Poisson Model", title="Prediction Model")
     prediction_model_type_options: List[str] = ["Poisson Model", "Bayesian Model", "Linear Interpolation"]
-    #prediction_model_type_options: List[str] = ["Poisson Model", "Linear Interpolation"]
+    # prediction_model_type_options: List[str] = ["Poisson Model", "Linear Interpolation"]
     data_selection: str = Field(default="All Peaks", title="Peak Selection")
-    data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]
-    #data_selection_options: List[str] = ["All Peaks", "Strongest Peak Center", "Strongest Peak Edge","Smart Selection"]
+    data_selection_options: List[str] = [
+        "All Peaks",
+        "Bragg Peaks",
+        "Max Peak",
+        "Satellite Peaks",
+        "Diffuse scattering",
+    ]
+    # data_selection_options: List[str] = ["All Peaks", "Strongest Peak Center", "Strongest Peak Edge","Smart Selection"]
     time_steps: List[float] = Field(default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps")
-    intensity_data: List[float] = Field(default=[0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0, 64.0, 81.0], title="Intensity Data")
-    variance_data: List[float] = Field(default=[0.0, 0.1, 0.4, 0.9, 1.6, 2.5, 3.6, 4.9, 6.4, 8.1], title="Variance Data")
-    uncertainty_data: List[float] = Field(default=[0.0, 0.2, 0.6, 1.2, 2.0, 3.0, 4.2, 5.6, 7.2, 9.0], title="Uncertainty Data")
-    #prediction_figure: go.Figure = Field(default_factory=go.Figure, title="Prediction Figure")
-    timestamp: float=Field(default=0.0,title="timestamp")
+    intensity_data: List[float] = Field(
+        default=[0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0, 64.0, 81.0], title="Intensity Data"
+    )
+    variance_data: List[float] = Field(
+        default=[0.0, 0.1, 0.4, 0.9, 1.6, 2.5, 3.6, 4.9, 6.4, 8.1], title="Variance Data"
+    )
+    uncertainty_data: List[float] = Field(
+        default=[0.0, 0.2, 0.6, 1.2, 2.0, 3.0, 4.2, 5.6, 7.2, 9.0], title="Uncertainty Data"
+    )
+    # prediction_figure: go.Figure = Field(default_factory=go.Figure, title="Prediction Figure")
+    timestamp: float = Field(default=0.0, title="timestamp")
     all_time: List[float] = Field(default=[0.0, 10000], title="All Time")
-    #mtd_workflow: MantidWorkflow = Field(default=MantidWorkflow(), title="Mantid Workflow")
-    time_interval : float=Field(default=40,title="Time Interval")
+    # mtd_workflow: MantidWorkflow = Field(default=MantidWorkflow(), title="Mantid Workflow")
+    time_interval: float = Field(default=40, title="Time Interval")
     mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow()
-    #mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
+    # mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
     # Optional back-reference to MainModel. Set by MainViewModel when wiring.
     _parent: Optional["MainModel"] = None
 
@@ -1186,20 +1363,19 @@ class TemporalAnalysisModel(BaseModel):
         except Exception:
             return None
         return None
-    
 
     def get_figure_intensity(self) -> go.Figure:
-        #self.timestamp = time.time()
+        # self.timestamp = time.time()
         fig = go.Figure()
-            #self.time_steps=self.mtd_workflow.measure_times
-            #if self.prediction_model_type=='Linear Interpolation':
+        # self.time_steps=self.mtd_workflow.measure_times
+        # if self.prediction_model_type=='Linear Interpolation':
 
-        if self.prediction_model_type=='Poisson Model':
-            time_steps=self.mtd_workflow.measure_times
+        if self.prediction_model_type == "Poisson Model":
+            time_steps = self.mtd_workflow.measure_times
             intensity_data = self.mtd_workflow.intensity_ratios
             ## Example of reading up-to-date experiment info from parent if available
             ## (e.g., to change behavior based on point group or other settings).
-            #try:
+            # try:
             #    if getattr(self, "_parent", None) is not None:
             #        pg = self._parent.experimentinfo.pointGroup
             #        # Use pointGroup for conditional behavior or logging
@@ -1207,32 +1383,32 @@ class TemporalAnalysisModel(BaseModel):
             #        intensity_figure_title_suffix = f" (PG={pg})"
             #    else:
             #        intensity_figure_title_suffix = ""
-            #except Exception:
+            # except Exception:
             #    intensity_figure_title_suffix = ""
-            #intensity_figure_title='Prediction of Signal Noise Ratio' + intensity_figure_title_suffix
-            intensity_figure_title='Prediction of Signal Noise Ratio'
-            intensity_figure_yaxis='Signal Noise Ratio'
-        if self.prediction_model_type=='Linear Interpolation':
-        #if self.prediction_model_type=='Poisson Model':
-            time_steps=self.mtd_workflow.timeseries_plt
-            #intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)*0.03*(-1)**int(np.array(time_steps)/40)+27
-            #intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)
-            intensity_data=np.array(self.mtd_workflow.timeseries_data_plt)
-            intensity_figure_title='Prediction of Intensity'
-            intensity_figure_yaxis='Intensity'
+            # intensity_figure_title='Prediction of Signal Noise Ratio' + intensity_figure_title_suffix
+            intensity_figure_title = "Prediction of Signal Noise Ratio"
+            intensity_figure_yaxis = "Signal Noise Ratio"
+        if self.prediction_model_type == "Linear Interpolation":
+            # if self.prediction_model_type=='Poisson Model':
+            time_steps = self.mtd_workflow.timeseries_plt
+            # intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)*0.03*(-1)**int(np.array(time_steps)/40)+27
+            # intensity_data=np.array(self.mtd_workflow.temporal_poisson_intensity)
+            intensity_data = np.array(self.mtd_workflow.timeseries_data_plt)
+            intensity_figure_title = "Prediction of Intensity"
+            intensity_figure_yaxis = "Intensity"
 
-        #if False:
-        if len(time_steps)>0:
+        # if False:
+        if len(time_steps) > 0:
             print("============================================================================================")
             print("time_steps = self.mtd_workflow.measure_times")
-            print(time_steps , self.mtd_workflow.measure_times )
+            print(time_steps, self.mtd_workflow.measure_times)
             print("intensity_data = self.mtd_workflow.intensity_ratios")
-            print(intensity_data , self.mtd_workflow.intensity_ratios )
+            print(intensity_data, self.mtd_workflow.intensity_ratios)
             print("============================================================================================")
-            #self.intensity_data = self.mtd_workflow.intensity_ratios
+            # self.intensity_data = self.mtd_workflow.intensity_ratios
             # Reshape the data for sklearn
             X = np.array(time_steps).reshape(-1, 1)
-            X=X**0.5
+            X = X**0.5
             y = np.array(intensity_data)
 
             # Create and fit the model
@@ -1245,101 +1421,117 @@ class TemporalAnalysisModel(BaseModel):
 
             print(f"Slope: {slope}, Intercept: {intercept}")
 
-        #    ax_intensity.plot(measure_times, intensity_ratios, '-o', label='Peak I/σ(I)')
-        #    ax_rsig.plot(measure_times, rsigs, '-o', label='Rsig')
-        #    ax_intensity.set_ylabel('Peak I/σ(I)')
-        #    ax_rsig.set_ylabel('Rsig')
-        #    ax_rsig.set_xlabel('Run time, seconds')
-        #    ax_intensity.grid(True)
-        # Add a dashed line with the slope and intercept
-            #if self.prediction_model_type=='Linear Interpolation':
-            if self.prediction_model_type=='Poisson Model':
-                x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
+            #    ax_intensity.plot(measure_times, intensity_ratios, '-o', label='Peak I/σ(I)')
+            #    ax_rsig.plot(measure_times, rsigs, '-o', label='Rsig')
+            #    ax_intensity.set_ylabel('Peak I/σ(I)')
+            #    ax_rsig.set_ylabel('Rsig')
+            #    ax_rsig.set_xlabel('Run time, seconds')
+            #    ax_intensity.grid(True)
+            # Add a dashed line with the slope and intercept
+            # if self.prediction_model_type=='Linear Interpolation':
+            if self.prediction_model_type == "Poisson Model":
+                x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
                 y_range = slope * x_range**0.5 + intercept
-            if self.prediction_model_type=='Linear Interpolation':
-            #if self.prediction_model_type=='Poisson Model':
-                x_range= np.linspace(max(time_steps), max(time_steps)+2000, 100)
-                y_range= np.zeros_like(x_range)+intensity_data[-1]
-            fig.add_trace(go.Scatter(x=x_range, y=y_range, mode='lines', name='Prediction Line', line=dict(dash='dash')))
-            fig.add_trace(go.Scatter(x=time_steps, y=intensity_data, mode='lines+markers', name='History Data'))
-            #fig.add_trace(go.Scatter(x=self.time_steps, y=intensity_data, mode='lines+markers', name='History Data'))
-            #fig.add_trace(go.Scatter(x=self.time_steps, y=self.intensity_data, mode='lines+markers', name='Intensity Data'))
-            #fig.update_layout(title='Prediction of Intensity with '+self.prediction_model_type, xaxis_title='Time Steps (s)', yaxis_title='Intensity')
-            fig.update_layout(
-                title={
-                'text': intensity_figure_title,
-                'x': 0.5,
-                'xanchor': 'center'
-                },
-                xaxis_title='Time Steps (s)',
-                yaxis_title=intensity_figure_yaxis,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+            if self.prediction_model_type == "Linear Interpolation":
+                # if self.prediction_model_type=='Poisson Model':
+                x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
+                y_range = np.zeros_like(x_range) + intensity_data[-1]
+            fig.add_trace(
+                go.Scatter(x=x_range, y=y_range, mode="lines", name="Prediction Line", line=dict(dash="dash"))
             )
-            fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            #fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
-            #fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
-            #time.sleep(7)
+            fig.add_trace(go.Scatter(x=time_steps, y=intensity_data, mode="lines+markers", name="History Data"))
+            # fig.add_trace(go.Scatter(x=self.time_steps, y=intensity_data, mode='lines+markers', name='History Data'))
+            # fig.add_trace(go.Scatter(x=self.time_steps, y=self.intensity_data, mode='lines+markers', name='Intensity Data'))
+            # fig.update_layout(title='Prediction of Intensity with '+self.prediction_model_type, xaxis_title='Time Steps (s)', yaxis_title='Intensity')
+            fig.update_layout(
+                title={"text": intensity_figure_title, "x": 0.5, "xanchor": "center"},
+                xaxis_title="Time Steps (s)",
+                yaxis_title=intensity_figure_yaxis,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+            )
+            fig.update_xaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            fig.update_yaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            # fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+            # fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+            # time.sleep(7)
         else:
             fig.update_layout(
-                title={
-                'text': intensity_figure_title,
-                'x': 0.5,
-                'xanchor': 'center'
-                },
-                xaxis_title='Time Steps (s)',
+                title={"text": intensity_figure_title, "x": 0.5, "xanchor": "center"},
+                xaxis_title="Time Steps (s)",
                 yaxis_title=intensity_figure_yaxis,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
-            fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
- 
+            fig.update_xaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            fig.update_yaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+
             fig.add_annotation(
                 text="Waiting for data",
-                xref="paper", yref="paper",
-                x=0.5, y=0.5,
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
                 showarrow=False,
-                font=dict(size=20, color="red")
+                font=dict(size=20, color="red"),
             )
         return fig
+
     def get_figure_uncertainty(self) -> go.Figure:
-        #self.timestamp = time.time()
+        # self.timestamp = time.time()
         fig = go.Figure()
 
-        if self.prediction_model_type=='Poisson Model':
-        #if self.prediction_model_type=='Linear Interpolation':
-            time_steps=self.mtd_workflow.measure_times
+        if self.prediction_model_type == "Poisson Model":
+            # if self.prediction_model_type=='Linear Interpolation':
+            time_steps = self.mtd_workflow.measure_times
             uncertainty_data = self.mtd_workflow.rsigs
-            uncertainty_figure_title='Prediction of σ(I)/I'
-    #    ax_intensity.set_ylabel('Peak I/σ(I)')
-            uncertainty_figure_yaxis='σ(I)/I (%)'
+            uncertainty_figure_title = "Prediction of σ(I)/I"
+            #    ax_intensity.set_ylabel('Peak I/σ(I)')
+            uncertainty_figure_yaxis = "σ(I)/I (%)"
 
-        #if self.prediction_model_type=='Poisson Model':
-        if self.prediction_model_type=='Linear Interpolation':
-            time_steps=self.mtd_workflow.timeseries_plt
-            uncertainty_data=self.mtd_workflow.temporal_poisson_uncertainty
-            uncertainty_figure_title='Prediction of Uncertainty'
-            uncertainty_figure_yaxis='Uncertainty (%)'
-            time_steps=np.array(time_steps)
-            uncertainty_data=np.array(uncertainty_data)
-            slope = uncertainty_data[-1]**0.5
-            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
-            y_range = slope * (1 / x_range**0.5) 
+        # if self.prediction_model_type=='Poisson Model':
+        if self.prediction_model_type == "Linear Interpolation":
+            time_steps = self.mtd_workflow.timeseries_plt
+            uncertainty_data = self.mtd_workflow.temporal_poisson_uncertainty
+            uncertainty_figure_title = "Prediction of Uncertainty"
+            uncertainty_figure_yaxis = "Uncertainty (%)"
+            time_steps = np.array(time_steps)
+            uncertainty_data = np.array(uncertainty_data)
+            slope = uncertainty_data[-1] ** 0.5
+            x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
+            y_range = slope * (1 / x_range**0.5)
 
             uncertainty_data = np.array(uncertainty_data)
             time_steps = np.array(time_steps)
-            nozero_mask=np.where(time_steps>0)
+            nozero_mask = np.where(time_steps > 0)
             X = np.array(time_steps[nozero_mask]).reshape(-1, 1)
             y = np.array(uncertainty_data[nozero_mask])
-
 
             # Transform X to 1/X
             X_transformed = 1 / X**0.5
 
             print("X_transformed")
-            print(X_transformed)    
+            print(X_transformed)
             print("y")
             print(y)
             # Create and fit the model
@@ -1353,22 +1545,21 @@ class TemporalAnalysisModel(BaseModel):
             print(f"Slope: {slope}, Intercept: {intercept}")
 
             # Add a dashed line with the slope and intercept
-            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
-            y_range = slope * (1 / x_range**0.5) +0* intercept
-    
-        if len(self.mtd_workflow.measure_times)>0:
-        #if False:
+            x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
+            y_range = slope * (1 / x_range**0.5) + 0 * intercept
+
+        if len(self.mtd_workflow.measure_times) > 0:
+            # if False:
             uncertainty_data = np.array(uncertainty_data)
             time_steps = np.array(time_steps)
             X = np.array(time_steps).reshape(-1, 1)
-            y = np.array(uncertainty_data)**-1
-
+            y = np.array(uncertainty_data) ** -1
 
             # Transform X to 1/X
-            X_transformed =  X**0.5
+            X_transformed = X**0.5
 
             print("X_transformed")
-            print(X_transformed)    
+            print(X_transformed)
             print("y")
             print(y)
             # Create and fit the model
@@ -1382,86 +1573,100 @@ class TemporalAnalysisModel(BaseModel):
             print(f"Slope: {slope}, Intercept: {intercept}")
 
             # Add a dashed line with the slope and intercept
-            x_range = np.linspace(max(time_steps), max(time_steps)+2000, 100)
-            y_range = (slope * (x_range**0.5) + intercept)**-1
+            x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
+            y_range = (slope * (x_range**0.5) + intercept) ** -1
 
-            #self.time_steps=self.mtd_workflow.measure_times
-            #self.uncertainty_data = self.mtd_workflow.rsigs
+            # self.time_steps=self.mtd_workflow.measure_times
+            # self.uncertainty_data = self.mtd_workflow.rsigs
             # Fit the data with 1/x
 
-            fig.add_trace(go.Scatter(x=x_range, y=y_range, mode='lines', name='Fitted Line', line=dict(dash='dash')))
+            fig.add_trace(go.Scatter(x=x_range, y=y_range, mode="lines", name="Fitted Line", line=dict(dash="dash")))
             print("============================================================================================")
             print("time_steps = self.mtd_workflow.measure_times")
-            print(time_steps , self.mtd_workflow.measure_times )
+            print(time_steps, self.mtd_workflow.measure_times)
             print("uncertainty_data = self.mtd_workflow.rsigs")
-            print(uncertainty_data , self.mtd_workflow.rsigs )
+            print(uncertainty_data, self.mtd_workflow.rsigs)
             print("============================================================================================")
-            fig.add_trace(go.Scatter(x=time_steps, y=uncertainty_data, mode='lines+markers', name='Uncertainty Data'))
-            #fig.add_trace(go.Scatter(x=self.time_steps, y=self.uncertainty_data, mode='lines+markers', name='Uncertainty Data'))
+            fig.add_trace(go.Scatter(x=time_steps, y=uncertainty_data, mode="lines+markers", name="Uncertainty Data"))
+            # fig.add_trace(go.Scatter(x=self.time_steps, y=self.uncertainty_data, mode='lines+markers', name='Uncertainty Data'))
             fig.update_layout(
-                title={
-                'text': uncertainty_figure_title,
-                'x': 0.5,
-                'xanchor': 'center'
-                },
-                xaxis_title='Time Steps (s)',
+                title={"text": uncertainty_figure_title, "x": 0.5, "xanchor": "center"},
+                xaxis_title="Time Steps (s)",
                 yaxis_title=uncertainty_figure_yaxis,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
-            fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            #fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
-            #fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
-            #fig.update_layout(title='Prediction of Uncertainty'+str(self.timestamp)+str(time.time()), xaxis_title='Time Steps', yaxis_title='Uncertainty')
-            #time.sleep(7)
+            fig.update_xaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            fig.update_yaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            # fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+            # fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')
+            # fig.update_layout(title='Prediction of Uncertainty'+str(self.timestamp)+str(time.time()), xaxis_title='Time Steps', yaxis_title='Uncertainty')
+            # time.sleep(7)
         else:
             fig.update_layout(
-                title={
-                'text': uncertainty_figure_title,
-                'x': 0.5,
-                'xanchor': 'center'
-                },
-                xaxis_title='Time Steps (s)',
+                title={"text": uncertainty_figure_title, "x": 0.5, "xanchor": "center"},
+                xaxis_title="Time Steps (s)",
                 yaxis_title=uncertainty_figure_yaxis,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
-            fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
-            fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True,)
- 
+            fig.update_xaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+            fig.update_yaxes(
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+            )
+
             fig.add_annotation(
                 text="Waiting for data",
-                xref="paper", yref="paper",
-                x=0.5, y=0.5,
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
                 showarrow=False,
-                font=dict(size=20, color="red")
+                font=dict(size=20, color="red"),
             )
         return fig
 
     def get_live_data(self) -> None:
         pass
-        
+
     def generate_prediction_figure(self) -> go.Figure:
         x_data = list(range(10))
         y_data = [i**2 for i in x_data]
         fig = make_subplots(rows=1, cols=2)
         return fig
-    def start_reading_live_mtd_data(self) -> None:
-    #def start_reading_live_mtd_data(self) -> MantidWorkflow:
-        
-        #mtd_workflow=MantidWorkflow()
-        self.mtd_workflow.start_live_data_collection_instances()
-        #self.mtd_workflow=mtd_workflow
-        #return mtd_workflow
-        #return mtd_workflow
 
-    def get_live_mtd_data(self) -> None: # nolonger used
+    def start_reading_live_mtd_data(self) -> None:
+        # def start_reading_live_mtd_data(self) -> MantidWorkflow:
+
+        # mtd_workflow=MantidWorkflow()
+        self.mtd_workflow.start_live_data_collection_instances()
+        # self.mtd_workflow=mtd_workflow
+        # return mtd_workflow
+        # return mtd_workflow
+
+    def get_live_mtd_data(self) -> None:  # nolonger used
         while True:
             print("================================get_live_mtd_data===========================")
-            models=self.get_models()
+            models = self.get_models()
             self.mtd_workflow.update_experiment_info(models)
             self.mtd_workflow.live_data_reduction()
             print("live data reduction")
             asyncio.sleep(10)
-        

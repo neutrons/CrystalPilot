@@ -5,7 +5,7 @@ import sys
 
 def main() -> None:
     kwargs = {}
-    from .views.main import MainApp
+    from .views.main_view import MainApp
 
     app = MainApp()
     for arg in sys.argv[2:]:
@@ -14,5 +14,5 @@ def main() -> None:
             kwargs[key] = int(value)
         except Exception:
             pass
-    #app.create_task(app.view_model.auto_update_cssstatus_figure())
+    # app.create_task(app.view_model.auto_update_cssstatus_figure())
     app.server.start(**kwargs)

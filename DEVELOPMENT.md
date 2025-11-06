@@ -5,7 +5,7 @@ the CrystalPilot project.
 
 ## Starting from the template
 
-- Add other Python dependencies you project need with `poetry add xxx` or `poetry add --dev xxx`
+- Add other Python dependencies you project need with [`pixi add`](https://pixi.sh/dev/reference/cli/pixi/add/).
 - Modify Dockerfile as needed. Please make sure it can still run as non-root (we use it in GitLab CI/CD and in general this
 is a good practice).
 - install pre-commit (if not already installed) - `pip install pre-commit`
@@ -21,20 +21,16 @@ to create an issue [in this repo](https://code.ornl.gov/ndip/project-templates/p
 
 
 ## Installation
-
-Start by installing an x64-compatible version of [conda](https://docs.anaconda.com/). Once done, run the following to install Mantid and poetry:
+Start by installing [Pixi](https://pixi.sh/latest/). Once done, run the following:
 
 ```commandline
-conda create -n exphub -c conda-forge -c mantid python=3.10 mantid poetry
-conda activate exphub
-
-poetry install
+pixi install
 ```
 
 ## Running
 ### From source
 ```bash
-poetry run app
+pixi run app
 ```
 
 ### Using Docker
@@ -42,28 +38,30 @@ poetry run app
 # build from source
 docker build -f dockerfiles/Dockerfile -t exphub .
 # run a container
-docker run exphub
+docker run -p 8081:8081 -e EP_PATH=/app exphub
 ```
+
+Your application will now be running at http://localhost:8081/app.
 
 ## Formatting
 ```commandline
-poetry run ruff format
+pixi run ruff format
 ```
 
 ## Linting
 ```commandline
-poetry run ruff check
-poetry run mypy .
+pixi run ruff check
+pixi run mypy .
 ```
 
 ## Testing
 ```commandline
-poetry run pytest
+pixi run pytest
 ```
 or, with coverage
 ```commandline
-poetry run coverage run
-poetry run coverage report
+pixi run coverage run
+pixi run coverage report
 ```
 
 ## Updating project from template
@@ -72,7 +70,7 @@ This project was created from a [template](https://code.ornl.gov/ndip/project-te
 can try to update the project to incorporate these changes. Just enter the project folder, make sure `git status`
 shows it clean, and run:
 ```
-poetry run copier update
+copier update
 ```
 See [here](https://copier.readthedocs.io/en/stable/updating/#updating-a-project) for more information.
 
@@ -88,3 +86,25 @@ build packages and Docker images need to be triggered manually.
 
 The "source of truth" for the version number is in the [`pyproject.toml`](pyproject.toml) file. It is used for Docker
 image tags, python package versioning, and automatic creation of git tags.
+
+### Documentation for calvera.ornl.gov/docs
+
+Please create a User Guide for CrystalPilot and we can add it to our
+[site](https://calvera.ornl.gov/docs/user_guide/tools). The documentation is a standard markdown and should
+ be located in _docs/web/docs_ folder. We have already created some files there that give you an idea how it could look like. Please
+ modify as needed.
+
+ You can also build your guide locally:
+
+ Please make sure you have Node.js [installed](https://nodejs.org/en/download).
+
+ Then:
+
+```bash
+cd docs/web
+npm install
+npm run start
+```
+
+the documentation will be compiled and available at http://localhost:3000/. If you keep the server running, it will update the
+site as you modify the documents.

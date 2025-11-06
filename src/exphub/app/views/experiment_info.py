@@ -1,10 +1,8 @@
 """Module for the System tab."""
 
-from trame.widgets import vuetify3 as vuetify
-
-
 from nova.trame.view.components import InputField, RemoteFileInput
 from nova.trame.view.layouts import GridLayout
+
 
 class ExperimentInfoView:
     """View class to render the System tab."""
@@ -16,13 +14,9 @@ class ExperimentInfoView:
         self.create_ui()
 
     def create_ui(self) -> None:
-
-
         with GridLayout():
-            
             InputField(v_model="config.expName")
             InputField(v_model="config.ipts_number")
-    
 
         with GridLayout():
             InputField(
@@ -59,6 +53,7 @@ class ExperimentInfoView:
             InputField(
                 v_model="config.maxDSpacing",
             )
+
     def save_settings(self):
         # Placeholder function to handle saving settings
         print("Settings saved")

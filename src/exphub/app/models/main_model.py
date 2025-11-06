@@ -1,14 +1,14 @@
 """Module for the main model."""
 
 from pydantic import BaseModel, Field
+
 from .angle_plan import AnglePlanModel
+from .css_status import CSSStatusModel
+from .data_analysis import DataAnalysisModel
 from .eic_control import EICControlModel
 from .experiment_info import ExperimentInfoModel
-from .css_status import CSSStatusModel
+from .newtabtemplate import NewTabTemplateModel
 from .temporal_analysis import TemporalAnalysisModel
-from .data_analysis import DataAnalysisModel
-
-from .newtabtemplate import NewTabTemplateModel 
 
 
 class MainModel(BaseModel):
@@ -22,7 +22,7 @@ class MainModel(BaseModel):
     """
 
     username: str = Field(
-    default="test_name",
+        default="test_name",
         min_length=1,
         title="User Name",
         description="Please provide the name of the user",
@@ -37,4 +37,4 @@ class MainModel(BaseModel):
     dataanalysis: DataAnalysisModel = Field(default_factory=DataAnalysisModel, title="Data Analysis")
 
     newtabtemplate: NewTabTemplateModel = Field(default_factory=NewTabTemplateModel, title="New Tab Template")
-    #plotly: PlotlyModel = Field(default_factory=PlotlyModel, title="Plotly")
+    # plotly: PlotlyModel = Field(default_factory=PlotlyModel, title="Plotly")
