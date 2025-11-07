@@ -9,7 +9,7 @@ keywords = ["NDIP", "NOVA", "python"]
 requires-python = ">=3.10,<3.14"
 
 [tool.pixi.workspace]
-channels = ["conda-forge"]
+channels = ["conda-forge", "mantid"]
 platforms = ["linux-64", "osx-64"]
 
 [tool.pixi.environments]
@@ -17,6 +17,7 @@ default = {features = ["dev"], solve-group = "default"}
 production = {features = [], solve-group = "default"}
 
 [tool.pixi.dependencies]
+mantid = ">=6.14.0,<7"
 
 [tool.pixi.pypi-dependencies]
 exphub = { path = ".", editable = true }
@@ -29,6 +30,9 @@ plotly = ">=6.0.0"
 scikit-learn = ">=1.6.1"
 trame-plotly = ">=3.1.0"
 trame-datagrid = ">=0.2.2"
+selenium = ">=4.38.0,<5"
+setuptools = ">=80.9.0,<81"
+cryptography = ">=46.0.3,<47"
 
 
 [tool.pixi.feature.dev.pypi-dependencies]

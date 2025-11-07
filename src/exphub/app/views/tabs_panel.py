@@ -2,7 +2,7 @@
 
 from trame.widgets import vuetify3 as vuetify
 
-from ..view_models.main_view_model import MainViewModel
+from ..view_models.main import MainViewModel
 
 
 class TabsPanel:

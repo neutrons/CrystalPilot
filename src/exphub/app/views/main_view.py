@@ -7,7 +7,7 @@ from nova.trame import ThemedApp
 from trame.app import get_server
 
 from ..mvvm_factory import create_viewmodels
-from ..view_models.main_view_model import MainViewModel
+from ..view_models.main import MainViewModel
 from .tab_content_panel import TabContentPanel
 from .tabs_panel import TabsPanel
 
