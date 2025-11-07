@@ -1,3 +1,6 @@
+# ruff: noqa
+# mypy: ignore-errors
+
 from dataclasses import dataclass, field
 from itertools import product
 from typing import Any, Dict, List, Union

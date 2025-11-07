@@ -1,3 +1,5 @@
+"""Model for new tab template."""
+
 import plotly.graph_objects as go
 from plotly.data import iris
 from pydantic import BaseModel, Field, computed_field

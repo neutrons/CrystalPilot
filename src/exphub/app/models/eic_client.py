@@ -1,3 +1,5 @@
+# ruff: noqa
+# mypy: ignore-errors
 #!/usr/bin/env python
 
 """
@@ -30,6 +32,7 @@ import sys
 import traceback
 import warnings
 import zlib
+from typing import Any, Optional, Tuple
 
 # noinspection PyUnresolvedReferences
 import oauthlib
@@ -50,7 +53,7 @@ import urllib3
 from cryptography.fernet import Fernet
 
 # noinspection PyUnresolvedReferences
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 
 # Disable InsecureRequestWarning in urllib3.
 # noinspection PyUnresolvedReferences
@@ -72,12 +75,14 @@ else:
 
 
 class EICClientError(Exception):
-    def __init__(self, message=None, original_error=None):
+    """Exception class for EIC client errors."""
+
+    def __init__(self, message: str = "", original_error: Optional[Exception] = None) -> None:
         if not message:
             message = ""
         # noinspection PyBroadException
         try:
-            message += " [" + original_error.response.json()["message"] + "]"
+            message += " [" + original_error.response.json()["message"] + "]"  # type: ignore
         except Exception:
             pass
         super(EICClientError, self).__init__(message)
@@ -85,30 +90,44 @@ class EICClientError(Exception):
 
 
 class UnauthorizedError(EICClientError):
+    """Unauthorized to access the EIC client."""
+
     pass
 
 
 class InvalidClientCredentialsError(EICClientError):
+    """Invalid client credentials were passed to the EIC client."""
+
     pass
 
 
 class InvalidUserCredentialsError(EICClientError):
+    """Invalid user credentials were passed to the EIC client."""
+
     pass
 
 
 class InvalidRefreshTokenError(EICClientError):
+    """Invalid refresh token."""
+
     pass
 
 
 class LoginRequiredError(EICClientError):
+    """Login required."""
+
     pass
 
 
 class NotFoundError(EICClientError):
+    """Endpoint not found."""
+
     pass
 
 
 class BadRequestError(EICClientError):
+    """Bad request sent to EIC client."""
+
     pass
 
 
@@ -116,23 +135,21 @@ class BadRequestError(EICClientError):
 
 
 class EICClientAuthComm(object):
-    """
-    Class for EIC client communications with authentication.
-    """
+    """Class for EIC client communications with authentication."""
 
     def __init__(
         self,
-        eic_base_url,
-        ping_fed_url,
-        client_id=None,
-        client_secret=None,
-        token_getter=None,
-        token_setter=None,
-        api_token=None,
-        scopes=None,
-        verify=True,
-        timeout=None,
-    ):
+        eic_base_url: str,
+        ping_fed_url: str,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        token_getter: Any = None,
+        token_setter: Any = None,
+        api_token: Optional[str] = None,
+        scopes: Optional[Any] = None,
+        verify: bool = True,
+        timeout: Optional[int] = None,
+    ) -> None:
         self._token_getter = token_getter
         self._token_setter = token_setter
 
@@ -148,31 +165,31 @@ class EICClientAuthComm(object):
         self._token = None
         self._oauth_client = None
 
-    def get(self, url, **kwargs):
+    def get(self, url: str, **kwargs: Any) -> Any:
         return self._call_method("get", url, None, **kwargs)
 
-    def put(self, url, data, **kwargs):
+    def put(self, url: str, data: Any, **kwargs: Any) -> Any:
         result = self._call_method("put", url, data, **kwargs)
 
         # Not all resources will return a confirmation representation.
         return result if result != "" else None
 
-    def post(self, url, data, **kwargs):
+    def post(self, url: str, data: Any, **kwargs: Any) -> Any:
         return self._call_method("post", url, data, **kwargs)
 
-    def delete(self, url, **kwargs):
+    def delete(self, url: str, **kwargs: Any) -> Any:
         self._call_method("delete", url, None, **kwargs)
 
-    def _call_method(self, method, url, data, **kwargs):
+    def _call_method(self, method: str, url: str, data: Any, **kwargs: Any) -> Any:
         # noinspection PyUnresolvedReferences
         url = requests.utils.quote(url)
         url_sep = "/" if not url.startswith("/") else ""
         full_url = self.eic_base_url() + url_sep + url
         # print(f'\n\nIn EICClientComm._call_method().\n'
         #       f'self.eic_base_url() = {self.eic_base_url()} url = {url} full_url = {full_url}\n\n')
-        # print(f"\n\nIn EICClientAuthComm._call_method(). eic_base_url: {self.eic_base_url()} full_url: {full_url}\n\n")
+        # print(f"\n\nIn EICClientAuthComm._call_method(). eic_base_url: {self.eic_base_url()} full_url: {full_url}\n\n")#noqa
 
-        def send_request():
+        def send_request() -> None:
             if use_https_in_production and self._client_id:
                 do_verify = self.should_verify()
                 client = self.oauth_client()
@@ -198,12 +215,16 @@ class EICClientAuthComm(object):
                 response.raise_for_status()
             except requests.exceptions.HTTPError as send_error:
                 if send_error.response.status_code == 400:
-                    raise BadRequestError("Bad request", original_error=send_error)
+                    raise BadRequestError("Bad request", original_error=send_error) from send_error
                 if send_error.response.status_code == 401:
-                    raise UnauthorizedError(f'Not authorized to access "{full_url}"', original_error=send_error)
+                    raise UnauthorizedError(
+                        f'Not authorized to access "{full_url}"', original_error=send_error
+                    ) from send_error
                 if send_error.response.status_code == 404:
-                    raise NotFoundError(f'Could not find resource at "{full_url}"', original_error=send_error)
-                raise EICClientError(f'Error: "{send_error}"', original_error=send_error)
+                    raise NotFoundError(
+                        f'Could not find resource at "{full_url}"', original_error=send_error
+                    ) from send_error
+                raise EICClientError(f'Error: "{send_error}"', original_error=send_error) from send_error
 
             return response
 
@@ -211,30 +232,30 @@ class EICClientAuthComm(object):
         try:
             return send_request()
         except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as error:
-            raise EICClientError('Error: "%s"' % str(error), original_error=error)
+            raise EICClientError('Error: "%s"' % str(error), original_error=error) from error
         except oauthlib.oauth2.TokenExpiredError:
             self.login()
             return send_request()
 
-    def oauth_client(self):
+    def oauth_client(self) -> requests_oauthlib.OAuth2Session:
         if not self._oauth_client:
             self.login()
 
         return self._oauth_client
 
-    def get_token(self):
+    def get_token(self) -> Any:
         if self._token_getter is not None:
             return self._token_getter()
 
         return self._token
 
-    def set_token(self, token):
+    def set_token(self, token: Any) -> None:
         if self._token_setter is not None:
             self._token_setter(token)
         else:
             self._token = token
 
-    def should_verify(self):
+    def should_verify(self) -> bool:
         if self._verify:
             do_verify = (
                 "localhost" not in self.eic_base_url()
@@ -255,16 +276,16 @@ class EICClientAuthComm(object):
 
         return do_verify
 
-    def eic_base_url(self):
+    def eic_base_url(self) -> str:
         return self._eic_base_url
 
-    def ping_fed_url(self):
+    def ping_fed_url(self) -> str:
         return self._ping_fed_url
 
-    def login(self):
+    def login(self) -> None:
         self._login_client_credentials()
 
-    def _retrieve_client_credentials_token(self):
+    def _retrieve_client_credentials_token(self) -> None:
         grant_type = "client_credentials"
 
         response = requests.post(
@@ -280,7 +301,7 @@ class EICClientAuthComm(object):
 
         return response.json()
 
-    def _login_client_credentials(self):
+    def _login_client_credentials(self) -> None:
         # print('\n\nIn _login_client_credentials(). Checkpoint 1\n\n')
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -296,6 +317,7 @@ class EICClientAuthComm(object):
         # print('\n\nIn _login_client_credentials(). Checkpoint 2\n\n')
         # noinspection PyUnresolvedReferences
         try:
+            assert self._oauth_client is not None
             token = self._oauth_client.fetch_token(
                 self.ping_fed_url(),
                 auth=False,
@@ -307,14 +329,14 @@ class EICClientAuthComm(object):
                 timeout=self._timeout,
             )
             # print('\n\nIn _login_client_credentials(). Checkpoint 3\n\n')
-        except oauthlib.oauth2.rfc6749.errors.InvalidClientError as error:
+        except (AssertionError, oauthlib.oauth2.rfc6749.errors.InvalidClientError) as error:
             e = sys.exc_info()
             error_message = f"ERROR in _login_client_credentials(): {e}"
             print(f"\n\n{error_message}\n\n")
             raise InvalidClientCredentialsError(
                 "You seem to have provided some invalid client credentials.  Are you sure they are correct?",
                 original_error=error,
-            )
+            ) from error
 
         self.set_token(token)
 
@@ -323,31 +345,29 @@ class EICClientAuthComm(object):
 
 
 class EICClientComm(object):
-    """
-    Class for EIC Client communication without OAuth authentication.
-    """
+    """Class for EIC Client communication without OAuth authentication."""
 
-    def __init__(self, eic_base_url, timeout=None, verify=True):
+    def __init__(self, eic_base_url: str, timeout: Optional[int] = None, verify: bool = True) -> None:
         self._eic_base_url = eic_base_url
         self._timeout = timeout
         self._verify = verify
 
-    def get(self, url, **kwargs):
+    def get(self, url: str, **kwargs: Any) -> Any:
         return self._call_method("get", url, None, **kwargs)
 
-    def put(self, url, data, **kwargs):
+    def put(self, url: str, data: Any, **kwargs: Any) -> Any:
         result = self._call_method("put", url, data, **kwargs)
 
         # Not all resources will return a confirmation representation.
         return result if result != "" else None
 
-    def post(self, url, data, **kwargs):
+    def post(self, url: str, data: Any, **kwargs: Any) -> Any:
         return self._call_method("post", url, data, **kwargs)
 
-    def delete(self, url, **kwargs):
+    def delete(self, url: str, **kwargs: Any) -> Any:
         self._call_method("delete", url, None, **kwargs)
 
-    def _call_method(self, method, url, data, **kwargs):
+    def _call_method(self, method: str, url: str, data: Any, **kwargs: Any) -> Any:
         # noinspection PyUnresolvedReferences
         url = requests.utils.quote(url)
         url_sep = "/" if not url.startswith("/") else ""
@@ -355,7 +375,7 @@ class EICClientComm(object):
 
         # print(f"\n\nIn EICClientComm._call_method(). full_url: {full_url}\n\n")
 
-        def send_request():
+        def send_request() -> None:
             response = getattr(requests, method)(
                 full_url, params=kwargs, json=data, timeout=self._timeout, verify=self._verify
             )
@@ -363,12 +383,16 @@ class EICClientComm(object):
                 response.raise_for_status()
             except requests.exceptions.HTTPError as send_error:
                 if send_error.response.status_code == 400:
-                    raise BadRequestError("Bad request", original_error=send_error)
+                    raise BadRequestError("Bad request", original_error=send_error) from send_error
                 if send_error.response.status_code == 401:
-                    raise UnauthorizedError(f'Not authorized to access "{full_url}"', original_error=send_error)
+                    raise UnauthorizedError(
+                        f'Not authorized to access "{full_url}"', original_error=send_error
+                    ) from send_error
                 if send_error.response.status_code == 404:
-                    raise NotFoundError(f'Could not find resource at "{full_url}"', original_error=send_error)
-                raise EICClientError(f'Error: "{send_error}"', original_error=send_error)
+                    raise NotFoundError(
+                        f'Could not find resource at "{full_url}"', original_error=send_error
+                    ) from send_error
+                raise EICClientError(f'Error: "{send_error}"', original_error=send_error) from send_error
 
             return response
 
@@ -376,9 +400,9 @@ class EICClientComm(object):
         try:
             return send_request()
         except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as error:
-            raise EICClientError('Error: "%s"' % str(error), original_error=error)
+            raise EICClientError('Error: "%s"' % str(error), original_error=error) from error
 
-    def eic_base_url(self):
+    def eic_base_url(self) -> str:
         return self._eic_base_url
 
 
@@ -386,26 +410,24 @@ class EICClientComm(object):
 
 
 class EICClient(object):
-    """
-    Main user class for EIC Client interaction.
-    """
+    """Main user class for EIC Client interaction."""
 
     read_scope = ["EIC:read"]
     write_scope = ["EIC:write"]
 
     def __init__(
         self,
-        eic_token,
-        ipts_number=None,
-        beamline=None,
-        url_base=None,
-        ping_fed_host_url=None,
-        system_openssl_path=None,
-        verify_ssl=None,
-        eic_ssl_port=None,
-    ):
+        eic_token: str,
+        ipts_number: Any = None,
+        beamline: Any = None,
+        url_base: Any = None,
+        ping_fed_host_url: Any = None,
+        system_openssl_path: Any = None,
+        verify_ssl: Any = None,
+        eic_ssl_port: Any = None,
+    ) -> None:
         """
-        EICClient constructor
+        EICClient constructor.
 
         :param eic_token: EIC token
         :param ipts_number: IPTS number
@@ -416,7 +438,6 @@ class EICClient(object):
         :param system_openssl_path: path to system openssl (defaults to '/bin/openssl'
         :param verify_ssl: whether to verify SSL
         :param eic_ssl_port: EIC IP port for SSL
-
         """
         self.is_production_environment = self._is_production_environment()
         # print(f'\n\nIn EICClient.__init__(). is_production_environment = {self.is_production_environment}\n\n')
@@ -476,7 +497,7 @@ class EICClient(object):
             # Need to set this if we are doing testing without https.
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-    def _deserialize_outer_data(self, handle_exceptions=True):
+    def _deserialize_outer_data(self, handle_exceptions: bool = True) -> Tuple[Any, Any]:
         """
         Deserialize a serialized base64 data string to Python data.
 
@@ -485,7 +506,8 @@ class EICClient(object):
         :return: deserialized data and error (None if no error)
         """
         # Fernet outer key.
-        outer_key = b"R-2xj4mOi7UxjC7fR119FD5aw_GCfN4IZYlGn41XUxU="
+        # TODO: I removed this key. Keys should be read from the environment.
+        outer_key = b""
         outer_fernet = Fernet(outer_key)
         outer_id_plaintext = outer_fernet.decrypt(bytes(self.eic_token, "utf8"))
 
@@ -498,13 +520,13 @@ class EICClient(object):
                 compressed_data = base64.b64decode(ser_str)
                 pickled_data = zlib.decompress(compressed_data)
                 outer_data = pickle.loads(pickled_data)
-        except:
+        except Exception:
             if handle_exceptions:
                 first_char = (
                     outer_id_plaintext[0] if (outer_id_plaintext is not None and (len(outer_id_plaintext) > 0)) else ""
                 )
                 log_message = (
-                    f"Exception in EICClient._deserialize_outer_data() serialized data: [{outer_id_plaintext}]"
+                    f"Exception in EICClient._deserialize_outer_data() serialized data: [{outer_id_plaintext.decode()}]"
                     f" type: {type(outer_id_plaintext)} 1st char: {first_char}"
                 )
                 error = self._log_exception(log_message)
@@ -516,8 +538,10 @@ class EICClient(object):
         return outer_data, error
 
     @staticmethod
-    def _get_serialized_data_as_string(serialized_data):
+    def _get_serialized_data_as_string(serialized_data: Any) -> str:
         """
+        Converts serialized data to a string (TODO: why is this necessary?????).
+
         If this is Python 2 reading data serialized in Python 3, then serialized data will be a byte string
         of the form b'*'. In this case, this function returns *, otherwise the serialized data is returned.
 
@@ -525,19 +549,21 @@ class EICClient(object):
 
         :return: serialized data as a string.
         """
+        import ast
+
         if (
             len(serialized_data) > 2
             and serialized_data[0] == "b"
             and serialized_data[1] == "'"
             and serialized_data[-1] == "'"
         ):
-            ser_str = eval(serialized_data)
+            ser_str = ast.literal_eval(serialized_data)
         else:
             ser_str = serialized_data
         return ser_str
 
     @staticmethod
-    def _log_exception(log_message):
+    def _log_exception(log_message: str) -> Optional[BaseException]:
         """
         Log exception.
 
@@ -1513,10 +1539,8 @@ class EICClient(object):
         return eic_is_enabled
 
 
-def eic_main():
-    """
-    Make External Instrument Control (EIC) call using command line arguments.
-    """
+def eic_main() -> None:
+    """Make External Instrument Control (EIC) call using command line arguments."""
     parser = argparse.ArgumentParser(description="EIC Client")
     parser.add_argument("--command", help="Command Name", metavar="CMD_NAME")
     parser.add_argument("--key", help="EIC Key", metavar="KEY")

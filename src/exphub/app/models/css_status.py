@@ -1,3 +1,5 @@
+"""Model for CSS status."""
+
 import io
 import time
 from typing import Dict, List
@@ -15,7 +17,7 @@ IRIS_DATA = iris()
 bl12cssstatus_urlsrc = "https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/BL12_ADnED_2D_4x4.bob&macros=%7B%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID305%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%7D"
 
 
-def save_webpage_as_image(url, output_file="webpage.png"):
+def save_webpage_as_image(url: str, output_file: str = "webpage.png") -> bytes:
     # Configure headless Chrome browser
     options = Options()
     options.add_argument("--headless")
@@ -44,6 +46,8 @@ def save_webpage_as_image(url, output_file="webpage.png"):
 
 
 class CSSStatusModel(BaseModel):
+    """Pydantic class for CSS status."""
+
     table_test: List[Dict] = Field(default=[{"title": "1", "header": "h"}])
     angle_list: List[Dict] = Field(
         default=[
@@ -69,7 +73,7 @@ class CSSStatusModel(BaseModel):
     # plot_type_options: list[str] = ["heatmap", "scatter"]
     plot_type_options: list[str] = ["Detector", "D-space"]
     # init_image: bytes = save_webpage_as_image(bl12cssstatus_urlsrc)
-    # plot_type_options: list[str] = ["Detector", "D-space", "Q-space", "4x4 and ROI D-space", "ROI Q-space", "IOCSTATS", "Det", "N1", "Main Detector", "N1", "BL12", "DID", "S"]
+    # plot_type_options: list[str] = ["Detector", "D-space", "Q-space", "4x4 and ROI D-space", "ROI Q-space", "IOCSTATS", "Det", "N1", "Main Detector", "N1", "BL12", "DID", "S"] # noqa
     # fig: go.Figure = Field(default=go.Figure(), title="Figure")
 
     # @computed_field  # type: ignore
@@ -88,7 +92,7 @@ class CSSStatusModel(BaseModel):
         screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
         image = Image.open(io.BytesIO(screenshot))
         width, height = image.size
-        timestamp = time.time()
+        # timestamp = time.time()
         # self.timestamp = timestamp
         print("genratged fig md5sum:" + str(hash(image.tobytes())))
         match self.plot_type:
@@ -96,9 +100,9 @@ class CSSStatusModel(BaseModel):
                 cropscreen = image.crop((0, 0, int(width * 0.65), int(height * 0.457)))
             case "D-space":
                 cropscreen = image.crop((0, int(height * 0.457), int(width * 0.65), int(height * 1.000)))
-        screenshot = io.BytesIO()
-        cropscreen.save(screenshot, format="PNG")
-        screenshot = screenshot.getvalue()
+        screenshot_obj = io.BytesIO()
+        cropscreen.save(screenshot_obj, format="PNG")
+        screenshot = screenshot_obj.getvalue()
         image = Image.open(io.BytesIO(screenshot))
         print("genratged fig md5sum:" + str(hash(image.tobytes())))
 
@@ -108,32 +112,29 @@ class CSSStatusModel(BaseModel):
             paper_bgcolor="white",  # Background color of the entire figure
         )
         fig.add_layout_image(
-            dict(
-                source=image,
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=0.5,
-                sizex=1,
-                sizey=1,
-                xanchor="center",
-                yanchor="middle",
-                opacity=1,
+            {
+                "source": image,
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0.5,
+                "y": 0.5,
+                "sizex": 1,
+                "sizey": 1,
+                "xanchor": "center",
+                "yanchor": "middle",
+                "opacity": 1,
                 #       plot_bgcolor='white',  # Background color of the plot area
                 #      paper_bgcolor='white'  # Background color of the entire figure
-            )
+            }
         )
         fig.update_layout(
             # title="CSS Status: "+str(time.time()),
             xaxis={"visible": False},
             yaxis={"visible": False},
         )
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+        fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
         print("get plotly figure done")
         return fig
-
-    def is_not_heatmap(self) -> bool:
-        return self.plot_type != "heatmap"
 
     def get_figure_0(self) -> go.Figure:
         match self.plot_type:

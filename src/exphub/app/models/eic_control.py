@@ -1,12 +1,18 @@
+"""Model for EIC Control."""
+
 from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
-from .EICClient import EICClient
+from .eic_client import EICClient
 
 
 class EICControlModel(BaseModel):
+    """Model for EIC Control."""
+
     class Config:
+        """Pydantic config options."""
+
         arbitrary_types_allowed = True  # Allow arbitrary types like EICClient
 
     username: str = Field(
@@ -24,13 +30,7 @@ class EICControlModel(BaseModel):
 
     is_simulation: bool = Field(default=True, title="Simulation")
     IPTS_number: str = Field(default="35036", title="IPTS number")
-    instrument_name: str = Field(
-        default="TOPAZ",
-        title="Instrument name",
-        description="Name of the instrument",
-        type="select",
-        items=["TOPAZ", "CORELLI", "SEQUOIA", "HYSPEC", "ARCS", "VISION"],
-    )
+    instrument_name: str = Field(default="TOPAZ", title="Instrument name", description="Name of the instrument")
     beamline: str = Field(default="bl12", title="Beamline", description="Name of the beamline")
     # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
     # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")

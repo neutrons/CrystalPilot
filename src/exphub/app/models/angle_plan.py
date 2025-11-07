@@ -1,5 +1,7 @@
+"""Model for angle plan."""
+
 import csv
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 import plotly.graph_objects as go
@@ -7,6 +9,8 @@ from pydantic import BaseModel, Field
 
 
 class RunPlan(BaseModel):
+    """Pydantic class for run plan."""
+
     title: str = Field(default="Untitled")
     comment: str = Field(default="")
     phi: float = Field(default=0.0)
@@ -17,8 +21,10 @@ class RunPlan(BaseModel):
 
 
 class AnglePlanModel(BaseModel):
+    """Pydantic class for angle plan."""
+
     # headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
-    # headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])
+    # headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])#noqa
     angle_keys: List[str] = Field(
         default=["id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time"]
     )
@@ -134,9 +140,9 @@ class AnglePlanModel(BaseModel):
         title="Strategy File",
         description="File path to the plan file",
     )
-    # plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")
-    # plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")
-    # plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")
+    # plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")#noqa
+    # plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")#noqa
+    # plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")#noqa
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
     wait_for_list: List[str] = Field(default=["PCharge", "seconds"])
@@ -151,7 +157,7 @@ class AnglePlanModel(BaseModel):
     )
 
     instrument: str = Field(default="TOPAZ", title="Instrument Name", description="Name of the instrument")
-    wavelength: float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam", type="float")
+    wavelength: float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam")
     axes: List = Field(default=[[0, 1, 0]], title="Axes", description="List of axes to be used for the angle plan")
     limits: List = Field(default=[0, 360], title="Limits", description="Limits of the axes")
     UB: List = Field(
@@ -318,7 +324,7 @@ class AnglePlanModel(BaseModel):
     #            rotation_matrix = rotation_matrix_omega @ rotation_matrix_chi @ rotation_matrix_phi
     #            return rotation_matrix
 
-    def get_rotation_matrix(self, chi: float, phi: float, omega: float):
+    def get_rotation_matrix(self, chi: float, phi: float, omega: float) -> List[float]:
         rotation_matrix_omega = [
             [np.cos(np.radians(omega)), 0, np.sin(np.radians(omega))],
             [0, 1, 0],
@@ -341,7 +347,7 @@ class AnglePlanModel(BaseModel):
         return rotation_matrix
 
     def update_polyhedron_angle_list_0(self) -> List:
-        qcones = self.qpane_cones.copy()
+        # qcones = self.qpane_cones.copy()
         polyhedron_original_list = self.qpane_cones.copy()
 
         polyhedron_angle_list = []
@@ -350,8 +356,8 @@ class AnglePlanModel(BaseModel):
             for angle in self.angle_list:
                 # Extract vertices and faces
                 chi, phi, omega = angle["chi"], angle["phi"], angle["omega"]
-                R = self.get_rotation_matrix(chi, phi, omega)
-                v = (R @ v0).tolist()  # Convert numpy array to list
+                r = self.get_rotation_matrix(chi, phi, omega)
+                v = (r @ v0).tolist()  # Convert numpy array to list
 
                 polyhedron_angle_list.append((v, f0))
         return polyhedron_angle_list
@@ -359,7 +365,7 @@ class AnglePlanModel(BaseModel):
     def get_figure_coverage_0(self) -> go.Figure:
         # Implement the submit logic here
 
-        def get_polyhedron_plot(vertices, faces) -> go.Mesh3d:
+        def get_polyhedron_plot(vertices: Any, faces: Any) -> go.Mesh3d:
             # px1 = vertices[:, 0].tolist()
             # px2 = vertices[:, 0].tolist()
             # px=np.array(px1+px2)
@@ -438,7 +444,7 @@ class AnglePlanModel(BaseModel):
             fig.add_trace(polyhedron_plot)
 
         fig.update_layout(
-            scene=dict(xaxis_title="X Axis", yaxis_title="Y Axis", zaxis_title="Z Axis", aspectmode="data"),
+            scene={"xaxis_title": "X Axis", "yaxis_title": "Y Axis", "zaxis_title": "Z Axis", "aspectmode": "data"},
             title="3D Polyhedron Visualization",
         )
         return fig
@@ -447,7 +453,7 @@ class AnglePlanModel(BaseModel):
 
     def get_figure_coverage(self) -> go.Figure:
         qcones = self.qpane_cones.copy()
-        faces = []
+        faces: List[Any] = []
         for pane in qcones:  # x24 cone iters
             faces = faces + pane["qfaces"]  # 6 faces iters
 
@@ -456,16 +462,16 @@ class AnglePlanModel(BaseModel):
             for angle in self.angle_list:
                 # Extract vertices and faces
                 chi, phi, omega = angle["chi"], angle["phi"], angle["omega"]
-                R = self.get_rotation_matrix(chi, phi, omega)
+                r = self.get_rotation_matrix(chi, phi, omega)
                 newf = []
                 for qpt in f:
-                    newpt = np.dot(R, qpt).tolist()  # Convert numpy array to list
+                    newpt = np.dot(r, qpt).tolist()  # Convert numpy array to list
                     newf.append(newpt)
                 all_faces.append(newf)
         print("all_faces")
         print(len(all_faces))
 
-        def get_face_plot(face) -> go.Mesh3d:
+        def get_face_plot(face: Any) -> go.Mesh3d:
             px = [face[0][0], face[1][0], face[2][0], face[3][0]]
             py = [face[0][1], face[1][1], face[2][1], face[3][1]]
             pz = [face[0][2], face[1][2], face[2][2], face[3][2]]
@@ -482,7 +488,7 @@ class AnglePlanModel(BaseModel):
             fig.add_trace(face_plot)
 
         fig.update_layout(
-            scene=dict(xaxis_title="X Axis", yaxis_title="Y Axis", zaxis_title="Z Axis", aspectmode="data"),
+            scene={"xaxis_title": "X Axis", "yaxis_title": "Y Axis", "zaxis_title": "Z Axis", "aspectmode": "data"},
             title="3D Polyhedron Visualization",
         )
         return fig
@@ -492,7 +498,7 @@ class AnglePlanModel(BaseModel):
     ) -> go.Figure:
         print("update_coverage_figure_with_symmetry")
         qcones = self.qpane_cones.copy()
-        faces = []
+        faces: List[Any] = []
         for pane in qcones:  # x24 cone iters
             faces = faces + pane["qfaces"]  # 6 faces iters
 
@@ -503,18 +509,18 @@ class AnglePlanModel(BaseModel):
             for angle in self.angle_list:
                 # Extract vertices and faces
                 chi, phi, omega = angle["chi"], angle["phi"], angle["omega"]
-                R = self.get_rotation_matrix(chi, phi, omega)
+                r = self.get_rotation_matrix(chi, phi, omega)
                 for symop in self.symmetry_operations:
                     newf = []
                     for qpt in f:
                         # print(symop)
-                        newpt = np.dot(symop, np.dot(R, qpt)).tolist()  # Convert numpy array to list
+                        newpt = np.dot(symop, np.dot(r, qpt)).tolist()  # Convert numpy array to list
                         newf.append(newpt)
                     all_faces.append(newf)
         print("all_faces")
         print(len(all_faces))
 
-        def get_face_plot(face) -> go.Mesh3d:
+        def get_face_plot(face: Any) -> go.Mesh3d:
             px = [face[0][0], face[1][0], face[2][0], face[3][0]]
             py = [face[0][1], face[1][1], face[2][1], face[3][1]]
             pz = [face[0][2], face[1][2], face[2][2], face[3][2]]
@@ -531,7 +537,7 @@ class AnglePlanModel(BaseModel):
             fig.add_trace(face_plot)
 
         fig.update_layout(
-            scene=dict(xaxis_title="X Axis", yaxis_title="Y Axis", zaxis_title="Z Axis", aspectmode="data"),
+            scene={"xaxis_title": "X Axis", "yaxis_title": "Y Axis", "zaxis_title": "Z Axis", "aspectmode": "data"},
             title="3D Polyhedron Visualization",
         )
         return fig
