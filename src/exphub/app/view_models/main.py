@@ -1,30 +1,18 @@
 """Module for the main ViewModel."""
 
-from typing import Any, Dict
+import asyncio
 import time
+from typing import Any, Dict
+
+# from ..models.css_status import CSSStatusModel
+# from ..models.temporal_analysis import TemporalAnalysisModel
+import plotly.graph_objects as go
 from nova.mvvm.interface import BindingInterface
-
-
-from ..models.main_model import MainModel
-from ..models.angle_plan import AnglePlanModel
-from ..models.experiment_info import ExperimentInfoModel
-from ..models.eic_control import EICControlModel
-from ..models.data_analysis import DataAnalysisModel
-
-from ..models.newtabtemplate import NewTabTemplateModel
 
 # from ..models.plotly import PlotlyConfig
 # from pyvista import Plotter  # just for typing
 # from ..models.pyvista import PyVistaConfig
-
-from trame.app.asynchronous import create_task
-import asyncio
-
-# from ..models.css_status import CSSStatusModel
-# from ..models.temporal_analysis import TemporalAnalysisModel
-
-import numpy as np
-import plotly.graph_objects as go
+from ..models.main_model import MainModel
 
 
 class MainViewModel:
@@ -52,7 +40,7 @@ class MainViewModel:
         # and/or process errors.
         self.model_bind = binding.new_bind(self.model, callback_after_update=self.change_callback)
 
-        # self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)
+        # self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)#noqa
         self.experimentinfo_bind = binding.new_bind(
             self.model.experimentinfo, callback_after_update=self.update_experimentinfo_options
         )
@@ -70,8 +58,8 @@ class MainViewModel:
         self.temporalanalysis_updatefigure_intensity_bind = binding.new_bind()
         ######################################################################################################################################################
         # wrong
-        #        self.newtabtemplate_bind = binding.new_bind(self.model.newtabtemplate, callback_after_update=self.change_callback)
-        #        self.newtabtemplate_updatefig_bind = binding.new_bind(self.model.newtabtemplate, callback_after_update=self.update_newtabtemplate_figure)
+        #        self.newtabtemplate_bind = binding.new_bind(self.model.newtabtemplate, callback_after_update=self.change_callback)#noqa
+        #        self.newtabtemplate_updatefig_bind = binding.new_bind(self.model.newtabtemplate, callback_after_update=self.update_newtabtemplate_figure)#noqa
         ######################################################################################################################################################
         self.newtabtemplate_bind = binding.new_bind(
             self.model.newtabtemplate, callback_after_update=self.update_newtabtemplate_figure
@@ -224,7 +212,7 @@ class MainViewModel:
                 print("============================================================================================")
                 self.update_temporalanalysis_figure()
                 print(
-                    "=====================update temporal done======================================================================="
+                    "=====================update temporal done========================================================="
                 )
                 if (
                     self.model.eiccontrol.eic_auto_stop_strategy == "By Uncertainty"
@@ -271,7 +259,7 @@ class MainViewModel:
 
     # trigger needed for passing js variable to fucntion call in view
     # @trame_server.controller.trigger('edit_run')
-    def edit_run(self, run_id):
+    def edit_run(self, run_id: int) -> None:
         print("edit_run")
         print(run_id)
         self.model.angleplan.is_editing_run = True
@@ -302,7 +290,7 @@ class MainViewModel:
         self.update_view()
 
     # @trame_server.controller.trigger('remove_run')
-    def remove_run(self, run_id):
+    def remove_run(self, run_id: int) -> None:
         print("remove_run")
         print(run_id)
         self.model.angleplan.angle_list = [r for r in self.model.angleplan.angle_list if r["id"] != run_id]
@@ -311,7 +299,7 @@ class MainViewModel:
 
     ############################### coverage figure update ###########################################################
     def update_coverage_figure(self, _: Any = None) -> None:
-        # self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())
+        # self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())#noqa
         self.angleplan_updatefigure_coverage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
         self.update_view()
 
@@ -327,13 +315,13 @@ class MainViewModel:
         self.update_view()
         return fig
 
-    def get_figure_coverage(self) -> None:
+    def get_figure_coverage(self) -> go.Figure:
         print("get_figure_coverage")
         fig = self.model.angleplan.get_figure_coverage()
         self.update_view()
         return fig
 
-    def show_coverage(self):
+    def show_coverage(self) -> None:
         print("show_cov")
         # self.model.angleplan.is_showing_coverage = True
         import os
@@ -341,13 +329,13 @@ class MainViewModel:
         os.system("~/run-nxv.sh")
         self.update_view()
 
-    def close_coverage(self):
+    def close_coverage(self) -> None:
         print("hide_cov")
         self.model.angleplan.is_showing_coverage = False
         self.update_view()
 
     ############################### coverage figure update ###########################################################
-    def reset_run(self):
+    def reset_run(self) -> None:
         # if self.model.experimentinfo.c
         self.optimize_angleplan()
         print("reset_run")
@@ -359,17 +347,17 @@ class MainViewModel:
 
         pass
 
-    def show_under_development_dialog(self):
+    def show_under_development_dialog(self) -> None:
         print("show_underdev")
-        self.model.angleplan.is_under_development = True
+        # self.model.angleplan.is_under_development = True
         self.update_view()
 
-    def close_under_development_dialog(self):
+    def close_under_development_dialog(self) -> None:
         print("hide_underdev")
         self.is_under_development = False
         self.update_view()
 
-    def optimize_angleplan(self):
+    def optimize_angleplan(self) -> None:
         from .angle_plan import angleplan_optimize
 
         print("optimize_angleplan")
@@ -380,7 +368,7 @@ class MainViewModel:
         ##self.update_view()
         # print('optimize done. final_angle_list',final_angle_list)
 
-        if self.model.experimentinfo.pointGroup == "1":
+        if self.model.experimentinfo.point_group == "1":
             final_angle_list = [
                 (138.0, 135, 80.0),
                 (184.0, 135, 296.0),
@@ -585,7 +573,7 @@ class MainViewModel:
                 (118.0, 135, 233.0),
                 (262.0, 135, 32.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-1":
+        if self.model.experimentinfo.point_group == "-1":
             final_angle_list = [
                 (268.0, 135, 206.0),
                 (20.0, 135, 69.0),
@@ -689,9 +677,9 @@ class MainViewModel:
                 (279.0, 135, 262.0),
                 (187.0, 135, 272.0),
             ]
-        if self.model.experimentinfo.pointGroup == "2":
+        if self.model.experimentinfo.point_group == "2":
             final_angle_list = [(28.0, 135, 23.0), (262.0, 135, 26.0), (36.0, 135, 69.0), (337.0, 135, 76.0)]
-        if self.model.experimentinfo.pointGroup == "m":
+        if self.model.experimentinfo.point_group == "m":
             final_angle_list = [
                 (342.0, 135, 209.0),
                 (142.0, 135, 140.0),
@@ -704,7 +692,7 @@ class MainViewModel:
                 (333.0, 135, 107.0),
                 (126.0, 135, 249.0),
             ]
-        if self.model.experimentinfo.pointGroup == "2/m":
+        if self.model.experimentinfo.point_group == "2/m":
             final_angle_list = [
                 (36.0, 135, 69.0),
                 (190.0, 135, 220.0),
@@ -712,7 +700,7 @@ class MainViewModel:
                 (327.0, 135, 267.0),
                 (6.0, 135, 316.0),
             ]
-        if self.model.experimentinfo.pointGroup == "112":
+        if self.model.experimentinfo.point_group == "112":
             final_angle_list = [
                 (57.0, 135, 190.0),
                 (342.0, 135, 209.0),
@@ -735,7 +723,7 @@ class MainViewModel:
                 (326.0, 135, 21.0),
                 (97.0, 135, 82.0),
             ]
-        if self.model.experimentinfo.pointGroup == "11m":
+        if self.model.experimentinfo.point_group == "11m":
             final_angle_list = [
                 (128.0, 135, 235.0),
                 (57.0, 135, 22.0),
@@ -758,7 +746,7 @@ class MainViewModel:
                 (10, 135, 0),
                 (142.0, 135, 140.0),
             ]
-        if self.model.experimentinfo.pointGroup == "112/m":
+        if self.model.experimentinfo.point_group == "112/m":
             final_angle_list = [
                 (218.0, 135, 320.0),
                 (76.0, 135, 182.0),
@@ -781,7 +769,7 @@ class MainViewModel:
                 (129.0, 135, 100.0),
                 (155.0, 135, 309.0),
             ]
-        if self.model.experimentinfo.pointGroup == "222":
+        if self.model.experimentinfo.point_group == "222":
             final_angle_list = [
                 (92.0, 135, 261.0),
                 (251.0, 135, 49.0),
@@ -794,7 +782,7 @@ class MainViewModel:
                 (197.0, 135, 143.0),
                 (155.0, 135, 309.0),
             ]
-        if self.model.experimentinfo.pointGroup == "mm2":
+        if self.model.experimentinfo.point_group == "mm2":
             final_angle_list = [
                 (331.0, 135, 39.0),
                 (30.0, 135, 161.0),
@@ -802,7 +790,7 @@ class MainViewModel:
                 (158.0, 135, 249.0),
                 (73.0, 135, 34.0),
             ]
-        if self.model.experimentinfo.pointGroup == "mmm":
+        if self.model.experimentinfo.point_group == "mmm":
             final_angle_list = [
                 (65.0, 135, 166.0),
                 (329.0, 135, 101.0),
@@ -810,7 +798,7 @@ class MainViewModel:
                 (343.0, 135, 76.0),
                 (342.0, 135, 209.0),
             ]
-        if self.model.experimentinfo.pointGroup == "4":
+        if self.model.experimentinfo.point_group == "4":
             final_angle_list = [
                 (0.0, 135, 119.0),
                 (157.0, 135, 271.0),
@@ -823,7 +811,7 @@ class MainViewModel:
                 (129.0, 135, 100.0),
                 (337.0, 135, 39.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-4":
+        if self.model.experimentinfo.point_group == "-4":
             final_angle_list = [
                 (331.0, 135, 96.0),
                 (32.0, 135, 235.0),
@@ -836,7 +824,7 @@ class MainViewModel:
                 (334.0, 135, 196.0),
                 (122.0, 135, 106.0),
             ]
-        if self.model.experimentinfo.pointGroup == "4/m":
+        if self.model.experimentinfo.point_group == "4/m":
             final_angle_list = [
                 (243.0, 135, 168.0),
                 (267.0, 135, 15.0),
@@ -849,7 +837,7 @@ class MainViewModel:
                 (97.0, 135, 82.0),
                 (80.0, 135, 210.0),
             ]
-        if self.model.experimentinfo.pointGroup == "422":
+        if self.model.experimentinfo.point_group == "422":
             final_angle_list = [
                 (88.0, 135, 245.0),
                 (76.0, 135, 182.0),
@@ -862,7 +850,7 @@ class MainViewModel:
                 (204.0, 135, 10.0),
                 (184.0, 135, 296.0),
             ]
-        if self.model.experimentinfo.pointGroup == "4mm":
+        if self.model.experimentinfo.point_group == "4mm":
             final_angle_list = [
                 (252.0, 135, 3.0),
                 (328.0, 135, 103.0),
@@ -875,7 +863,7 @@ class MainViewModel:
                 (138.0, 135, 80.0),
                 (331.0, 135, 96.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-42m":
+        if self.model.experimentinfo.point_group == "-42m":
             final_angle_list = [
                 (321.0, 135, 88.0),
                 (6.0, 135, 316.0),
@@ -888,7 +876,7 @@ class MainViewModel:
                 (138.0, 135, 80.0),
                 (191.0, 135, 215.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-4m2":
+        if self.model.experimentinfo.point_group == "-4m2":
             final_angle_list = [
                 (204.0, 135, 10.0),
                 (249.0, 135, 0.0),
@@ -901,7 +889,7 @@ class MainViewModel:
                 (293.0, 135, 176.0),
                 (284.0, 135, 327.0),
             ]
-        if self.model.experimentinfo.pointGroup == "4/mmm":
+        if self.model.experimentinfo.point_group == "4/mmm":
             final_angle_list = [
                 (153.0, 135, 238.0),
                 (92.0, 135, 261.0),
@@ -914,7 +902,7 @@ class MainViewModel:
                 (53.0, 135, 134.0),
                 (18.0, 135, 132.0),
             ]
-        if self.model.experimentinfo.pointGroup == "3 r":
+        if self.model.experimentinfo.point_group == "3 r":
             final_angle_list = [
                 (187.0, 135, 280.0),
                 (353.0, 135, 318.0),
@@ -923,7 +911,7 @@ class MainViewModel:
                 (350.0, 135, 338.0),
                 (180.0, 135, 266.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-3 r":
+        if self.model.experimentinfo.point_group == "-3 r":
             final_angle_list = [
                 (302.0, 135, 272.0),
                 (36.0, 135, 235.0),
@@ -932,7 +920,7 @@ class MainViewModel:
                 (327.0, 135, 306.0),
                 (127.0, 135, 106.0),
             ]
-        if self.model.experimentinfo.pointGroup == "32 r":
+        if self.model.experimentinfo.point_group == "32 r":
             final_angle_list = [
                 (0, 135, 0),
                 (170.0, 135, 255.0),
@@ -941,7 +929,7 @@ class MainViewModel:
                 (326.0, 135, 75.0),
                 (290.0, 135, 38.0),
             ]
-        if self.model.experimentinfo.pointGroup == "3m r":
+        if self.model.experimentinfo.point_group == "3m r":
             final_angle_list = [
                 (322.0, 135, 240.0),
                 (358.0, 135, 117.0),
@@ -950,7 +938,7 @@ class MainViewModel:
                 (136.0, 135, 124.0),
                 (337.0, 135, 39.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-3m r":
+        if self.model.experimentinfo.point_group == "-3m r":
             final_angle_list = [
                 (164.0, 135, 348.0),
                 (218.0, 135, 320.0),
@@ -959,7 +947,7 @@ class MainViewModel:
                 (193.0, 135, 223.0),
                 (144.0, 135, 239.0),
             ]
-        if self.model.experimentinfo.pointGroup == "3":
+        if self.model.experimentinfo.point_group == "3":
             final_angle_list = [
                 (243.0, 135, 24.0),
                 (27.0, 135, 343.0),
@@ -968,7 +956,7 @@ class MainViewModel:
                 (129.0, 135, 100.0),
                 (89.0, 135, 215.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-3":
+        if self.model.experimentinfo.point_group == "-3":
             final_angle_list = [
                 (333.0, 135, 107.0),
                 (321.0, 135, 88.0),
@@ -977,7 +965,7 @@ class MainViewModel:
                 (180.0, 135, 266.0),
                 (190.0, 135, 220.0),
             ]
-        if self.model.experimentinfo.pointGroup == "312":
+        if self.model.experimentinfo.point_group == "312":
             final_angle_list = [
                 (284.0, 135, 327.0),
                 (73.0, 135, 34.0),
@@ -986,7 +974,7 @@ class MainViewModel:
                 (136.0, 135, 124.0),
                 (30.0, 135, 109.0),
             ]
-        if self.model.experimentinfo.pointGroup == "31m":
+        if self.model.experimentinfo.point_group == "31m":
             final_angle_list = [
                 (288.0, 135, 34.0),
                 (17.0, 135, 346.0),
@@ -995,7 +983,7 @@ class MainViewModel:
                 (343.0, 135, 101.0),
                 (235.0, 135, 286.0),
             ]
-        if self.model.experimentinfo.pointGroup == "32":
+        if self.model.experimentinfo.point_group == "32":
             final_angle_list = [
                 (27.0, 135, 30.0),
                 (17.0, 135, 83.0),
@@ -1004,7 +992,7 @@ class MainViewModel:
                 (252.0, 135, 3.0),
                 (277.0, 135, 55.0),
             ]
-        if self.model.experimentinfo.pointGroup == "321":
+        if self.model.experimentinfo.point_group == "321":
             final_angle_list = [
                 (300.0, 135, 198.0),
                 (2.0, 135, 140.0),
@@ -1013,7 +1001,7 @@ class MainViewModel:
                 (262.0, 135, 32.0),
                 (161.0, 135, 259.0),
             ]
-        if self.model.experimentinfo.pointGroup == "3m":
+        if self.model.experimentinfo.point_group == "3m":
             final_angle_list = [
                 (235.0, 135, 286.0),
                 (16.0, 135, 60.0),
@@ -1022,7 +1010,7 @@ class MainViewModel:
                 (187.0, 135, 280.0),
                 (30.0, 135, 161.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-31m":
+        if self.model.experimentinfo.point_group == "-31m":
             final_angle_list = [
                 (73.0, 135, 34.0),
                 (215.0, 135, 337.0),
@@ -1031,7 +1019,7 @@ class MainViewModel:
                 (324.0, 135, 116.0),
                 (293.0, 135, 176.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-3m":
+        if self.model.experimentinfo.point_group == "-3m":
             final_angle_list = [
                 (157.0, 135, 190.0),
                 (339.0, 135, 101.0),
@@ -1040,7 +1028,7 @@ class MainViewModel:
                 (334.0, 135, 196.0),
                 (330.0, 135, 21.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-3m1":
+        if self.model.experimentinfo.point_group == "-3m1":
             final_angle_list = [
                 (75.0, 135, 169.0),
                 (73.0, 135, 78.0),
@@ -1049,7 +1037,7 @@ class MainViewModel:
                 (317.0, 135, 78.0),
                 (126.0, 135, 249.0),
             ]
-        if self.model.experimentinfo.pointGroup == "6":
+        if self.model.experimentinfo.point_group == "6":
             final_angle_list = [
                 (322.0, 135, 240.0),
                 (161.0, 135, 259.0),
@@ -1057,7 +1045,7 @@ class MainViewModel:
                 (154.0, 135, 244.0),
                 (328.0, 135, 103.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-6":
+        if self.model.experimentinfo.point_group == "-6":
             final_angle_list = [
                 (10.0, 135, 26.0),
                 (243.0, 135, 24.0),
@@ -1065,7 +1053,7 @@ class MainViewModel:
                 (194.0, 135, 309.0),
                 (114.0, 135, 213.0),
             ]
-        if self.model.experimentinfo.pointGroup == "6/m":
+        if self.model.experimentinfo.point_group == "6/m":
             final_angle_list = [
                 (95.0, 135, 43.0),
                 (36.0, 135, 235.0),
@@ -1073,7 +1061,7 @@ class MainViewModel:
                 (97.0, 135, 82.0),
                 (142.0, 135, 140.0),
             ]
-        if self.model.experimentinfo.pointGroup == "622":
+        if self.model.experimentinfo.point_group == "622":
             final_angle_list = [
                 (128.0, 135, 235.0),
                 (325.0, 135, 73.0),
@@ -1081,7 +1069,7 @@ class MainViewModel:
                 (275.0, 135, 223.0),
                 (336.0, 135, 209.0),
             ]
-        if self.model.experimentinfo.pointGroup == "6mm":
+        if self.model.experimentinfo.point_group == "6mm":
             final_angle_list = [
                 (65.0, 135, 166.0),
                 (317.0, 135, 78.0),
@@ -1089,7 +1077,7 @@ class MainViewModel:
                 (38.0, 135, 95.0),
                 (250.0, 135, 287.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-62m":
+        if self.model.experimentinfo.point_group == "-62m":
             final_angle_list = [
                 (6.0, 135, 316.0),
                 (342.0, 135, 209.0),
@@ -1097,7 +1085,7 @@ class MainViewModel:
                 (249.0, 135, 0.0),
                 (95.0, 135, 240.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-6m2":
+        if self.model.experimentinfo.point_group == "-6m2":
             final_angle_list = [
                 (238.0, 135, 323.0),
                 (249.0, 135, 0.0),
@@ -1105,7 +1093,7 @@ class MainViewModel:
                 (200.0, 135, 324.0),
                 (343.0, 135, 101.0),
             ]
-        if self.model.experimentinfo.pointGroup == "6/mmm":
+        if self.model.experimentinfo.point_group == "6/mmm":
             final_angle_list = [
                 (73.0, 135, 34.0),
                 (219.0, 135, 337.0),
@@ -1113,7 +1101,7 @@ class MainViewModel:
                 (324.0, 135, 116.0),
                 (288.0, 135, 55.0),
             ]
-        if self.model.experimentinfo.pointGroup == "23":
+        if self.model.experimentinfo.point_group == "23":
             final_angle_list = [
                 (30.0, 135, 161.0),
                 (65.0, 135, 166.0),
@@ -1121,7 +1109,7 @@ class MainViewModel:
                 (300.0, 135, 198.0),
                 (2.0, 135, 140.0),
             ]
-        if self.model.experimentinfo.pointGroup == "m-3":
+        if self.model.experimentinfo.point_group == "m-3":
             final_angle_list = [
                 (353.0, 135, 318.0),
                 (279.0, 135, 262.0),
@@ -1129,7 +1117,7 @@ class MainViewModel:
                 (161.0, 135, 259.0),
                 (76.0, 135, 182.0),
             ]
-        if self.model.experimentinfo.pointGroup == "432":
+        if self.model.experimentinfo.point_group == "432":
             final_angle_list = [
                 (115.0, 135, 264.0),
                 (36.0, 135, 235.0),
@@ -1137,7 +1125,7 @@ class MainViewModel:
                 (187.0, 135, 280.0),
                 (89.0, 135, 215.0),
             ]
-        if self.model.experimentinfo.pointGroup == "-43m":
+        if self.model.experimentinfo.point_group == "-43m":
             final_angle_list = [
                 (30.0, 135, 161.0),
                 (262.0, 135, 26.0),
@@ -1145,7 +1133,7 @@ class MainViewModel:
                 (95.0, 135, 43.0),
                 (153.0, 135, 130.0),
             ]
-        if self.model.experimentinfo.pointGroup == "m-3m":
+        if self.model.experimentinfo.point_group == "m-3m":
             final_angle_list = [
                 (19.0, 135, 13.0),
                 (344.0, 135, 208.0),
@@ -1161,7 +1149,7 @@ class MainViewModel:
         for i in range(len(final_angle_list)):
             r = {
                 "id": i + 1,
-                "title": "pg:" + self.model.experimentinfo.pointGroup + "_" + str(i + 1),
+                "title": "pg:" + self.model.experimentinfo.point_group + "_" + str(i + 1),
                 "comment": "resetted",
                 "phi": float(final_angle_list[i][0]),
                 "chi": float(final_angle_list[i][1]),
@@ -1180,7 +1168,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         from mantid.simpleapi import mtd
         import mantid.simpleapi as mtdapi
 
-        #import NeuXtalViz.models.ap_test_v2 as ap_test_v2 
+        #import NeuXtalViz.models.ap_test_v2 as ap_test_v2
         from ..model.angle_plan_engine_ import DetectorPane, DetectorInstrument, QGrids
         from ..model.angle_plan_engine_ import optimize_angle_with_fixed_given
         from ..model.angle_plan_engine_ import analyze_peaks
@@ -1222,13 +1210,13 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         print('--------------------------peak input list--------------------------------')
         #print('peaks',peaks)
         print('--------------------------UB read--------------------------------')
-        UB=np.array([[-0.06196579 ,-0.0646735 ,  0.00629365],                                                                                                                                                                          
+        UB=np.array([[-0.06196579 ,-0.0646735 ,  0.00629365],
                      [ 0.05857223, -0.05941086, -0.03262031],
                      [ 0.02816059, -0.01873959,  0.08169699]])
-        #if self.has_UB('coverage'): 
+        #if self.has_UB('coverage'):
         #    UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
         #else:
-        #    UB=np.array([[-0.06196579 ,-0.0646735 ,  0.00629365],                                                                                                                                                                          
+        #    UB=np.array([[-0.06196579 ,-0.0646735 ,  0.00629365],
         #                 [ 0.05857223, -0.05941086, -0.03262031],
         #                 [ 0.02816059, -0.01873959,  0.08169699]])
         #print('UB',UB)
@@ -1242,7 +1230,8 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         print('--------------------------euler angle range--------------------------------')
         #goniometers = beamlines[instrument]['Goniometer']
         #print('goniometers ',goniometers )
-        ##goniometers  {'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360], 'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135], 'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360]}
+        ##goniometers  {'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360], 'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135],
+        #                                                               'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360]}
         #omega0,omega1=goniometers['BL12:Mot:goniokm:omega'][4:6]
         #chi0,chi1    =goniometers['BL12:Mot:goniokm:chi'][4:6]
         #phi0,phi1    =goniometers['BL12:Mot:goniokm:phi'][4:6]
@@ -1261,20 +1250,20 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
                                 OutputWorkspace='detectors',
                                 GetMaskState=False)
 
-        L2 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256) 
-        two_theta =  np.array(mtd['detectors'].column(2)).reshape(-1, 256,256) 
-        az_phi =  np.array(mtd['detectors'].column(3)).reshape(-1, 256,256) 
+        L2 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256)
+        two_theta =  np.array(mtd['detectors'].column(2)).reshape(-1, 256,256)
+        az_phi =  np.array(mtd['detectors'].column(3)).reshape(-1, 256,256)
         print('L2',L2)
 
         #TODO: get L1 in cm
-        #L1 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256) 
+        #L1 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256)
         L1 = 1800
-        
-        x = L2*100*np.sin(two_theta)*np.cos(az_phi) 
-        y = L2*100*np.sin(two_theta)*np.sin(az_phi) 
-        z = L2*100*np.cos(two_theta) 
 
- 
+        x = L2*100*np.sin(two_theta)*np.cos(az_phi)
+        y = L2*100*np.sin(two_theta)*np.sin(az_phi)
+        z = L2*100*np.cos(two_theta)
+
+
         det_ins_parameter=[]
         num_pane=x.shape[0]
         for idx_pane in range(num_pane):
@@ -1289,13 +1278,14 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
                          [x[idx_pane, 10,-11],y[idx_pane, 10,-11],z[idx_pane, 10,-11]],
                          [x[idx_pane,-11, 10],y[idx_pane,-11, 10],z[idx_pane,-11, 10]],
                          [x[idx_pane,-11,-11],y[idx_pane,-11,-11],z[idx_pane,-11,-11]]
-                                    ])                       
+                                    ])
             #print('detector pane vertices:',pane_vertices)
-            det_ins_parameter.append({'pane_id':idx_pane,'pane_shape':'rectangle','pane_parameter':{'vertices':pane_vertices,'t_min':1000,'t_max':16000 }})
+            det_ins_parameter.append({'pane_id':idx_pane,'pane_shape':'rectangle','pane_parameter':{
+                                                                'vertices':pane_vertices,'t_min':1000,'t_max':16000 }})
         #det_ins_parameter=[det_ins_parameter[0]]
         multi_detector_system = DetectorInstrument(det_ins_parameter)
         multi_detector_system.initialize_detector()
-        #for det in multi_detector_system.detector_panes: 
+        #for det in multi_detector_system.detector_panes:
         #    print('detector pane id:',det.pane_id)
         #    print('detector pane qfaces:',det.qfaces)
         print('-------------------------grids setup-----------------------------')
@@ -1318,7 +1308,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
 
         qhkl_irr_h,qhkl_irr_k,qhkl_irr_l=np.meshgrid(qh,qk,ql)
         #qhkl_irr_h,qhkl_irr_k,qhkl_irr_l=np.meshgrid(np.arange(qhmax),np.arange(qkmax),np.arange(qlmax),indexing='ij')
-   
+
         qhkl_irr_h_flat=qhkl_irr_h.flatten()
         qhkl_irr_k_flat=qhkl_irr_k.flatten()
         qhkl_irr_l_flat=qhkl_irr_l.flatten()
@@ -1337,7 +1327,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
             #qhkl_sym_list.append(qlab)
             qlab_sym_list.append(qlab)
 
-        
+
         #print('qhkl_sym_list length and shape',len(qhkl_sym_list),qhkl_sym_list[-1].shape)
         print('qlab_sym_list length and shape',len(qlab_sym_list),qlab_sym_list[-1].shape)
 
@@ -1385,7 +1375,7 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         #    [1, 1, 1],
         #    [0, 1, 1],
         #])
-        
+
         ## Define faces
         #faces = np.array([
         #    [4, 0, 1, 2, 3],  # bottom
@@ -1395,10 +1385,10 @@ def angleplan_optimize(view_model:MainViewModel) -> None:
         #    [4, 2, 3, 7, 6],  # back
         #    [4, 3, 0, 4, 7],  # left
         #])
-        
-        
-        
-        
+
+
+
+
         #self.polyhedron_data=[]
         #for pane in multi_detector_system.detector_panes:
         #    vr=np.array(pane.rvertices)

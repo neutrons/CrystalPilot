@@ -489,7 +489,7 @@ class AnglePlanModel(BaseModel):
 
     def get_coverage_figure_with_symmetry(
         self,
-    ) -> None:
+    ) -> go.Figure:
         print("update_coverage_figure_with_symmetry")
         qcones = self.qpane_cones.copy()
         faces = []

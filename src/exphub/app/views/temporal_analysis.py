@@ -1,6 +1,7 @@
 """Module for the Temporal Analysis tab."""
 
 import time
+from typing import List, Tuple
 
 import plotly.graph_objects as go
 from nova.trame.view.components import InputField
@@ -11,7 +12,7 @@ from trame.widgets import vuetify3 as vuetify
 from ..view_models.main import MainViewModel
 
 
-def temporal_data_analysis():
+def temporal_data_analysis() -> Tuple[List[int], List[int]]:
     # Dummy data generation for the plot
     x_data = list(range(10))
     y_data = [i**2 for i in x_data]
@@ -71,8 +72,8 @@ class TemporalAnalysisView:
             title={"text": "Prediction of Signal Noise Ratio", "x": 0.5, "xanchor": "center"},
             xaxis_title="Time Steps (s)",
             yaxis_title=" ",
-            xaxis=dict(range=[0, 2000]),
-            yaxis=dict(range=[0, 100]),
+            xaxis={"range": [0, 2000]},
+            yaxis={"range": [0, 100]},
             paper_bgcolor="rgba(10,10,10,0)",
             plot_bgcolor="rgba(0,0,0,0)",
         )
@@ -84,8 +85,8 @@ class TemporalAnalysisView:
             paper_bgcolor="rgba(10,10,10,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             yaxis_title="",
-            xaxis=dict(range=[0, 2000]),
-            yaxis=dict(range=[0, 100]),
+            xaxis={"range": [0, 2000]},
+            yaxis={"range": [0, 100]},
         )
         fig_u.update_xaxes(
             showline=True, linewidth=2, linecolor="black", mirror=True, gridcolor="black", gridwidth=1, griddash="dash"

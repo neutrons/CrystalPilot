@@ -30,6 +30,10 @@ class EICControlView:
             vuetify.VBanner(
                 v_if="model_eiccontrol.eic_submission_success",
                 text="Submission Successful.",
-                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",
+                # text=(
+                #   "Submission Successful. "
+                #   "Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, "
+                #   "Message: {{model_eiccontrol.eic_submission_message}}",
+                # ),
                 color="success",
             )

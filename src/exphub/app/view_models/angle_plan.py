@@ -1,3 +1,7 @@
+"""View model for angle plan."""
+
+from typing import List
+
 from .main import MainViewModel
 
 # from ..models.ccs_status import CCSStatusModel
@@ -87,10 +91,10 @@ class MainViewModel:
         self.plotly_config_bind.update_in_view(self.plotly_config)
         self.plotly_figure_bind.update_in_view(self.plotly_config.get_figure())
 
-'''
+'''  # noqa
 
 
-def angleplan_optimize(view_model: MainViewModel) -> None:
+def angleplan_optimize(view_model: MainViewModel) -> List:
     import mantid.simpleapi as mtdapi
     import numpy as np
     from mantid.geometry import PointGroupFactory
@@ -117,7 +121,7 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     # d_min = view_model.model.experimentinfo.d_min
     # d_max = view_model.model.experimentinfo.d_max
     # offset = view_model.model.experimentinfo.offset
-    point_group = view_model.model.experimentinfo.pointGroup
+    point_group = view_model.model.experimentinfo.point_group
     # lattice_centering = view_model.model.experimentinfo.lattice_centering
 
     print("self.instrument        ", instrument)
@@ -136,7 +140,7 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     print("--------------------------peak input list--------------------------------")
     # print('peaks',peaks)
     print("--------------------------UB read--------------------------------")
-    UB = np.array(
+    ub = np.array(
         [
             [-0.06196579, -0.0646735, 0.00629365],
             [0.05857223, -0.05941086, -0.03262031],
@@ -160,7 +164,7 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     print("--------------------------euler angle range--------------------------------")
     # goniometers = beamlines[instrument]['Goniometer']
     # print('goniometers ',goniometers )
-    ##goniometers  {'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360], 'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135], 'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360]}
+    ##goniometers  {'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360], 'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135], 'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360]}#noqa
     # omega0,omega1=goniometers['BL12:Mot:goniokm:omega'][4:6]
     # chi0,chi1    =goniometers['BL12:Mot:goniokm:chi'][4:6]
     # phi0,phi1    =goniometers['BL12:Mot:goniokm:phi'][4:6]
@@ -174,18 +178,18 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
 
     mtdapi.PreprocessDetectorsToMD(InputWorkspace="instrument", OutputWorkspace="detectors", GetMaskState=False)
 
-    L2 = np.array(mtd["detectors"].column(1)).reshape(-1, 256, 256)
+    l2 = np.array(mtd["detectors"].column(1)).reshape(-1, 256, 256)
     two_theta = np.array(mtd["detectors"].column(2)).reshape(-1, 256, 256)
     az_phi = np.array(mtd["detectors"].column(3)).reshape(-1, 256, 256)
-    print("L2", L2)
+    print("L2", l2)
 
     # TODO: get L1 in cm
     # L1 = np.array(mtd['detectors'].column(1)).reshape(-1, 256,256)
-    L1 = 1800
+    # l1 = 1800
 
-    x = L2 * 100 * np.sin(two_theta) * np.cos(az_phi)
-    y = L2 * 100 * np.sin(two_theta) * np.sin(az_phi)
-    z = L2 * 100 * np.cos(two_theta)
+    x = l2 * 100 * np.sin(two_theta) * np.cos(az_phi)
+    y = l2 * 100 * np.sin(two_theta) * np.sin(az_phi)
+    z = l2 * 100 * np.cos(two_theta)
 
     det_ins_parameter = []
     num_pane = x.shape[0]
@@ -279,7 +283,7 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     symmetry_operations = []
     for sym in so:
         qhkl_sym = [sym.transformHKL(q) for q in qhkl_irr]
-        qlab = np.array(qhkl_sym) @ (UB).T
+        qlab = np.array(qhkl_sym) @ (ub).T
         # qhkl_sym_list.append(qlab)
         print("symmetry operation:", sym)
         qlab_sym_list.append(qlab)
@@ -299,7 +303,8 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     grid_parameter = {"num_sym": len(qlab_sym_list), "qlist": qlab_sym_list}
     # grid_parameter={'Nx':10,'Ny':10,'Nz':10,'Qmax':Qmax,'Qmin':Qmin}
     grids = QGrids(grid_mode="input", grid_parameter=grid_parameter)
-    print("grids shape", grids.points[0].shape)
+    if grids.points:
+        print("grids shape", grids.points[0].shape)
 
     print("-------------------------initial coverage calculation-----------------------------")
     print("coverage calculation")
@@ -319,18 +324,18 @@ def angleplan_optimize(view_model: MainViewModel) -> None:
     print("-------------------------ask for and set initial angles list-----------------------------")
     print("            ---------------------not implemented---------------------------")
     print("-------------------------optimize angle-----------------------------")
-    fixed_angle_list = np.array([[0, 135, 0]])
+    # fixed_angle_list = np.array([[0, 135, 0]])
     fixed_angle_list = [[0, 135, 0]]
     print("fixed_angle_list:", fixed_angle_list)
-    euler_angle_range = [[0, 360, 1], [135, 135, 1], [0, 360, 1]]
+    # euler_angle_range = [[0, 360, 1], [135, 135, 1], [0, 360, 1]]
 
     ############################################### optimization #######################################
-    # final_angle_list,final_coverage=optimize_angle_with_fixed_given(grids,multi_detector_system,fixed_angle_list,euler_angle_range)
+    # final_angle_list,final_coverage=optimize_angle_with_fixed_given(grids,multi_detector_system,fixed_angle_list,euler_angle_range)#noqa
     # print("Detector Coverage Results: ", np.sum(final_coverage)/np.size(final_coverage)*100,'%')
     # return final_angle_list
 
-    final_angle_list = []
-    return final_angle_list
+    # final_angle_list = []
+    return []
 
     exit("debug")
     print("------------------------- visualizie-----------------------------")

@@ -1,3 +1,5 @@
+"""View module for angle plan."""
+
 import numpy as np
 import plotly.graph_objects as go
 import trame
@@ -10,6 +12,8 @@ from ..view_models.main import MainViewModel
 
 
 class AnglePlanView:
+    """View class for angle plan."""
+
     def __init__(self, view_model: MainViewModel) -> None:
         self.view_model = view_model
         # self.view_model.angleplan_bind.connect("model.angleplan")
@@ -61,7 +65,7 @@ class AnglePlanView:
 
         # Update layout for better visualization
         fig.update_layout(
-            scene=dict(xaxis_title="X Axis", yaxis_title="Y Axis", zaxis_title="Z Axis", aspectmode="data"),
+            scene={"xaxis_title": "X Axis", "yaxis_title": "Y Axis", "zaxis_title": "Z Axis", "aspectmode": "data"},
             title="3D Polyhedron Visualization",
         )
         self.fig_c = fig
@@ -76,7 +80,7 @@ class AnglePlanView:
         trame_server = trame.app.get_server()
 
         @trame_server.controller.trigger("edit_run")
-        def edit_run(run_id: int):
+        def edit_run(run_id: int) -> None:
             # state.is_editing = True
             # book = next((b for b in state.books if b["id"] == book_id), None)
             # if book:
@@ -86,13 +90,13 @@ class AnglePlanView:
             self.view_model.edit_run(run_id)
 
         @trame_server.controller.trigger("remove_run")
-        def remove_run(run_id: int):
+        def remove_run(run_id: int) -> None:
             # state.books = [b for b in state.books if b["id"] != book_id]
             print("view id", run_id)
             self.view_model.remove_run(run_id)
 
         @trame_server.controller.trigger("save_run")
-        def save_run():
+        def save_run() -> None:
             # state.books = [b for b in state.books if b["id"] != book_id]
             # self.view_model.save_run()
             self.view_model.save_run()
@@ -201,7 +205,8 @@ class AnglePlanView:
                     )
                 with vuetify.VCardActions():
                     vuetify.VBtn("Cancel", click=self.view_model.close_runedit_dialog, style="align-self: center;")
-                    # vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False") #TODO: this one not working at this git version
+                    # #TODO: this one not working at this git version
+                    # vuetify.VBtn("Cancel", click="model_angleplan.runedit_dialog = False")
                     vuetify.VSpacer()
                     vuetify.VBtn("Save", click="trigger('save_run')")
                     # vuetify.VBtn("Save", click="trigger('save_run')")
@@ -238,7 +243,7 @@ class AnglePlanView:
         #    InputField(v_model="model_angleplan.angle_list_pd[index].omega")
 
         @trame_server.controller.trigger("show_coverage")
-        def show_coverage():
+        def show_coverage() -> None:
             # state.books = [b for b in state.books if b["id"] != book_id]
             print("view id")
 
@@ -256,7 +261,7 @@ class AnglePlanView:
                 # click="trigger('add_run')",
             )
             vuetify.VBtn("Show Coverage", click="trigger('show_coverage')", style="align-self: center;")
-            # vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")
+            # vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")#noqa
 
         with GridLayout(columns=2):
             RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
@@ -275,7 +280,8 @@ class AnglePlanView:
                     "Coverage"  # todo handle bar syntax
                 )
                 vuetify.VCardSubtitle(
-                    "Visualization of coverage of reflections by the instrument with sample orientations from the current strategy."
+                    "Visualization of coverage of reflections by the instrument with sample orientations from the "
+                    "current strategy."
                 )
             """
             fig_coverage=go.Figure()
@@ -331,7 +337,7 @@ class AnglePlanView:
                 )
             # with vuetify.VCardActions():
             #        vuetify.VBtn("Close", click=self.view_model.close_coverage, style="align-self: center;")
-            # vuetify.VBtn("Close", click="model_angleplan.runedit_dialog = False")#TODO: this one not working at this git version
+            # vuetify.VBtn("Close", click="model_angleplan.runedit_dialog = False")#TODO: this one not working at this git version#noqa
             # vuetify.VSpacer()
         #######################################################################################
 
@@ -342,7 +348,7 @@ class AnglePlanView:
             vuetify.VBanner(
                 v_if="model_eiccontrol.eic_submission_success",
                 text="Submission Successful.",
-                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",
+                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",#noqa
                 color="success",
             )
         with GridLayout(columns=4):

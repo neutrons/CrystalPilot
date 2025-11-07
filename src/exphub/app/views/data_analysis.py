@@ -1,3 +1,5 @@
+"""View module for data analysis view."""
+
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout
 from trame.widgets import vuetify3 as vuetify
@@ -77,14 +79,14 @@ class DataAnalysisView:
     #                vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
     #
     #            with vuetify.VCardActions():
-    #             with vuetify.VTab(href="https://nova.ornl.gov/single-crystal-diffraction", raw_attrs=['''target="_blank"'''],classes="justify-start"):
+    #             with vuetify.VTab(href="https://nova.ornl.gov/single-crystal-diffraction", raw_attrs=['''target="_blank"'''],classes="justify-start"):  # noqa
     #                html.Span("Data Reduction & Structure Analysis", classes="mr-1")
     #                vuetify.VIcon("mdi-open-in-new")
     #            #with vuetify.VCardActions():
     #            #    vuetify.VBtn("Diffuse Scattering Study", click=self.open_diffuse_scattering_study)
     #            with vuetify.VCardActions():
-    #            # with vuetify.VTab(href="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb",classes="justify-start", raw_attrs=['''target="_blank"''']):
-    #             with vuetify.VTab(href="http://localhost:8888/notebooks/demo/test.ipynb",classes="justify-start", raw_attrs=['''target="_blank"''']):
+    #            # with vuetify.VTab(href="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb",classes="justify-start", raw_attrs=['''target="_blank"''']):# noqa
+    #             with vuetify.VTab(href="http://localhost:8888/notebooks/demo/test.ipynb",classes="justify-start", raw_attrs=['''target="_blank"''']):# noqa
     #                html.Span("Diffuse Scattering Study", classes="mr-1")
     #                vuetify.VIcon("mdi-open-in-new")
     #
@@ -92,7 +94,7 @@ class DataAnalysisView:
     #                vuetify.VBtn("Olex2", click=self.open_olex2, color="primary")
     #
     #
-    #            #html.Iframe(src="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", style="width:100%;height:500px;")
+    #            #html.Iframe(src="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", style="width:100%;height:500px;")# noqa
     #            #html.Iframe(src="http://localhost:8888/notebooks/test.ipynb", style="width:100%;height:500px;", )
     #
     #            with vuetify.VDialog(v_model="show_notebook_dialog", max_width=900):
@@ -101,10 +103,10 @@ class DataAnalysisView:
     #                        with vuetify.VCardText():
     #
     #                            #InputField(v_model="notebook_url", label="Notebook URL", type="text")
-    #                            #html.Iframe(src="{{ notebook_url }}", style="width:100%;height:500px;", v_if="notebook_url")
-    #                            #InputField(v_model="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", label="Notebook URL", type="text")
-    #                            #html.Iframe(src="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", style="width:100%;height:500px;", v_if="notebook_url")
-    #                            html.Iframe(src="http://localhost:8888/notebooks/Untitled.ipynb", style="width:100%;height:500px;", v_if="notebook_url")
+    #                            #html.Iframe(src="{{ notebook_url }}", style="width:100%;height:500px;", v_if="notebook_url")# noqa
+    #                            #InputField(v_model="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", label="Notebook URL", type="text")# noqa
+    #                            #html.Iframe(src="https://colab.research.google.com/github/tproffen/DiffuseCode/blob/python-interface/python/Notebooks/APITests.ipynb", style="width:100%;height:500px;", v_if="notebook_url")# noqa
+    #                            html.Iframe(src="http://localhost:8888/notebooks/Untitled.ipynb", style="width:100%;height:500px;", v_if="notebook_url")# noqa
     #                        with vuetify.VCardActions():
     #                            vuetify.VSpacer()
     #                            vuetify.VBtn("Close", click="show_notebook_dialog = false", color="primary")

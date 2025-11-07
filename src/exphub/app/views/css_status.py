@@ -3,6 +3,7 @@
 import hashlib
 import io
 import time
+from typing import Any
 
 import plotly.graph_objects as go
 
@@ -54,8 +55,8 @@ class CSSStatusView:
             cropscreen = image.crop((0, int(height * 0), int(width * 0.65), int(height * 1.000)))
             screenshot = io.BytesIO()
             cropscreen.save(screenshot, format="PNG")
-            screenshot = screenshot.getvalue()
-            image = Image.open(io.BytesIO(screenshot))
+            screenshot_bytes = screenshot.getvalue()
+            image = Image.open(io.BytesIO(screenshot_bytes))
 
             # Convert the image to a Plotly figure
             fig = go.Figure()
@@ -65,26 +66,26 @@ class CSSStatusView:
             )
 
             fig.add_layout_image(
-                dict(
-                    source=image,
-                    xref="paper",
-                    yref="paper",
-                    x=0.5,
-                    y=0.5,
-                    sizex=1.00,
-                    sizey=1.00,
-                    xanchor="center",
-                    yanchor="middle",
-                    layer="below",
+                {
+                    "source": image,
+                    "xref": "paper",
+                    "yref": "paper",
+                    "x": 0.5,
+                    "y": 0.5,
+                    "sizex": 1.00,
+                    "sizey": 1.00,
+                    "xanchor": "center",
+                    "yanchor": "middle",
+                    "layer": "below",
                     # sizing="stretch",
-                    opacity=1,
-                )
+                    "opacity": 1,
+                }
             )
 
             # Update layout to remove axes
             fig.update_xaxes(visible=False)
             fig.update_yaxes(visible=False)
-            fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+            fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
 
             # Update the figure in the UI
             self.figure.update(fig)
@@ -142,7 +143,7 @@ class CSSStatusView:
 bl12cssstatus_urlsrc = "https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/BL12_ADnED_2D_4x4.bob&macros=%7B%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID305%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%7D"
 
 
-def save_webpage_as_image_0(url, output_file="webpage.png"):
+def save_webpage_as_image_0(url: str, output_file: str = "webpage.png") -> bytes:
     # Configure headless Chrome browser
     options = Options()
     options.add_argument("--headless")
@@ -160,7 +161,7 @@ def save_webpage_as_image_0(url, output_file="webpage.png"):
 bl12cssstatus_urlsrc = "https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/BL12_ADnED_2D_4x4.bob&macros=%7B%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID305%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%7D"
 
 
-def save_webpage_as_image(url, output_file="webpage.png"):
+def save_webpage_as_image(url: str, output_file: str = "webpage.png") -> bytes:
     # Configure headless Chrome browser
     options = Options()
     options.add_argument("--headless")
@@ -190,12 +191,14 @@ def save_webpage_as_image(url, output_file="webpage.png"):
 
 
 class CSSStatusView0:
+    """View class for the CSS status."""
+
     def __init__(self, view_model: MainViewModel) -> None:
         self.view_model = view_model
         self.view_model.cssstatus_bind.connect("model_cssstatus")
         self.create_ui()
 
-    def create_ui(self):
+    def create_ui(self) -> None:
         # Create a route that serves the file
         image_path = "webpage.png"  # Absolute path to your image
         import trame
@@ -203,7 +206,7 @@ class CSSStatusView0:
         trame_server = trame.app.get_server()
 
         @trame_server.controller.add("serve_image")
-        def serve_image():
+        def serve_image() -> bytes:
             with open(image_path, "rb") as f:
                 image_data = f.read()
             return image_data
@@ -262,11 +265,11 @@ class CSSStatusView0:
         #    vuetify.VBtn("Open External CS-Studio page", click=self.open_webpage)
 
     # import webbrowser
-    def open_webpage(self, *args):
+    def open_webpage(self, *args: Any) -> None:
         pass
         # webbrowser.open("https://example.com")
 
-    def create_ui_0(self):
+    def create_ui_0(self) -> None:
         # with SinglePageLayout(server=self.server) as layout:
         #    layout.title.set_text("CSS Status")
         #    with layout.content:
@@ -291,13 +294,23 @@ class CSSStatusView0:
 
         # Add the image to the figure
         fig.add_layout_image(
-            dict(source=image, xref="paper", yref="paper", x=0, y=1, sizex=1, sizey=1, xanchor="left", yanchor="top")
+            {
+                "source": image,
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0,
+                "y": 1,
+                "sizex": 1,
+                "sizey": 1,
+                "xanchor": "left",
+                "yanchor": "top",
+            }
         )
 
         # Update layout to remove axes
         fig.update_xaxes(visible=False)
         fig.update_yaxes(visible=False)
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+        fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
 
         # Render the figure
         # pio.show(fig)
@@ -306,10 +319,10 @@ class CSSStatusView0:
         #    self.figure = plotly.Figure()
         from io import BytesIO
 
-        import matplotlib.image as mpimg
+        # import matplotlib.image as mpimg
         import matplotlib.pyplot as plt
 
-        img = mpimg.imread(BytesIO(screenshot), format="png")
+        # img = mpimg.imread(BytesIO(screenshot), format="png")
         fig, ax = plt.subplots()
         #        ax.imshow(img)
 
@@ -317,11 +330,11 @@ class CSSStatusView0:
             # Use VIframe to embed a webpage
             from io import BytesIO
 
-            import requests
+            # import requests
             from PIL import Image
 
-            response = requests.get("https://sns.gov/about")
-            response = requests.get("https://www.sciencegateway.org/gr/morse.htm")
+            # response = requests.get("https://sns.gov/about")
+            # response = requests.get("https://www.sciencegateway.org/gr/morse.htm")
             # print(response.text)
             html.Iframe(
                 src="https://single-crystal.ornl.gov/instruments/index.html",

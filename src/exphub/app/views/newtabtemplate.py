@@ -1,3 +1,5 @@
+"""View module for new tab template."""
+
 import plotly.graph_objects as go
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout

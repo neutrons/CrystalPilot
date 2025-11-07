@@ -61,7 +61,8 @@ class TabContentPanel:
                     )
 
     #                    with vuetify.VCardActions():
-    #                        vuetify.VBtn("OK", click=self.view_model.close_under_development_dialog, color="primary", block=True)
+    #                        vuetify.VBtn("OK", click=self.view_model.close_under_development_dialog, color="primary",
+    #                           block=True)
     # vuetify.VBtn("OK",  color="primary", block=True)
 
     def open_data_visualization(self) -> None:

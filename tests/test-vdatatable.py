@@ -1,3 +1,7 @@
+"""Automated virtual data table tests."""
+
+from typing import Any
+
 from trame.app import get_server
 from trame.ui.vuetify import SinglePageLayout
 from trame.widgets import vuetify
@@ -44,18 +48,18 @@ state.headers = [
 
 # Functions
 @state.change("dialog")
-def reset_dialog(dialog, **kwargs):
+def reset_dialog(dialog: Any, **kwargs: Any) -> None:
     if not dialog:
         state.record = DEFAULT_RECORD.copy()
 
 
-def add_book():
+def add_book() -> None:
     state.is_editing = False
     state.record = DEFAULT_RECORD.copy()
     state.dialog = True
 
 
-def edit_book(book_id):
+def edit_book(book_id: str) -> None:
     state.is_editing = True
     book = next((b for b in state.books if b["id"] == book_id), None)
     if book:
@@ -63,11 +67,11 @@ def edit_book(book_id):
         state.dialog = True
 
 
-def remove_book(book_id):
+def remove_book(book_id: str) -> None:
     state.books = [b for b in state.books if b["id"] != book_id]
 
 
-def save_book():
+def save_book() -> None:
     if state.is_editing:
         for i, book in enumerate(state.books):
             if book["id"] == state.record["id"]:

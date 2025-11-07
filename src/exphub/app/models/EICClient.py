@@ -312,7 +312,7 @@ class EICClientAuthComm(object):
             error_message = f"ERROR in _login_client_credentials(): {e}"
             print(f"\n\n{error_message}\n\n")
             raise InvalidClientCredentialsError(
-                "You seem to have provided some invalid client " "credentials.  Are you sure they are correct?",
+                "You seem to have provided some invalid client credentials.  Are you sure they are correct?",
                 original_error=error,
             )
 
@@ -686,7 +686,7 @@ class EICClient(object):
             beamline_result = "bl4b"
         elif beamline_ini in ["bl5", "bl-5", "cncs"]:
             beamline_result = "bl5"
-        elif beamline_ini in ["bl6", "bl-6", "eqsans", "eq sans" "eq-sans"]:
+        elif beamline_ini in ["bl6", "bl-6", "eqsans", "eq sanseq-sans"]:
             beamline_result = "bl6"
         elif beamline_ini in ["bl7", "bl-7", "vulcan"]:
             beamline_result = "bl7"
