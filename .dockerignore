@@ -1,1 +1,7 @@
 dockerfiles/Dockerfile
+.pixi
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.vscode
+.env

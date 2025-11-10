@@ -1,28 +1,24 @@
 """Module for the System tab."""
 
-from trame.widgets import vuetify3 as vuetify
-
-
 from nova.trame.view.components import InputField, RemoteFileInput
 from nova.trame.view.layouts import GridLayout
+
+from ..view_models.main import MainViewModel
+
 
 class ExperimentInfoView:
     """View class to render the System tab."""
 
-    def __init__(self, view_model):
+    def __init__(self, view_model: MainViewModel) -> None:
         self.view_model = view_model
 
         self.view_model.experimentinfo_bind.connect("config")
         self.create_ui()
 
     def create_ui(self) -> None:
-
-
         with GridLayout():
-            
-            InputField(v_model="config.expName")
+            InputField(v_model="config.exp_name")
             InputField(v_model="config.ipts_number")
-    
 
         with GridLayout():
             InputField(
@@ -30,15 +26,15 @@ class ExperimentInfoView:
                 items="config.options.instrument_list",
                 type="select",
             )
-            InputField(v_model="config.molecularFormula")
+            InputField(v_model="config.molecular_formula")
             InputField(
                 v_model="config.crystalsystem",
                 items="config.options.crystalsystem_list",
                 type="select",
             )
             InputField(
-                v_model="config.pointGroup",
-                items="config.options.pointGroup_list",
+                v_model="config.point_group",
+                items="config.options.point_group_list",
                 type="select",
             )
             InputField(
@@ -50,15 +46,16 @@ class ExperimentInfoView:
                 v_model="config.UBFileName",
             )
             RemoteFileInput(
-                v_model="config.calFileName",
+                v_model="config.cal_filename",
             )
         with GridLayout(columns=2):
             InputField(
-                v_model="config.minDSpacing",
+                v_model="config.min_dspacing",
             )
             InputField(
-                v_model="config.maxDSpacing",
+                v_model="config.max_dspacing",
             )
-    def save_settings(self):
+
+    def save_settings(self) -> None:
         # Placeholder function to handle saving settings
         print("Settings saved")
