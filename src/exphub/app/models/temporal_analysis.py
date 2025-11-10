@@ -3,7 +3,7 @@
 import asyncio
 import sys
 import time
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List
 
 # from mantid.simpleapi import *
 import mantid.simpleapi as mtdapi
@@ -1311,9 +1311,6 @@ class PoissonModelAnalysis(BaseModel):
         #plt.close('all')
 """  # noqa
 
-if TYPE_CHECKING:
-    from .main_model import MainModel
-
 
 class TemporalAnalysisModel(BaseModel):
     """Pydantic class for holding temporal analysis information."""
@@ -1349,17 +1346,19 @@ class TemporalAnalysisModel(BaseModel):
     mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow()
     # mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
     # Optional back-reference to MainModel. Set by MainViewModel when wiring.
-    _parent: Optional["MainModel"] = None
+    _parent: Any = None
 
-    def set_parent(self, parent: "MainModel") -> None:
+    def set_parent(self, parent: Any) -> None:
         """Set a back-reference to the owning MainModel.
 
         Use this to access sibling models (for example, experimentinfo) without
         importing MainModel at runtime (TYPE_CHECKING prevents circular imports).
         """
-        self._parent = parent
+        from .main_model import MainModel
 
-    def get_models(self) -> Optional[MainModel]:
+        self._parent: MainModel = parent
+
+    def get_models(self) -> Any:
         """Return the ExperimentInfoModel instance from the parent MainModel, or None.
 
         Use this helper to access up-to-date experiment info without importing

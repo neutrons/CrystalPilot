@@ -3,10 +3,10 @@
 from typing import Any
 
 from trame.app import get_server
-from trame.ui.vuetify import SinglePageLayout
-from trame.widgets import vuetify
+from trame.ui.vuetify3 import SinglePageLayout
+from trame.widgets import vuetify3 as vuetify
 
-server = get_server(client_type="vue2")
+server = get_server(client_type="vue3")
 state = server.state
 
 # Default record
