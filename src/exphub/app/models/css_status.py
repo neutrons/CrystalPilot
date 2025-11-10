@@ -8,8 +8,7 @@ import plotly.graph_objects as go
 from PIL import Image
 from plotly.data import iris
 from pydantic import BaseModel, Field
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver import Firefox, FirefoxOptions
 
 IRIS_DATA = iris()
 
@@ -18,16 +17,13 @@ bl12cssstatus_urlsrc = "https://status.sns.ornl.gov/dbwr/view.jsp?display=https%
 
 
 def save_webpage_as_image(url: str, output_file: str = "webpage.png") -> bytes:
-    # Configure headless Chrome browser
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    # Configure headless Firefox browser
+    options = FirefoxOptions()
+    options.add_argument("-headless")
+    options.add_argument("--height=10000")
 
     # Start browser and load page
-    browser = webdriver.Chrome(options=options)
+    browser = Firefox(options=options)
     browser.get(url)
 
     # Take screenshot and save it
