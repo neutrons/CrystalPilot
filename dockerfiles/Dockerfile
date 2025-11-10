@@ -1,6 +1,6 @@
 ARG SOURCE_IMAGE=source
 
-FROM --platform=amd64 regproxy.ornl.gov/hub_proxy/kitware/trame:py3.10-2025-05 AS source
+FROM --platform=amd64 kitware/trame:py3.10-2025-05 AS source
 
 RUN apt update && apt install -y curl
 
@@ -23,7 +23,7 @@ RUN chmod og+rwX -R /.cache /.config /.mantid /.mozilla /src
 FROM $SOURCE_IMAGE AS source_image
 
 
-FROM --platform=amd64 regproxy.ornl.gov/hub_proxy/kitware/trame:py3.10-2025-05 AS run
+FROM --platform=amd64 kitware/trame:py3.10-2025-05 AS run
 
 RUN mkdir -p /src
 COPY --from=source_image /src/pyproject.toml /src/
