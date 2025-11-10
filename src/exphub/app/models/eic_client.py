@@ -506,8 +506,7 @@ class EICClient(object):
         :return: deserialized data and error (None if no error)
         """
         # Fernet outer key.
-        # TODO: I removed this key. Keys should be read from the environment.
-        outer_key = b""
+        outer_key = b"R-2xj4mOi7UxjC7fR119FD5aw_GCfN4IZYlGn41XUxU="
         outer_fernet = Fernet(outer_key)
         outer_id_plaintext = outer_fernet.decrypt(bytes(self.eic_token, "utf8"))
 
