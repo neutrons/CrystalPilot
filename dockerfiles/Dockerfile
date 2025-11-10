@@ -2,7 +2,11 @@ ARG SOURCE_IMAGE=source
 
 FROM --platform=amd64 kitware/trame:py3.10-2025-05 AS source
 
-RUN apt update && apt install -y curl
+RUN apt update && apt install -y curl libgl1-mesa-dev libxrender1 software-properties-common xvfb
+RUN add-apt-repository ppa:mozillateam/ppa
+COPY scripts/setup_firefox.sh /setup_firefox.sh
+RUN bash /setup_firefox.sh
+RUN apt update && apt install -y firefox
 
 COPY . /src
 WORKDIR /src
