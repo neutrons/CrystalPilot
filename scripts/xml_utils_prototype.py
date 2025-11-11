@@ -7,7 +7,7 @@ from pathlib import Path
 
 import git
 
-from .utils import check_docker_image_exists, check_uncommitted_changes, get_current_commit_sha
+from .utils import check_docker_image_exists, check_uncommitted_changes
 
 
 def push_tool_xml_prototype() -> None:
@@ -33,7 +33,7 @@ def push_tool_xml_prototype() -> None:
         check_uncommitted_changes()
 
         # Get current commit SHA for prototype image tag
-        prototype_image_tag = get_current_commit_sha()
+        prototype_image_tag = "latest"
 
         xml_source = Path("xml/tool.xml")
         if not xml_source.exists():
@@ -75,8 +75,8 @@ def push_tool_xml_prototype() -> None:
                 xml_content = src_file.read()
 
             # Replace placeholders with actual values
-            container_registry = "savannah.ornl.gov"
-            container_path = "ndip/tool-sources/single-crystal-diffraction/crystalpilot/prototypes"
+            container_registry = "ghcr.io"
+            container_path = "neutrons/crystalpilot"
 
             # Construct the full Docker image URL
             docker_image = f"{container_registry}/{container_path}:{prototype_image_tag}"
