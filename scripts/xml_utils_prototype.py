@@ -7,7 +7,7 @@ from pathlib import Path
 
 import git
 
-from .utils import check_docker_image_exists, check_uncommitted_changes
+from .utils import check_docker_image_exists, check_uncommitted_changes, get_current_commit_sha
 
 
 def push_tool_xml_prototype() -> None:
@@ -33,7 +33,7 @@ def push_tool_xml_prototype() -> None:
         check_uncommitted_changes()
 
         # Get current commit SHA for prototype image tag
-        prototype_image_tag = "latest"
+        prototype_image_tag = get_current_commit_sha()
 
         xml_source = Path("xml/tool.xml")
         if not xml_source.exists():

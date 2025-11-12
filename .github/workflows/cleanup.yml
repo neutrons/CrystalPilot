@@ -1,0 +1,12 @@
+name: Repo Cleanup
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  - name: Delete old packages
+    uses: SmartsquareGmbH/delete-old-packages@v0.8.1
+    with:
+      keep: 1
+      version-pattern: "^build-.*$"
