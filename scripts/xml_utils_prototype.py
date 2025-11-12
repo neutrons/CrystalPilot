@@ -76,7 +76,7 @@ def push_tool_xml_prototype() -> None:
 
             # Replace placeholders with actual values
             container_registry = "ghcr.io"
-            container_path = "neutrons/crystalpilot"
+            container_path = "neutrons/crystalpilot-prototype"
 
             # Construct the full Docker image URL
             docker_image = f"{container_registry}/{container_path}:{prototype_image_tag}"
