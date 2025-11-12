@@ -13,6 +13,7 @@ jobs:
       - name: Delete old packages
         uses: actions/delete-package-versions@v5
         with:
+          ignore-versions: "^(?!build-).*$"
+          min-versions-to-keep: 1
           package-name: crystalpilot
           package-type: "container"
-          ignore-versions: "^(?!build-).*$"
