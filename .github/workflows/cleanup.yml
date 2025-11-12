@@ -11,11 +11,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Delete old packages
-        uses: SmartsquareGmbH/delete-old-packages@v0.8.1
+        uses: actions/delete-package-versions@v5
         with:
-          keep: 1
-          names: |
-            crystalpilot
-          organization: ${{ github.repository_owner }}
-          type: docker
-          version-pattern: "^build-.*$"
+          min-versions-to-keep: 1
+          package-type: "container"
+          ignore-versions: "^(?!build-).*$"
