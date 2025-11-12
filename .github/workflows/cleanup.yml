@@ -16,5 +16,6 @@ jobs:
           keep: 1
           names: |
             crystalpilot
+          organization: ${{ github.repository_owner }}
           type: docker
           version-pattern: "^build-.*$"
