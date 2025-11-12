@@ -14,6 +14,7 @@ jobs:
         uses: SmartsquareGmbH/delete-old-packages@v0.8.1
         with:
           keep: 1
-          name: crystalpilot
+          names: |
+            crystalpilot
           type: docker
           version-pattern: "^build-.*$"
