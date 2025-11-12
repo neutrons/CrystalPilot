@@ -9,6 +9,7 @@ jobs:
   cleanup-packages:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions: write-all
     steps:
       - name: Delete old packages
         uses: actions/delete-package-versions@v5
