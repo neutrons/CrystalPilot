@@ -3,10 +3,10 @@ name: Repo Cleanup
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * 0"
 
 jobs:
-  cleanup-packages:
+  cleanup-prototype-packages:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions: write-all
@@ -14,7 +14,6 @@ jobs:
       - name: Delete old packages
         uses: actions/delete-package-versions@v5
         with:
-          ignore-versions: "^(?!build-).*$"
           min-versions-to-keep: 1
-          package-name: crystalpilot
+          package-name: crystalpilot-prototype
           package-type: "container"
