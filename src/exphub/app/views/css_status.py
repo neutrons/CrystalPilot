@@ -70,9 +70,10 @@ class CSSStatusView:
             
             # Load the image from the file
             #image_path = "/home/zx5/1-todo/6-hardware/code/expgui/ExpHub/webpage.png"
-            #image = Image.open(image_path)
-            initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
-            image=Image.open(io.BytesIO(initial_screenshot))
+            image_path = "/ccsopen/home/zx5/webpage.png"
+            image = Image.open(image_path)
+            #initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
+            #image=Image.open(io.BytesIO(initial_screenshot))
             width, height = image.size
             cropscreen = image.crop((0, int(height *0), int(width*0.65), int(height *1.000)))
             screenshot = io.BytesIO()

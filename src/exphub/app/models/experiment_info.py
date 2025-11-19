@@ -61,7 +61,7 @@ class ExperimentInfoModel(BaseModel):
         description="Will be used to create a directory in the shared folder under the IPTS directory.",
     )
     calFileName: str = Field(
-        default="/SNS/TOPAZ/shared/calibrations/2025B/TOPAZ_2025B_AG_2-3BN_AG.DetCal",
+        default="/ccsopen/home/zx5/topaz-data/TOPAZ_2025B_AG_2-3BN_AG.DetCal",
         title="Calibration File",
         description="Calibration file for the current cycle.",
     )
@@ -72,7 +72,8 @@ class ExperimentInfoModel(BaseModel):
         description="NXS file for the background measurement of the current cycle.",
     )
     read_UB: Optional[bool] = Field(default=False, title="Read UB Matrix")
-    UBFileName: Optional[str] = Field(default="/home/zx5/1-todo/4-integrate/nxv/nxv-git-zhongcanxiao/src/TOPAZ_44752_Tetragonal.mat", title="UB File", description="Optional UB matrix file.")
+    UBFileName: Optional[str] = Field(default="/ccsopen/home/zx5/topaz-data/55599_cubic_I_nxv.mat", title="UB File", description="Optional UB matrix file.")
+   
     maxQ: float = Field(default=17.0, title="maxQ")
     splitThreshold: int = Field(default=80, title="Split Threshold")
     edgePixels: int = Field(default=0, title="Edge Pixels")

@@ -225,9 +225,9 @@ class AnglePlanView:
         #    )
  
         #vuetify.VRow(v_for="header in model_angleplan.headers", v_text="header")
-        print("model_angleplan.angle_list")
-        print(self.view_model.model.angleplan.angle_list)
-        print(len(self.view_model.model.angleplan.angle_list))
+        #print("model_angleplan.angle_list")
+        #print(self.view_model.model.angleplan.angle_list)
+        #print(len(self.view_model.model.angleplan.angle_list))
         
         #with vuetify.VRow( v_for="(angle, index) in model_angleplan.angle_list_pd",):
         #    InputField(v_model="model_angleplan.angle_list_pd[index].phi")

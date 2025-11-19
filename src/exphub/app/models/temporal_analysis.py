@@ -29,7 +29,7 @@ class MantidWorkflow():
         self.ipts=34069
         self.ipts=35078
         self.ipts=35036
-        print(self.ipts)
+        #print(self.ipts)
     #TODO: connect ipts
         self.ipts=34655
         self.ub_failsafe="/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
@@ -180,6 +180,7 @@ class MantidWorkflow():
             mtdapi.StartLiveData(
                     Instrument='TOPAZ',
                     Listener='SNSLiveEventDataListener',
+                    Address='10.111.24.150:31415',
                     #UpdateEvery=10,
                     UpdateEvery=self.time_interval,
                     AccumulationMethod='Add',
@@ -932,14 +933,14 @@ class MantidWorkflow():
         print("live data reduction started")
         print("============================================================================================")
         print("?")
-        #get_time_series_data_sim()
+        get_time_series_data_sim()
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
         refine_ub_of_current_run()
         integrate_peaks_of_current_run()
-        check_peaks_of_current_run()
+        #check_peaks_of_current_run()
         
-        #get_time_series_data_sim_linear()
+        get_time_series_data_sim_linear()
         
         time.sleep(0)
 
