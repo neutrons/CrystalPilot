@@ -8,6 +8,7 @@ from typing import Any, Dict
 # from ..models.temporal_analysis import TemporalAnalysisModel
 import plotly.graph_objects as go
 from nova.mvvm.interface import BindingInterface
+from pydantic import BaseModel, Field
 
 # from ..models.plotly import PlotlyConfig
 # from pyvista import Plotter  # just for typing
@@ -15,11 +16,18 @@ from nova.mvvm.interface import BindingInterface
 from ..models.main_model import MainModel
 
 
+class ViewState(BaseModel):
+    """View state for the application."""
+
+    active_tab: str = Field(default="0")
+
+
 class MainViewModel:
     """Viewmodel class, used to create data<->view binding and react on changes from GUI."""
 
     def __init__(self, model: MainModel, binding: BindingInterface):
         self.model = model
+        self.view_state = ViewState()
         # Guard to prevent recursive / re-entrant updates for temporalanalysis
         self._temporalanalysis_updating: bool = False
         # Debounce: avoid repeated updates in a short interval (seconds)
@@ -39,6 +47,7 @@ class MainViewModel:
         # but one also can provide a callback function if they want to react to those events
         # and/or process errors.
         self.model_bind = binding.new_bind(self.model, callback_after_update=self.change_callback)
+        self.view_state_bind = binding.new_bind(self.view_state)
 
         # self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)#noqa
         self.experimentinfo_bind = binding.new_bind(
@@ -53,7 +62,6 @@ class MainViewModel:
 
         # self.cssstatus_bind = binding.new_bind(self.model.cssstatus, callback_after_update=self.change_callback)
         self.cssstatus_bind = binding.new_bind(self.model.cssstatus, callback_after_update=self.update_cssstatus_figure)
-        self.cssstatus_updatefig_bind = binding.new_bind()
         self.temporalanalysis_updatefigure_uncertainty_bind = binding.new_bind()
         self.temporalanalysis_updatefigure_intensity_bind = binding.new_bind()
         ######################################################################################################################################################
@@ -145,8 +153,8 @@ class MainViewModel:
     #
 
     def update_cssstatus_figure(self, _: Any = None) -> None:
+        self.model.cssstatus.update_figure()
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
-        self.cssstatus_updatefig_bind.update_in_view(self.model.cssstatus.get_figure())
         # time.sleep(7)
 
     async def auto_update_cssstatus_figure(self) -> None:

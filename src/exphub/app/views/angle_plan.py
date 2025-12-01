@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 import trame
 from nova.trame.view.components import InputField, RemoteFileInput
-from nova.trame.view.layouts import GridLayout, HBoxLayout
+from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import html, plotly
 from trame.widgets import vuetify3 as vuetify
 
@@ -101,10 +101,11 @@ class AnglePlanView:
             # self.view_model.save_run()
             self.view_model.save_run()
 
-        with GridLayout(columns=2):
+        with GridLayout(classes="mb-2", columns=2, gap="0.5em"):
             InputField(v_model="model_angleplan.plan_name")  # , type="button", label="Upload")
             InputField(v_model="model_angleplan.plan_type", type="select", items="model_angleplan.plan_type_list")
-        with GridLayout(columns=2):
+
+        with HBoxLayout(classes="mb-2", gap="0.5em"):
             RemoteFileInput(
                 v_model="model_angleplan.plan_file",
                 base_paths=[
@@ -118,31 +119,13 @@ class AnglePlanView:
 
         # vuetify.VCardTitle("CrystalPlan Table")
 
-        with vuetify.VSheet(classes="pa-4"):
+        vuetify.VCardTitle("Experiment Run Strategy")
+        with VBoxLayout(classes="border-lg border-primary mb-2", stretch=True):
             with vuetify.VDataTable(
+                classes="flex-1-1",
                 headers=("model_angleplan.angle_list_headers", []),  # TODO trame syntax,
                 items=("model_angleplan.angle_list", []),
             ):
-                with vuetify.Template(v_slot_top=True):
-                    # with vuetify.Template(v_slot_bottom=True):
-                    with vuetify.VToolbar(flat=True):
-                        vuetify.VToolbarTitle("Experiment Run Strategy")
-                        # vuetify.VSpacer()
-                        # vuetify.VBtn(
-                        #    "Reset Strategy",
-                        #    #prepend_icon="mdi-",
-                        #    click=self.view_model.reset_run,
-                        #    #click="trigger('add_run')",
-                        # )
-
-                        # vuetify.VSpacer()
-                        # vuetify.VBtn(
-                        #    "Add a Run",
-                        #    prepend_icon="mdi-plus",
-                        #    click=self.view_model.add_run,
-                        #    #click="trigger('add_run')",
-                        # )
-
                 with vuetify.Template(
                     raw_attrs=['v-slot:item.actions="{ item }"']
                 ):  # TODO 'item' predefined by vuetify
@@ -252,7 +235,7 @@ class AnglePlanView:
             self.figure_coverage.state.flush()
             self.view_model.show_coverage()
 
-        with GridLayout(columns=3):
+        with HBoxLayout(classes="mb-2", gap="0.5em", halign="center"):
             vuetify.VBtn("Initialize Strategy", click=self.view_model.reset_run, style="align-self: center;")
             vuetify.VBtn(
                 "Add a Run",
@@ -263,14 +246,18 @@ class AnglePlanView:
             vuetify.VBtn("Show Coverage", click="trigger('show_coverage')", style="align-self: center;")
             # vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")#noqa
 
-        with GridLayout(columns=2):
+        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
             RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
-            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token, style="align-self: center;")
-        with GridLayout(columns=2):
+            vuetify.VBtn("Authenticate", click=self.view_model.call_load_token)
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
             # vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
             # html.Div(style="height: 20px;")
-            vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan, style="align-self: center;")
+            vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan)
+            html.P(
+                "Submission Successful.",
+                v_if="model_eiccontrol.eic_submission_success",
+                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",#noqa
+            )
 
         with vuetify.VDialog(
             v_model="model_angleplan.is_showing_coverage", max_width="500px"
@@ -344,14 +331,7 @@ class AnglePlanView:
         # InputField(v_model="model_eiccontrol.IPTS_number")
         # InputField(v_model="model_eiccontrol.instrument_name")
 
-        with GridLayout(columns=1):
-            vuetify.VBanner(
-                v_if="model_eiccontrol.eic_submission_success",
-                text="Submission Successful.",
-                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",#noqa
-                color="success",
-            )
-        with GridLayout(columns=4):
+        with GridLayout(columns=4, gap="0.5em"):
             InputField(
                 v_model="model_eiccontrol.eic_auto_stop_strategy",
                 type="select",

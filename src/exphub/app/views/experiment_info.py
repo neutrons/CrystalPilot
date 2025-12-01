@@ -16,45 +16,20 @@ class ExperimentInfoView:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with GridLayout():
+        with GridLayout(classes="mb-2", columns=2, gap="0.5em"):
             InputField(v_model="config.exp_name")
             InputField(v_model="config.ipts_number")
-
-        with GridLayout():
-            InputField(
-                v_model="config.instrument",
-                items="config.options.instrument_list",
-                type="select",
-            )
+            InputField(v_model="config.instrument", items="config.options.instrument_list", type="select")
             InputField(v_model="config.molecular_formula")
-            InputField(
-                v_model="config.crystalsystem",
-                items="config.options.crystalsystem_list",
-                type="select",
-            )
-            InputField(
-                v_model="config.point_group",
-                items="config.options.point_group_list",
-                type="select",
-            )
-            InputField(
-                v_model="config.centering",
-                items="config.options.centering_list",
-                type="select",
-            )
-            RemoteFileInput(
-                v_model="config.UBFileName",
-            )
-            RemoteFileInput(
-                v_model="config.cal_filename",
-            )
-        with GridLayout(columns=2):
-            InputField(
-                v_model="config.min_dspacing",
-            )
-            InputField(
-                v_model="config.max_dspacing",
-            )
+        with GridLayout(classes="mb-2", columns=3, gap="0.5em"):
+            InputField(v_model="config.crystalsystem", items="config.options.crystalsystem_list", type="select")
+            InputField(v_model="config.point_group", items="config.options.point_group_list", type="select")
+            InputField(v_model="config.centering", items="config.options.centering_list", type="select")
+        with GridLayout(columns=2, gap="0.5em"):
+            RemoteFileInput(v_model="config.UBFileName")
+            RemoteFileInput(v_model="config.cal_filename")
+            InputField(v_model="config.min_dspacing")
+            InputField(v_model="config.max_dspacing")
 
     def save_settings(self) -> None:
         # Placeholder function to handle saving settings

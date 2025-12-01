@@ -1,7 +1,7 @@
 """View module for data analysis view."""
 
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import GridLayout
+from nova.trame.view.layouts import GridLayout, VBoxLayout
 from trame.widgets import vuetify3 as vuetify
 
 from ..view_models.main import MainViewModel
@@ -16,7 +16,7 @@ class DataAnalysisView:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with GridLayout(columns=1, classes="mb-2"):
+        with VBoxLayout(classes="mb-2"):
             InputField(v_model="model_dataanalysis.data_dir", type="text", label="Data Directory")
             # InputField(v_model="model_dataanalysis.output_dir", type="text", label="Output Directory")
 
@@ -25,29 +25,17 @@ class DataAnalysisView:
         #     vuetify.VBtn("Data Reduction", click=self.open_data_reduction)
         #     vuetify.VBtn("Structure Analysis", click=self.open_data_refinement)
         #     vuetify.VBtn("Diffuse Scattering Study", click=self.open_diffuse_scattering_study)
-        with GridLayout(columns=2, classes="mb-2"):
+        with GridLayout(columns=2, gap="0.5em"):
             InputField(
                 v_model="model_dataanalysis.output_dir_nxv", type="text", label="Output Directory for NeuXstalViz"
             )
-            # with vuetify.VCardActions():
-            #    vuetify.VBtn("Data Visualization", click=self.open_data_visualization)
             vuetify.VBtn(
                 "Data Visualization", click=self.open_data_visualization, color="primary", style="align-self: center;"
             )
 
-        with GridLayout(columns=2, classes="mb-2"):
             InputField(
                 v_model="model_dataanalysis.output_dir_reduction", type="text", label="Output Directory for Reduction"
             )
-            # vuetify.VBtn(
-            #    "Data Reduction & Structure Analysis",
-            #    href="https://nova.ornl.gov/single-crystal-diffraction",
-            #    target="_blank",
-            #    color="primary",
-            #    style="align-self: center;",
-            #    raw_attrs=['rel="noopener noreferrer"']
-            # )
-            # vuetify.VIcon("mdi-open-in-new")
             vuetify.VBtn(
                 "Data Reduction & Structure Analysis",
                 click="window.open('https://nova.ornl.gov/single-crystal-diffraction', '_blank')",
@@ -56,9 +44,7 @@ class DataAnalysisView:
                 style="align-self: center;",
                 raw_attrs=['rel="noopener noreferrer"'],
             )
-        #    vuetify.VIcon("mdi-open-in-new")
 
-        with GridLayout(columns=2, classes="mb-2"):
             InputField(v_model="model_dataanalysis.output_dir_discus", type="text", label="Output Directory for Discus")
             vuetify.VBtn(
                 "Diffuse Scattering Analysis",
@@ -67,11 +53,10 @@ class DataAnalysisView:
                 color="primary",
                 style="align-self: center;",
             )
-        with GridLayout(columns=2, classes="mb-2"):
+
             InputField(v_model="model_dataanalysis.output_dir_olex2", type="text", label="Output Directory for Olex2")
             vuetify.VBtn("Olex2", click=self.open_olex2, color="primary", style="align-self: center;")
 
-        with GridLayout(columns=2, classes="mb-2"):
             InputField(v_model="model_dataanalysis.output_dir_shelx", type="text", label="Output Directory for ShelX")
             vuetify.VBtn("ShelX", click=self.open_shelx, color="primary", style="align-self: center;")
 

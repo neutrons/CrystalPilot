@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import plotly.graph_objects as go
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import GridLayout, HBoxLayout
+from nova.trame.view.layouts import GridLayout, VBoxLayout
 from trame.widgets import plotly
 from trame.widgets import vuetify3 as vuetify
 
@@ -42,7 +42,7 @@ class TemporalAnalysisView:
         # with vuetify.VContainer(fluid=True, classes="pa-5"):
         #        vuetify.VCardTitle("Temporal Analysis"),
         #        vuetify.VCardText("Content for Temporal Analysis tab goes here."),
-        with GridLayout(columns=1, classes="mb-2"):
+        with GridLayout(columns=3, classes="mb-2", gap="0.5em"):
             InputField(
                 v_model="model_temporalanalysis.prediction_model_type",
                 items="model_temporalanalysis.prediction_model_type_options",
@@ -53,20 +53,19 @@ class TemporalAnalysisView:
                 items="model_temporalanalysis.data_selection_options",
                 type="select",
             )
-        # with GridLayout(columns=4, classes="mb-2"):
-        # InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
-        # InputField(v_model="model_cssstatus.x_axis", items="model_cssstatus.axis_options", type="select")
-        # InputField(v_model="model_cssstatus.y_axis", items="model_cssstatus.axis_options", type="select")
-        # InputField(
-        #    v_model="model_cssstatus.z_axis",
-        #    disabled=("model_cssstatus.is_not_heatmap",),
-        #    items="model_cssstatus.axis_options",
-        #    type="select",
-        # )
-        with GridLayout(columns=1):
             InputField(
                 v_model="model_temporalanalysis.time_interval",
             )
+            # with GridLayout(columns=4, classes="mb-2"):
+            # InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
+            # InputField(v_model="model_cssstatus.x_axis", items="model_cssstatus.axis_options", type="select")
+            # InputField(v_model="model_cssstatus.y_axis", items="model_cssstatus.axis_options", type="select")
+            # InputField(
+            #    v_model="model_cssstatus.z_axis",
+            #    disabled=("model_cssstatus.is_not_heatmap",),
+            #    items="model_cssstatus.axis_options",
+            #    type="select",
+            # )
         fig_i = go.Figure()
         fig_i.update_layout(
             title={"text": "Prediction of Signal Noise Ratio", "x": 0.5, "xanchor": "center"},
@@ -110,19 +109,15 @@ class TemporalAnalysisView:
         #    self.figure_intensity
         #    self.figure_uncertainty
 
-        with GridLayout(columns=2, classes="mb-2"):
-            with HBoxLayout(halign="left", height="40vh"):
-                # vuetify.VCardTitle("Prediction of Intensity"),
-                #        self.figure_intensity
-                self.figure_intensity = plotly.Figure()
-                self.figure_intensity.update(fig_i)
-            with HBoxLayout(halign="left", height="40vh"):
-                # vuetify.VCardTitle("Prediction of Uncertainty"),
-                # self.figure_uncertainty
-                self.figure_uncertainty = plotly.Figure()
-                self.figure_uncertainty.update(fig_u)
+        with GridLayout(columns=2, classes="mb-2", gap="0.5em", stretch=True):
+            self.figure_intensity = plotly.Figure()
+            self.figure_intensity.update(fig_i)
 
-        vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_temporalanalysis_figure)
+            self.figure_uncertainty = plotly.Figure()
+            self.figure_uncertainty.update(fig_u)
+
+        with VBoxLayout(halign="center"):
+            vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_temporalanalysis_figure)
 
     def update_figure_intensity(self, figure_intensity: go.Figure) -> None:
         # debounce / re-entrancy guard

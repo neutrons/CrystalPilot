@@ -2,6 +2,7 @@
 
 import io
 import time
+from base64 import b64encode
 from typing import Dict, List
 
 import plotly.graph_objects as go
@@ -71,6 +72,7 @@ class CSSStatusModel(BaseModel):
     # init_image: bytes = save_webpage_as_image(bl12cssstatus_urlsrc)
     # plot_type_options: list[str] = ["Detector", "D-space", "Q-space", "4x4 and ROI D-space", "ROI Q-space", "IOCSTATS", "Det", "N1", "Main Detector", "N1", "BL12", "DID", "S"] # noqa
     # fig: go.Figure = Field(default=go.Figure(), title="Figure")
+    screenshot: str = Field(default="")
 
     # @computed_field  # type: ignore
     # @property
@@ -84,13 +86,13 @@ class CSSStatusModel(BaseModel):
             case _:
                 return True
 
-    def get_figure(self) -> go.Figure:
+    def update_figure(self) -> None:
         screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
         image = Image.open(io.BytesIO(screenshot))
         width, height = image.size
         # timestamp = time.time()
         # self.timestamp = timestamp
-        print("genratged fig md5sum:" + str(hash(image.tobytes())))
+        print("generated fig md5sum:" + str(hash(image.tobytes())))
         match self.plot_type:
             case "Detector":
                 cropscreen = image.crop((0, 0, int(width * 0.65), int(height * 0.457)))
@@ -100,37 +102,9 @@ class CSSStatusModel(BaseModel):
         cropscreen.save(screenshot_obj, format="PNG")
         screenshot = screenshot_obj.getvalue()
         image = Image.open(io.BytesIO(screenshot))
-        print("genratged fig md5sum:" + str(hash(image.tobytes())))
+        print("generated fig md5sum:" + str(hash(image.tobytes())))
 
-        fig = go.Figure()
-        fig.update_layout(
-            plot_bgcolor="white",  # Background color of the plot area
-            paper_bgcolor="white",  # Background color of the entire figure
-        )
-        fig.add_layout_image(
-            {
-                "source": image,
-                "xref": "paper",
-                "yref": "paper",
-                "x": 0.5,
-                "y": 0.5,
-                "sizex": 1,
-                "sizey": 1,
-                "xanchor": "center",
-                "yanchor": "middle",
-                "opacity": 1,
-                #       plot_bgcolor='white',  # Background color of the plot area
-                #      paper_bgcolor='white'  # Background color of the entire figure
-            }
-        )
-        fig.update_layout(
-            # title="CSS Status: "+str(time.time()),
-            xaxis={"visible": False},
-            yaxis={"visible": False},
-        )
-        fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
-        print("get plotly figure done")
-        return fig
+        self.screenshot = f"data:image/png;base64,{b64encode(screenshot).decode()}"
 
     def get_figure_0(self) -> go.Figure:
         match self.plot_type:
