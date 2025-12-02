@@ -18,7 +18,7 @@ class NewTabTemplateView:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with GridLayout(columns=4, classes="mb-2"):
+        with GridLayout(columns=4):
             InputField(
                 v_model="model_newtabtemplate.plot_type", items="model_newtabtemplate.plot_type_options", type="select"
             )
@@ -30,7 +30,7 @@ class NewTabTemplateView:
                 items="model_newtabtemplate.axis_options",
                 type="select",
             )
-        with HBoxLayout(halign="center", height="50vh"):
+        with HBoxLayout(halign="center", stretch=True):
             self.figure = plotly.Figure()
 
     def update_figure(self, figure: go.Figure) -> None:

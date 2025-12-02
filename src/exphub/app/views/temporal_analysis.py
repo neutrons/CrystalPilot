@@ -42,7 +42,7 @@ class TemporalAnalysisView:
         # with vuetify.VContainer(fluid=True, classes="pa-5"):
         #        vuetify.VCardTitle("Temporal Analysis"),
         #        vuetify.VCardText("Content for Temporal Analysis tab goes here."),
-        with GridLayout(columns=3, classes="mb-2", gap="0.5em"):
+        with GridLayout(columns=3, gap="0.5em"):
             InputField(
                 v_model="model_temporalanalysis.prediction_model_type",
                 items="model_temporalanalysis.prediction_model_type_options",
@@ -56,7 +56,7 @@ class TemporalAnalysisView:
             InputField(
                 v_model="model_temporalanalysis.time_interval",
             )
-            # with GridLayout(columns=4, classes="mb-2"):
+            # with GridLayout(columns=4):
             # InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
             # InputField(v_model="model_cssstatus.x_axis", items="model_cssstatus.axis_options", type="select")
             # InputField(v_model="model_cssstatus.y_axis", items="model_cssstatus.axis_options", type="select")
@@ -105,11 +105,11 @@ class TemporalAnalysisView:
         #    self.figure_intensity
         # with HBoxLayout(halign="right", height="50vh"):
         #    self.figure_uncertainty
-        # with GridLayout(columns=2, classes="mb-2"):
+        # with GridLayout(columns=2):
         #    self.figure_intensity
         #    self.figure_uncertainty
 
-        with GridLayout(columns=2, classes="mb-2", gap="0.5em", stretch=True):
+        with GridLayout(columns=2, gap="0.5em", stretch=True):
             self.figure_intensity = plotly.Figure()
             self.figure_intensity.update(fig_i)
 

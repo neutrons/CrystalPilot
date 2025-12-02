@@ -1,14 +1,12 @@
 """Module for the CSS Status tab."""
 
-import io
 import time
 from typing import Any
 
 # from trame.widgets.vuetify3 import VIframe
 import requests
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import HBoxLayout, VBoxLayout
-from PIL import Image
+from nova.trame.view.layouts import VBoxLayout
 from selenium.webdriver import Firefox, FirefoxOptions
 from trame.widgets import html
 from trame.widgets import vuetify3 as vuetify
@@ -26,9 +24,9 @@ class CSSStatusView:
         self.view_model.update_cssstatus_figure()
 
     def create_ui(self) -> None:
-        with VBoxLayout(columns=1, classes="mb-2"):
+        with VBoxLayout(columns=1):
             InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
-        # with GridLayout(columns=4, classes="mb-2"):
+        # with GridLayout(columns=4):
         # InputField(v_model="model_cssstatus.plot_type", items="model_cssstatus.plot_type_options", type="select")
         # InputField(v_model="model_cssstatus.x_axis", items="model_cssstatus.axis_options", type="select")
         # InputField(v_model="model_cssstatus.y_axis", items="model_cssstatus.axis_options", type="select")
@@ -39,29 +37,29 @@ class CSSStatusView:
         #    type="select",
         # )
 
-        with HBoxLayout(stretch=True):
-            # Load the image from the file
-            # image_path = "/home/zx5/1-todo/6-hardware/code/expgui/ExpHub/webpage.png"
-            # image = Image.open(image_path)
-            initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
-            image = Image.open(io.BytesIO(initial_screenshot))
-            width, height = image.size
-            cropscreen = image.crop((0, int(height * 0), int(width * 0.65), int(height * 1.000)))
-            screenshot = io.BytesIO()
-            cropscreen.save(screenshot, format="PNG")
-            screenshot_bytes = screenshot.getvalue()
-            image = Image.open(io.BytesIO(screenshot_bytes))
+        # with HBoxLayout(stretch=True):
+        #     # Load the image from the file
+        #     # image_path = "/home/zx5/1-todo/6-hardware/code/expgui/ExpHub/webpage.png"
+        #     # image = Image.open(image_path)
+        #     initial_screenshot = save_webpage_as_image(bl12cssstatus_urlsrc)
+        #     image = Image.open(io.BytesIO(initial_screenshot))
+        #     width, height = image.size
+        #     cropscreen = image.crop((0, int(height * 0), int(width * 0.65), int(height * 1.000)))
+        #     screenshot = io.BytesIO()
+        #     cropscreen.save(screenshot, format="PNG")
+        #     screenshot_bytes = screenshot.getvalue()
+        #     image = Image.open(io.BytesIO(screenshot_bytes))
 
-            vuetify.VImg(classes="h-100 w-100 mb-2", src=("model_cssstatus.screenshot",))
+        #     vuetify.VImg(classes="h-100 w-100", src=("model_cssstatus.screenshot",))
 
-        with VBoxLayout(gap="0.5em", halign="center"):
-            vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_cssstatus_figure)
-            with vuetify.VTab(
-                href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/BL12_ADnED_2D_4x4.bob&macros=%7B%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID305%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%7D",
-                raw_attrs=['''target="_blank"'''],
-            ):
-                html.Span("Instrument Status", classes="mr-1")
-                vuetify.VIcon("mdi-open-in-new")
+        # with VBoxLayout(gap="0.5em", halign="center"):
+        #     vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_cssstatus_figure)
+        #     with vuetify.VTab(
+        #         href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/BL12_ADnED_2D_4x4.bob&macros=%7B%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID305%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%7D",
+        #         raw_attrs=['''target="_blank"'''],
+        #     ):
+        #         html.Span("Instrument Status", classes="mr-1")
+        #         vuetify.VIcon("mdi-open-in-new")
 
 
 #       # print("obj fig md5sum:" ,dict(self.figure))

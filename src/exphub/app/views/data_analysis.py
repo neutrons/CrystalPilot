@@ -16,10 +16,10 @@ class DataAnalysisView:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with VBoxLayout(classes="mb-2"):
+        with VBoxLayout():
             InputField(v_model="model_dataanalysis.data_dir", type="text", label="Data Directory")
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             InputField(
                 v_model="model_dataanalysis.output_dir_nxv", type="text", label="Output Directory for NeuXtalViz"
             )
@@ -30,7 +30,7 @@ class DataAnalysisView:
                 raw_attrs=['target="_blank"'],
             )
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             InputField(
                 v_model="model_dataanalysis.output_dir_reduction", type="text", label="Output Directory for Reduction"
             )
@@ -41,7 +41,7 @@ class DataAnalysisView:
                 raw_attrs=['target="_blank"'],
             )
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             InputField(
                 v_model="model_dataanalysis.output_dir_reduction", type="text", label="Output Directory for Reduction"
             )
@@ -52,7 +52,7 @@ class DataAnalysisView:
                 raw_attrs=['target="_blank"'],
             )
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             # TODO: Need to figure out if this can run on NOVA.
             InputField(v_model="model_dataanalysis.output_dir_discus", type="text", label="Output Directory for Discus")
             vuetify.VBtn(
@@ -62,7 +62,7 @@ class DataAnalysisView:
                 raw_attrs=['target="_blank"'],
             )
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             InputField(v_model="model_dataanalysis.output_dir_olex2", type="text", label="Output Directory for Olex2")
             vuetify.VBtn(
                 "Olex2",
@@ -71,7 +71,7 @@ class DataAnalysisView:
                 raw_attrs=['target="_blank"'],
             )
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             # TODO: Need to set this up similar to Olex2.
             InputField(v_model="model_dataanalysis.output_dir_shelx", type="text", label="Output Directory for ShelX")
             vuetify.VBtn("ShelX", click=self.open_shelx, color="primary")

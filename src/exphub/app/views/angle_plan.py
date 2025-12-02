@@ -101,11 +101,11 @@ class AnglePlanView:
             # self.view_model.save_run()
             self.view_model.save_run()
 
-        with GridLayout(classes="mb-2", columns=2, gap="0.5em"):
+        with GridLayout(columns=2, gap="0.5em"):
             InputField(v_model="model_angleplan.plan_name")  # , type="button", label="Upload")
             InputField(v_model="model_angleplan.plan_type", type="select", items="model_angleplan.plan_type_list")
 
-        with HBoxLayout(classes="mb-2", gap="0.5em"):
+        with HBoxLayout(gap="0.5em"):
             RemoteFileInput(
                 v_model="model_angleplan.plan_file",
                 base_paths=[
@@ -120,7 +120,7 @@ class AnglePlanView:
         # vuetify.VCardTitle("CrystalPlan Table")
 
         vuetify.VCardTitle("Experiment Run Strategy")
-        with VBoxLayout(classes="border-lg border-primary mb-2", stretch=True):
+        with VBoxLayout(classes="border-lg border-primary mb-1", stretch=True):
             with vuetify.VDataTable(
                 classes="flex-1-1",
                 headers=("model_angleplan.angle_list_headers", []),  # TODO trame syntax,
@@ -235,7 +235,7 @@ class AnglePlanView:
             self.figure_coverage.state.flush()
             self.view_model.show_coverage()
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", halign="center"):
+        with HBoxLayout(gap="0.5em", halign="center"):
             vuetify.VBtn("Initialize Strategy", click=self.view_model.reset_run, style="align-self: center;")
             vuetify.VBtn(
                 "Add a Run",
@@ -246,7 +246,7 @@ class AnglePlanView:
             vuetify.VBtn("Show Coverage", click="trigger('show_coverage')", style="align-self: center;")
             # vuetify.VBtn("Show Coverage", click="trigger('show_coverage',[coverage_fig,])", style="align-self: center;")#noqa
 
-        with HBoxLayout(classes="mb-2", gap="0.5em", valign="center"):
+        with HBoxLayout(gap="0.5em", valign="center"):
             RemoteFileInput(v_model="model_eiccontrol.token_file", base_paths=["/HFIR", "/SNS"])
             vuetify.VBtn("Authenticate", click=self.view_model.call_load_token)
             InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")

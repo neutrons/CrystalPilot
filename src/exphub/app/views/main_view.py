@@ -29,6 +29,7 @@ class MainApp(ThemedApp):
 
     def create_ui(self) -> None:
         self.state.trame__title = "CrystalPilot"
+        self.set_theme("CompactTheme")
 
         with super().create_ui() as layout:
             layout.toolbar_title.set_text("CrystalPilot")

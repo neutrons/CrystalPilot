@@ -153,7 +153,7 @@ class MainViewModel:
     #
 
     def update_cssstatus_figure(self, _: Any = None) -> None:
-        self.model.cssstatus.update_figure()
+        # self.model.cssstatus.update_figure()
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
         # time.sleep(7)
 
