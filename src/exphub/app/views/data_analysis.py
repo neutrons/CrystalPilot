@@ -58,7 +58,7 @@ class DataAnalysisView:
             vuetify.VBtn(
                 "Diffuse Scattering Analysis",
                 color="primary",
-                href="http://10.159.209.93:8888/notebooks/demo/test.ipynb",
+                disabled=True,
                 raw_attrs=['target="_blank"'],
             )
 
@@ -74,20 +74,4 @@ class DataAnalysisView:
         with HBoxLayout(gap="0.5em", valign="center"):
             # TODO: Need to set this up similar to Olex2.
             InputField(v_model="model_dataanalysis.output_dir_shelx", type="text", label="Output Directory for ShelX")
-            vuetify.VBtn("ShelX", click=self.open_shelx, color="primary")
-
-    def open_shelx(self) -> None:
-        """Open the Olex2 tab."""
-        print("Open ShelX tab")
-        # import os
-
-        # os.system("~/run-olex2.sh")
-        # os.system("shelxle")
-        # os.system("/SNS/TOPAZ/shared/CrystalPilot/code/extbin/olex2")
-
-    def open_diffuse_scattering_study(self) -> None:
-        """Open the Data Refinement tab."""
-        print("Open Discuss")
-        # import os
-
-        # os.system("~/run-discuss.sh")
+            vuetify.VBtn("ShelX", color="primary", disabled=True)
