@@ -17,7 +17,7 @@ Note 1: please don't change linter settings, license, code of conduct without di
 the same for all our projects.
 
 Note 2: if you think some changes that you've made might be useful for other projects as well, please fill free
-to create an issue [in this repo](https://code.ornl.gov/ndip/project-templates/python/-/issues/new)
+to create an issue [in this repo](https://github.com/nova-sdk/nova-application-template/issues)
 
 
 ## Installation
@@ -66,7 +66,7 @@ pixi run coverage report
 
 ## Updating project from template
 
-This project was created from a [template](https://code.ornl.gov/ndip/project-templates/nova-application-template.git) using [copier](https://copier.readthedocs.io/). If the template has changed, you
+This project was created from a [template](https://github.com/nova-sdk/nova-application-template.git) using [copier](https://copier.readthedocs.io/). If the template has changed, you
 can try to update the project to incorporate these changes. Just enter the project folder, make sure `git status`
 shows it clean, and run:
 ```

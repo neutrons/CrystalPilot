@@ -18,7 +18,6 @@
     </environment_variables>
      <command><![CDATA[
         supervisord > >(tee -a $output) 2> >(tee -a $output >&2)
-
     ]]></command>
     <outputs>
         <data format="txt" name="output" label="Console output"></data>
