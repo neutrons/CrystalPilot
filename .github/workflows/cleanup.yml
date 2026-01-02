@@ -17,3 +17,4 @@ jobs:
           min-versions-to-keep: 0
           package-name: crystalpilot-prototype
           package-type: "container"
+        continue-on-error: true
