@@ -32,6 +32,8 @@ trame-plotly = ">=3.1.0"
 trame-datagrid = ">=0.2.2"
 setuptools = ">=80.9.0,<81"
 cryptography = ">=46.0.3,<47"
+dpath = "*"
+xmltodict = "*"
 
 
 [tool.pixi.feature.dev.pypi-dependencies]

@@ -1,8 +1,7 @@
 """Model for CSS status."""
 
-from typing import Dict, List
+from typing import Any, Dict
 
-import plotly.graph_objects as go
 from plotly.data import iris
 from pydantic import BaseModel, Field
 
@@ -15,26 +14,6 @@ bl12cssstatus_urlsrc = "https://status.sns.ornl.gov/dbwr/view.jsp?display=https%
 class CSSStatusModel(BaseModel):
     """Pydantic class for CSS status."""
 
-    table_test: List[Dict] = Field(default=[{"title": "1", "header": "h"}])
-    angle_list: List[Dict] = Field(
-        default=[
-            {
-                "Title": "test_angleplan_1",
-                "Comment": "",
-                "BL12:Mot:goniokm:phi": 0,
-                "BL12:Mot:goniokm:omega": 0,
-                "Wait For": "PCharge",
-                "Value": 10,
-            }
-        ]
-    )
-    plan_file: str = Field(default="angle_plan.csv")
-    plan_file_list: List[str] = Field(default=["angle_plan.csv"])
-
-    axis_options: list[str] = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
-    x_axis: str = Field(default="sepal_length", title="X Axis")
-    y_axis: str = Field(default="sepal_width", title="Y Axis")
-    z_axis: str = Field(default="petal_length", title="Color")
     plot_type: str = Field(default="Detector", title="Plot Type")
     # plot_type: str = Field(default="Preview", title="Plot Type")
     # plot_type_options: list[str] = ["heatmap", "scatter"]
@@ -49,34 +28,4 @@ class CSSStatusModel(BaseModel):
     # def get_css_status(self) -> str:
     timestamp: float = Field(default=0.0, title="timestamp")
 
-    def is_not_heatmap(self) -> bool:
-        match self.plot_type:
-            case "heatmap":
-                return False
-            case _:
-                return True
-
-    def get_figure_0(self) -> go.Figure:
-        match self.plot_type:
-            case "heatmap":
-                plot_data = go.Heatmap(
-                    x=IRIS_DATA[self.x_axis].tolist(),
-                    y=IRIS_DATA[self.y_axis].tolist(),
-                    z=IRIS_DATA[self.z_axis].tolist(),
-                )
-
-            case "scatter":
-                plot_data = go.Scatter(
-                    x=IRIS_DATA[self.x_axis].tolist(), y=IRIS_DATA[self.y_axis].tolist(), mode="markers"
-                )
-            case _:
-                raise ValueError(f"Invalid plot type: {self.plot_type}")
-
-        figure = go.Figure(plot_data)
-        figure.update_layout(
-            title={"text": f"{self.plot_type}"},
-            xaxis={"title": {"text": self.x_axis}},
-            yaxis={"title": {"text": self.y_axis}},
-        )
-
-        return figure
+    pv_data: Dict[str, Any] = Field(default={})
