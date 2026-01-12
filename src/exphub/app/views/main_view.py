@@ -44,8 +44,8 @@ class MainApp(ThemedApp):
         self.server.enable_module(
             {
                 "scripts": [
-                    "assets/webopi/base64.js",
                     "assets/webopi/jquery-3.7.1.min.js",
+                    "assets/webopi/base64.js",
                     "assets/webopi/pvws.js",
                     "assets/webopi/dbwr.js",
                 ],
@@ -81,11 +81,11 @@ class MainApp(ThemedApp):
 
     def replace_macros(self, pv_name: str, macro_dict: Dict[str, str]) -> str:
         full_name = pv_name
-        for match in findall(r"\$\((\w+)\)", pv_name):
+        for match in findall(r"\$\((\w+)\)", full_name):
             try:
                 full_name = full_name.replace(f"$({match})", macro_dict[match])
             except KeyError:
-                return ""
+                pass
 
         return full_name
 
@@ -96,24 +96,34 @@ class MainApp(ThemedApp):
         macro_dict = json.loads(decoded_macros)
 
         pv_list = self.flatten(dpath.values(bob_dict, "**/pv_name"))
-        full_pvs = {self.replace_macros(pv_name, macro_dict) for pv_name in pv_list}
-        if "" in full_pvs:
-            full_pvs.remove("")
+        pv_names = {self.replace_macros(pv_name, macro_dict) for pv_name in pv_list}
+        if "" in pv_names:
+            pv_names.remove("")
+        for pv in pv_names.copy():
+            if "$(DET)" in pv:
+                pv_names.remove(pv)
+                for index in range(1, 6):
+                    pv_names.add(pv.replace("$(DET)", str(index)))
 
         client.Script(
             """window.dbwr = new DisplayBuilderWebRuntime("wss://status.sns.ornl.gov/pvws/pv");"""
             """window.dbwr.pvws.open();"""
         )
 
-        for pv in full_pvs:
+        for pv in pv_names:
             client.Script(f"""
                 window.dbwr.pv_infos["{pv}"] = new PVInfo("{pv}");
                 window.dbwr.pv_infos["{pv}"].subscriptions.push({{
                     "callback": (data) => {{
                         if (data.vtype === "VEnum") {{
-                            data.value = Boolean(data.value);
+                            if (data.labels.length == 2) {{
+                                data.value = Boolean(data.value);
+                            }} else {{
+                                data.value = data.text
+                            }}
                         }}
                         window.trame.state.state.{state_name}.pv_data["{pv}"] = data.value;
+                        window.trame.state.dirty("model_cssstatus");
                         window.trame.state.flush();
                     }}
                 }});
