@@ -180,7 +180,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f7/e6/efe534ef0952b531b630780e19cabd416e2032697019d5295defc6ef9bd9/deepdiff-8.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/05/d1/8952806fbf9583004ab479d8f58a9496c3d35f6b6009ddd458bdd9978eaf/dpath-2.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/41/04e2a649058b0713b00d6c9bd22da35618bb157289e05d068e51fddf8d7e/dunamai-1.25.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b5/36/7fb70f04bf00bc646cd5bb45aa9eddb15e19437a28b8fb2b4a5249fac770/filelock-3.20.3-py3-none-any.whl
@@ -258,6 +258,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/54/6f679c435d28e0a568d8e8a7c0a93a09010818634c3c3907fc98d8983770/roman_numerals-4.1.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/27/2c/daca29684cbe9fd4bc711f8246da3c10adca1ccc4d24436b17572eb2590e/roman_numerals_py-4.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f8/1e/372195d326549bb51f0ba0f2ecb9874579906b97e08880e7a65c3bef1a99/rpds_py-0.30.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/ae/93/f36d89fa021543187f98991609ce6e47e24f35f008dfe1af01379d248a41/ruff-0.14.11-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/36/4d/4a67f30778a45d542bbea5db2dbfa1e9e100bf9ba64aefe34215ba9f11f6/scikit_learn-1.8.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
@@ -265,11 +266,12 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/be/d09147ad1ec7934636ad912901c5fd7667e1c858e19d355237db0d0cd5e4/smmap-5.0.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c8/78/3565d011c61f5a43488987ee32b6f3f656e7f107ac2782dd57bdd7d91d9a/snowballstemmer-3.0.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/c6/3f/4bbd76424c393caead2e1eb89777f575dee5c8653e2d4b6afd7a564f5974/sphinx-9.0.4-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/76/81/d5af3a50a45ee4311ac2dac5b599d69f68388401c7a4ca902e0e450a9f94/sphinx_rtd_theme-0.5.1-py2.py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/31/53/136e9eca6e0b9dc0e1962e2c908fbea2e5ac000c2a2fbd9a35797958c48b/sphinx-8.2.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/85/77/46e3bac77b82b4df5bb5b61f2de98637724f246b4966cfc34bc5895d852a/sphinx_rtd_theme-3.0.2-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0a/7b/18a8c0bcec9182c05a0b3ec2a776bba4ead82750a55ff798e8d406dae604/sphinxcontrib_htmlhelp-2.1.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/76/85/749bd22d1a68db7291c89e2ebca53f4306c3f205853cf31e9de279034c3c/sphinxcontrib_jquery-4.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c2/42/4c8646762ee83602e3fb3fbe774c2fac12f317deb0b5dbeeedd2d3ba4b77/sphinxcontrib_jsmath-1.0.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/75/f2/6b7627dfe7b4e418e295e254bb15c3a6455f11f8c0ad0d43113f678049c3/sphinxcontrib_napoleon-0.7-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/27/83/859ecdd180cacc13b1f7e857abf8582a64552ea7a061057a6c716e790fce/sphinxcontrib_qthelp-2.0.0-py3-none-any.whl
@@ -441,7 +443,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f7/e6/efe534ef0952b531b630780e19cabd416e2032697019d5295defc6ef9bd9/deepdiff-8.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/05/d1/8952806fbf9583004ab479d8f58a9496c3d35f6b6009ddd458bdd9978eaf/dpath-2.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/41/04e2a649058b0713b00d6c9bd22da35618bb157289e05d068e51fddf8d7e/dunamai-1.25.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b5/36/7fb70f04bf00bc646cd5bb45aa9eddb15e19437a28b8fb2b4a5249fac770/filelock-3.20.3-py3-none-any.whl
@@ -518,17 +520,19 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/54/6f679c435d28e0a568d8e8a7c0a93a09010818634c3c3907fc98d8983770/roman_numerals-4.1.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/27/2c/daca29684cbe9fd4bc711f8246da3c10adca1ccc4d24436b17572eb2590e/roman_numerals_py-4.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/4d/6e/f964e88b3d2abee2a82c1ac8366da848fce1c6d834dc2132c3fda3970290/rpds_py-0.30.0-cp311-cp311-macosx_10_12_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/5c/5c/360a35cb7204b328b685d3129c08aca24765ff92b5a7efedbdd6c150d555/ruff-0.14.11-py3-none-macosx_10_12_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c9/92/53ea2181da8ac6bf27170191028aee7251f8f841f8d3edbfdcaf2008fde9/scikit_learn-1.8.0-cp311-cp311-macosx_10_9_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/be/d09147ad1ec7934636ad912901c5fd7667e1c858e19d355237db0d0cd5e4/smmap-5.0.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c8/78/3565d011c61f5a43488987ee32b6f3f656e7f107ac2782dd57bdd7d91d9a/snowballstemmer-3.0.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/c6/3f/4bbd76424c393caead2e1eb89777f575dee5c8653e2d4b6afd7a564f5974/sphinx-9.0.4-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/76/81/d5af3a50a45ee4311ac2dac5b599d69f68388401c7a4ca902e0e450a9f94/sphinx_rtd_theme-0.5.1-py2.py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/31/53/136e9eca6e0b9dc0e1962e2c908fbea2e5ac000c2a2fbd9a35797958c48b/sphinx-8.2.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/85/77/46e3bac77b82b4df5bb5b61f2de98637724f246b4966cfc34bc5895d852a/sphinx_rtd_theme-3.0.2-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0a/7b/18a8c0bcec9182c05a0b3ec2a776bba4ead82750a55ff798e8d406dae604/sphinxcontrib_htmlhelp-2.1.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/76/85/749bd22d1a68db7291c89e2ebca53f4306c3f205853cf31e9de279034c3c/sphinxcontrib_jquery-4.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c2/42/4c8646762ee83602e3fb3fbe774c2fac12f317deb0b5dbeeedd2d3ba4b77/sphinxcontrib_jsmath-1.0.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/75/f2/6b7627dfe7b4e418e295e254bb15c3a6455f11f8c0ad0d43113f678049c3/sphinxcontrib_napoleon-0.7-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/27/83/859ecdd180cacc13b1f7e857abf8582a64552ea7a061057a6c716e790fce/sphinxcontrib_qthelp-2.0.0-py3-none-any.whl
@@ -1587,10 +1591,10 @@ packages:
   name: distlib
   version: 0.4.0
   sha256: 9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16
-- pypi: https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl
   name: docutils
-  version: 0.22.4
-  sha256: d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de
+  version: 0.21.2
+  sha256: dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2
   requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/05/d1/8952806fbf9583004ab479d8f58a9496c3d35f6b6009ddd458bdd9978eaf/dpath-2.2.0-py3-none-any.whl
   name: dpath
@@ -1655,7 +1659,7 @@ packages:
 - pypi: ./
   name: exphub
   version: 0.1.0
-  sha256: 2116fb4f5861f6d9a800e8f61dd0ac5d343b7101f4c5ffcae95a6f6b0e461890
+  sha256: 02dc30a8e757bccf8489a6caa3e5a747f240504edacaf0aa248a1437d0c2f441
   requires_python: '>=3.10,<3.14'
 - pypi: https://files.pythonhosted.org/packages/b5/36/7fb70f04bf00bc646cd5bb45aa9eddb15e19437a28b8fb2b4a5249fac770/filelock-3.20.3-py3-none-any.whl
   name: filelock
@@ -5236,6 +5240,13 @@ packages:
   version: 4.1.0
   sha256: 647ba99caddc2cc1e55a51e4360689115551bf4476d90e8162cf8c345fe233c7
   requires_python: '>=3.10'
+- pypi: https://files.pythonhosted.org/packages/27/2c/daca29684cbe9fd4bc711f8246da3c10adca1ccc4d24436b17572eb2590e/roman_numerals_py-4.1.0-py3-none-any.whl
+  name: roman-numerals-py
+  version: 4.1.0
+  sha256: 553114c1167141c1283a51743759723ecd05604a1b6b507225e91dc1a6df0780
+  requires_dist:
+  - roman-numerals==4.1.0
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/4d/6e/f964e88b3d2abee2a82c1ac8366da848fce1c6d834dc2132c3fda3970290/rpds_py-0.30.0-cp311-cp311-macosx_10_12_x86_64.whl
   name: rpds-py
   version: 0.30.0
@@ -5518,10 +5529,10 @@ packages:
   - pkg:pypi/spglib?source=hash-mapping
   size: 329476
   timestamp: 1741600427251
-- pypi: https://files.pythonhosted.org/packages/c6/3f/4bbd76424c393caead2e1eb89777f575dee5c8653e2d4b6afd7a564f5974/sphinx-9.0.4-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/31/53/136e9eca6e0b9dc0e1962e2c908fbea2e5ac000c2a2fbd9a35797958c48b/sphinx-8.2.3-py3-none-any.whl
   name: sphinx
-  version: 9.0.4
-  sha256: 5bebc595a5e943ea248b99c13814c1c5e10b3ece718976824ffa7959ff95fffb
+  version: 8.2.3
+  sha256: 4405915165f13521d875a8c29c8970800a0141c14cc5416a38feca4ea5d9b9c3
   requires_dist:
   - sphinxcontrib-applehelp>=1.0.7
   - sphinxcontrib-devhelp>=1.0.6
@@ -5531,25 +5542,50 @@ packages:
   - sphinxcontrib-serializinghtml>=1.1.9
   - jinja2>=3.1
   - pygments>=2.17
-  - docutils>=0.20,<0.23
+  - docutils>=0.20,<0.22
   - snowballstemmer>=2.2
   - babel>=2.13
   - alabaster>=0.7.14
   - imagesize>=1.3
   - requests>=2.30.0
-  - roman-numerals>=1.0.0
+  - roman-numerals-py>=1.0.0
   - packaging>=23.0
   - colorama>=0.4.6 ; sys_platform == 'win32'
+  - sphinxcontrib-websupport ; extra == 'docs'
+  - ruff==0.9.9 ; extra == 'lint'
+  - mypy==1.15.0 ; extra == 'lint'
+  - sphinx-lint>=0.9 ; extra == 'lint'
+  - types-colorama==0.4.15.20240311 ; extra == 'lint'
+  - types-defusedxml==0.7.0.20240218 ; extra == 'lint'
+  - types-docutils==0.21.0.20241128 ; extra == 'lint'
+  - types-pillow==10.2.0.20240822 ; extra == 'lint'
+  - types-pygments==2.19.0.20250219 ; extra == 'lint'
+  - types-requests==2.32.0.20241016 ; extra == 'lint'
+  - types-urllib3==1.26.25.14 ; extra == 'lint'
+  - pyright==1.1.395 ; extra == 'lint'
+  - pytest>=8.0 ; extra == 'lint'
+  - pypi-attestations==0.0.21 ; extra == 'lint'
+  - betterproto==2.0.0b6 ; extra == 'lint'
+  - pytest>=8.0 ; extra == 'test'
+  - pytest-xdist[psutil]>=3.4 ; extra == 'test'
+  - defusedxml>=0.7.1 ; extra == 'test'
+  - cython>=3.0 ; extra == 'test'
+  - setuptools>=70.0 ; extra == 'test'
+  - typing-extensions>=4.9 ; extra == 'test'
   requires_python: '>=3.11'
-- pypi: https://files.pythonhosted.org/packages/76/81/d5af3a50a45ee4311ac2dac5b599d69f68388401c7a4ca902e0e450a9f94/sphinx_rtd_theme-0.5.1-py2.py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/85/77/46e3bac77b82b4df5bb5b61f2de98637724f246b4966cfc34bc5895d852a/sphinx_rtd_theme-3.0.2-py2.py3-none-any.whl
   name: sphinx-rtd-theme
-  version: 0.5.1
-  sha256: fa6bebd5ab9a73da8e102509a86f3fcc36dec04a0b52ea80e5a033b2aba00113
+  version: 3.0.2
+  sha256: 422ccc750c3a3a311de4ae327e82affdaf59eb695ba4936538552f3b00f4ee13
   requires_dist:
-  - sphinx
+  - sphinx>=6,<9
+  - docutils>0.18,<0.22
+  - sphinxcontrib-jquery>=4,<5
   - transifex-client ; extra == 'dev'
-  - sphinxcontrib-httpdomain ; extra == 'dev'
   - bump2version ; extra == 'dev'
+  - wheel ; extra == 'dev'
+  - twine ; extra == 'dev'
+  requires_python: '>=3.8'
 - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
   name: sphinxcontrib-applehelp
   version: 2.0.0
@@ -5584,6 +5620,13 @@ packages:
   - pytest ; extra == 'test'
   - html5lib ; extra == 'test'
   requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/76/85/749bd22d1a68db7291c89e2ebca53f4306c3f205853cf31e9de279034c3c/sphinxcontrib_jquery-4.1-py2.py3-none-any.whl
+  name: sphinxcontrib-jquery
+  version: '4.1'
+  sha256: f936030d7d0147dd026a4f2b5a57343d233f1fc7b363f68b3d4f1cb0993878ae
+  requires_dist:
+  - sphinx>=1.8
+  requires_python: '>=2.7'
 - pypi: https://files.pythonhosted.org/packages/c2/42/4c8646762ee83602e3fb3fbe774c2fac12f317deb0b5dbeeedd2d3ba4b77/sphinxcontrib_jsmath-1.0.1-py2.py3-none-any.whl
   name: sphinxcontrib-jsmath
   version: 1.0.1

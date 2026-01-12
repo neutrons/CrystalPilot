@@ -44,7 +44,7 @@ pytest = "*"
 ruff = ">=0.6.2"
 copier=">=9.3"
 sphinx = "*"
-sphinx-rtd-theme = "*"
+sphinx-rtd-theme = "==3.0.2"
 sphinxcontrib-napoleon ="*"
 tomli = "*"
 
