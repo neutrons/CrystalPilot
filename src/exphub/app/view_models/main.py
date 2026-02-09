@@ -20,6 +20,8 @@ class ViewState(BaseModel):
     """View state for the application."""
 
     active_tab: str = Field(default="0")
+    is_under_development: bool = Field(default=False)
+    is_uninterruptable: bool = Field(default=False)
 
 
 class MainViewModel:
@@ -74,10 +76,6 @@ class MainViewModel:
         )
         self.newtabtemplate_updatefig_bind = binding.new_bind()
         ######################################################################################################################################################
-        self.is_under_development = False
-        self.is_under_development_bind = binding.new_bind(self.is_under_development)
-        self.is_uninterruptable = False
-        self.is_uninterruptable_bind = binding.new_bind(self.is_uninterruptable)
 
         # self.pyvista_config = PyVistaConfig()
 
@@ -121,11 +119,10 @@ class MainViewModel:
 
     def update_view(self) -> None:
         # self.model_bind.update_in_view(self.model)
+        self.view_state_bind.update_in_view(self.view_state)
         self.angleplan_bind.update_in_view(self.model.angleplan)
         self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
-        self.is_under_development_bind.update_in_view(self.is_under_development)
-        self.is_uninterruptable_bind.update_in_view(self.is_uninterruptable)
         self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
 
     ######################################################################################################################################################
@@ -362,7 +359,7 @@ class MainViewModel:
 
     def close_under_development_dialog(self) -> None:
         print("hide_underdev")
-        self.is_under_development = False
+        self.view_state.is_under_development = False
         self.update_view()
 
     def optimize_angleplan(self) -> None:

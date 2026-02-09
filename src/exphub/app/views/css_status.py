@@ -1,55 +1,12 @@
 """Module for the CSS Status tab."""
 
-from typing import Any
-
+from nova.epics.trame import PVInput, PVPlot
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
-from trame.widgets import client, plotly
+from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
-from trame_client.widgets.core import AbstractElement
 
 from ..view_models.main import MainViewModel
-
-
-class PVInput(InputField):
-    """Creates a read-only (by default) InputField that connects to the PV data object."""
-
-    def __new__(cls, pv_name: str, append: str = "", **kwargs: Any) -> AbstractElement:
-        readonly = kwargs.pop("readonly", True)
-        if append:
-            with super().__new__(
-                cls,
-                v_if=f"'{pv_name}' in model_cssstatus.pv_data",
-                v_model=f"model_cssstatus.pv_data['{pv_name}']",
-                readonly=readonly,
-                **kwargs,
-            ) as element:
-                with vuetify.Template(v_slot_append_inner=True):
-                    vuetify.VLabel(append)
-
-            return element
-
-        return super().__new__(cls, v_model=f"model_cssstatus.pv_data['{pv_name}']", readonly=readonly, **kwargs)
-
-
-class PVPlot:
-    """Creates a plotly-based figure for the PV data object."""
-
-    def __init__(self, pv_name: str, **kwargs: Any) -> None:
-        with VBoxLayout(
-            v_if=(
-                "'BL12:Det:Neutrons' in model_cssstatus.pv_data && "
-                "model_cssstatus.pv_data['BL12:Det:Neutrons'] > 0 && "
-                f"'{pv_name}' in model_cssstatus.pv_data && "
-                f"model_cssstatus.pv_data['{pv_name}']"
-            ),
-            classes="border-md",
-            stretch=True,
-        ):
-            # TODO: need to inject go.Figure here with test data from Zhongcan.
-            plotly.Figure(**kwargs)
-        with VBoxLayout(v_else=True, classes="border-md", halign="center", valign="center", stretch=True):
-            vuetify.VListSubheader("No Data")
 
 
 class CSSStatusView:
@@ -199,7 +156,7 @@ class CSSStatusView:
                 with GridLayout(classes="border-md pa-1", columns=2):
                     PVInput("BL12:Det:N1:DetectorState_RBV", label="Data Collection State")
                     InputField(
-                        model_value=("model_cssstatus.pv_data['BL12:Det:N1:Pause'] ? 'Paused' : 'Not Paused'",),
+                        model_value=("epics.pv_data['BL12:Det:N1:Pause'] ? 'Paused' : 'Not Paused'",),
                         label="Pause",
                     )
                     PVInput("BL12:Det:Neutrons", label="Total Counts")

@@ -20,8 +20,6 @@ class TabContentPanel:
         self.server = server
         self.ctrl = server.controller
         self.create_ui()
-        self.view_model.is_under_development_bind.connect("is_under_development")
-        self.view_model.is_uninterruptable_bind.connect("is_uninterruptable")
 
     def create_ui(self) -> None:
         with VBoxLayout(v_show="controls.active_tab == 1", stretch=True):
@@ -39,7 +37,7 @@ class TabContentPanel:
         # with VBoxLayout(v_show="controls.active_tab == 7", stretch=True):
         #     NewTabTemplateView(self.view_model)
 
-        with vuetify.VDialog(v_model="is_under_development", max_width="500px"):
+        with vuetify.VDialog(v_model="controls.is_under_development", max_width="500px"):
             with vuetify.VCard():
                 with vuetify.VCardTitle("Under Development"):
                     print("Under Development")
@@ -52,7 +50,7 @@ class TabContentPanel:
                     )
                     # vuetify.VBtn("OK",  color="primary", block=True)
 
-        with vuetify.VDialog(v_model="is_uninterruptable", max_width="500px"):
+        with vuetify.VDialog(v_model="controls.is_uninterruptable", max_width="500px"):
             with vuetify.VCard():
                 with vuetify.VCardTitle("Waiting for Algorithm"):
                     vuetify.VCardText(
