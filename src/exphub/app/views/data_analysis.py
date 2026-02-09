@@ -53,12 +53,11 @@ class DataAnalysisView:
             )
 
         with HBoxLayout(gap="0.5em", valign="center"):
-            # TODO: Need to figure out if this can run on NOVA.
             InputField(v_model="model_dataanalysis.output_dir_discus", type="text", label="Output Directory for Discus")
             vuetify.VBtn(
                 "Diffuse Scattering Analysis",
                 color="primary",
-                disabled=True,
+                href="https://nova.ornl.gov/launch/nova-interactive-tool-discus",
                 raw_attrs=['target="_blank"'],
             )
 
@@ -72,6 +71,10 @@ class DataAnalysisView:
             )
 
         with HBoxLayout(gap="0.5em", valign="center"):
-            # TODO: Need to set this up similar to Olex2.
             InputField(v_model="model_dataanalysis.output_dir_shelx", type="text", label="Output Directory for ShelX")
-            vuetify.VBtn("ShelX", color="primary", disabled=True)
+            vuetify.VBtn(
+                "ShelXle",
+                color="primary",
+                href="https://nova.ornl.gov/launch/nova-interactive-tool-shelxle",
+                raw_attrs=['target="_blank"'],
+            )

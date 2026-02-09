@@ -2,6 +2,7 @@
 
 import logging
 
+from nova.epics.trame import get_epics_instance
 from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
 from trame.app import get_server
@@ -25,6 +26,7 @@ class MainApp(ThemedApp):
         self.server.state.trame__title = "CrystalPilot"
         self.view_models = create_viewmodels(binding)
         self.view_model: MainViewModel = self.view_models["main"]
+        self.epics = get_epics_instance()
         self.create_ui()
 
     def create_ui(self) -> None:
@@ -42,4 +44,11 @@ class MainApp(ThemedApp):
                 )
             with layout.post_content:
                 pass
+
+            with (
+                open("BL12_ADnED_2D_4x4.bob", mode="r") as xml_file,
+                open("BL12_ADnED_2D_4x4.macros", mode="r") as macros_file,
+            ):
+                self.epics.connect(xml_file.read(), macros_file.read(), 6)
+
             return layout

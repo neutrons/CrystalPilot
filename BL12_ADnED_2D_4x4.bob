@@ -1,0 +1,2125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<display version="2.0.0">
+  <name>$(S) 2D Detector Plot (4x4 Binned)</name>
+  <width>1200</width>
+  <height>950</height>
+  <background_color>
+    <color name="OPI_Background" red="255" green="255" blue="255">
+    </color>
+  </background_color>
+  <grid_step_x>5</grid_step_x>
+  <grid_step_y>5</grid_step_y>
+  <widget type="group" version="2.0.0">
+    <name>Main Detector X/Y Plot (4x4 Binned)</name>
+    <x>6</x>
+    <y>6</y>
+    <width>1174</width>
+    <height>424</height>
+    <font>
+      <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <foreground_color>
+      <color name="Black" red="0" green="0" blue="0">
+      </color>
+    </foreground_color>
+    <widget type="image" version="2.0.0">
+      <name>DetectorImage_1</name>
+      <pv_name>$(S):Det:N1:Det4:XY:Array:ArrayData</pv_name>
+      <x>14</x>
+      <y>8</y>
+      <width>1105</width>
+      <height>307</height>
+      <background_color>
+        <color name="Read_Background" red="240" green="240" blue="240">
+        </color>
+      </background_color>
+      <color_bar>
+        <visible>false</visible>
+        <bar_size>40</bar_size>
+        <scale_font>
+          <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+          </font>
+        </scale_font>
+      </color_bar>
+      <x_axis>
+        <visible>false</visible>
+        <title>X</title>
+        <minimum>0.0</minimum>
+        <maximum>1104.0</maximum>
+        <title_font>
+          <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+          </font>
+        </title_font>
+        <scale_font>
+          <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+          </font>
+        </scale_font>
+      </x_axis>
+      <y_axis>
+        <visible>false</visible>
+        <title>Y</title>
+        <minimum>306.0</minimum>
+        <maximum>0.0</maximum>
+        <title_font>
+          <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+          </font>
+        </title_font>
+        <scale_font>
+          <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+          </font>
+        </scale_font>
+      </y_axis>
+      <rules>
+        <rule name="Max Rule" prop_id="maximum" out_exp="true">
+          <exp bool_exp="true &amp;&amp; pv1==0 &amp;&amp; pv0">
+            <expression>pv0</expression>
+          </exp>
+          <exp bool_exp="true &amp;&amp; pv1==1 &amp;&amp; pv2">
+            <expression>pv2</expression>
+          </exp>
+          <pv_name>$(S):Det:N1:Det4:XY:Scale:SlideMax</pv_name>
+          <pv_name>$(S):Det:N1:Det4:XY:ROI:0:Use</pv_name>
+          <pv_name>$(S):Det:N1:Det4:XY:Scale:Result</pv_name>
+        </rule>
+        <rule name="Min Rule" prop_id="minimum" out_exp="true">
+          <exp bool_exp="true &amp;&amp; pv0">
+            <expression>pv0</expression>
+          </exp>
+          <pv_name>$(S):Det:N1:Det4:XY:Scale:ManualMin</pv_name>
+        </rule>
+        <rule name="Show ROI" prop_id="rois[0].visible" out_exp="false">
+          <exp bool_exp="pv0==1">
+            <value>true</value>
+          </exp>
+          <pv_name>$(S):Det:N1:Det4:XY:ROI:1:Show</pv_name>
+        </rule>
+      </rules>
+      <tooltip></tooltip>
+      <data_width>1105</data_width>
+      <data_height>307</data_height>
+      <unsigned>true</unsigned>
+      <autoscale>false</autoscale>
+      <maximum>32000.0</maximum>
+      <x_pv>$(S):Det:Cursor4x4:XCoord</x_pv>
+      <y_pv>$(S):Det:Cursor4x4:YCoord</y_pv>
+      <cursor_crosshair>true</cursor_crosshair>
+      <rois>
+        <roi>
+          <name>ROI</name>
+          <color>
+            <color name="Write_Background" red="128" green="255" blue="255">
+            </color>
+          </color>
+          <visible>false</visible>
+          <interactive>true</interactive>
+          <x_pv>$(S):Det:N1:Det4:XY:ROI:1:MinX</x_pv>
+          <y_pv>$(S):Det:N1:Det4:XY:ROI:1:MinY</y_pv>
+          <width_pv>$(S):Det:N1:Det4:XY:ROI:1:SizeX</width_pv>
+          <height_pv>$(S):Det:N1:Det4:XY:ROI:1:SizeY</height_pv>
+          <file></file>
+        </roi>
+      </rois>
+    </widget>
+    <widget type="checkbox" version="2.0.0">
+      <name>CheckBox</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:0:Use</pv_name>
+      <label>autoscale</label>
+      <x>266</x>
+      <y>326</y>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_2</name>
+      <text>Min</text>
+      <x>16</x>
+      <y>326</y>
+      <width>34</width>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>Text Entry</name>
+      <pv_name>$(S):Det:N1:Det4:XY:Scale:ManualMin</pv_name>
+      <x>51</x>
+      <y>326</y>
+      <width>86</width>
+      <format>1</format>
+      <precision>0</precision>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>Text Entry_1</name>
+      <pv_name>$(S):Det:N1:Det4:XY:Scale:SlideMax</pv_name>
+      <x>171</x>
+      <y>326</y>
+      <width>90</width>
+      <format>1</format>
+      <precision>0</precision>
+      <rules>
+        <rule name="Visible Rule" prop_id="visible" out_exp="true">
+          <exp bool_exp="pv0==1">
+            <expression>false</expression>
+          </exp>
+          <pv_name>$(S):Det:N1:Det4:XY:ROI:0:Use</pv_name>
+        </rule>
+      </rules>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_3</name>
+      <text>Max</text>
+      <x>136</x>
+      <y>326</y>
+      <width>34</width>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <rules>
+        <rule name="Visible Rule" prop_id="visible" out_exp="true">
+          <exp bool_exp="pv0==1">
+            <expression>false</expression>
+          </exp>
+          <pv_name>$(S):Det:N1:Det1:XY:ROI:0:Use</pv_name>
+        </rule>
+      </rules>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Action Button</name>
+      <actions>
+        <action type="open_display">
+          <file>../../share/opi/ADnEDv3/ADnED_XYArray.opi</file>
+          <macros>
+            <DET>4</DET>
+            <DETNAME>Main Detector (4x4)</DETNAME>
+            <P>$(S):Det:</P>
+            <R>N1:</R>
+          </macros>
+          <target>replace</target>
+          <description>Detail</description>
+        </action>
+      </actions>
+      <x>51</x>
+      <y>351</y>
+      <width>86</width>
+      <height>26</height>
+      <background_color>
+        <color red="240" green="240" blue="240">
+        </color>
+      </background_color>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Action Button_2</name>
+      <actions>
+        <action type="open_display">
+          <file>../../share/opi/ADnEDv3/ADnED_XYProfileCursor.bob</file>
+          <macros>
+            <DET>4</DET>
+            <DETNAME>Main Detector (4x4)</DETNAME>
+            <P>$(S):Det:</P>
+            <R>N1:</R>
+          </macros>
+          <target>replace</target>
+          <description>Profiles</description>
+        </action>
+      </actions>
+      <x>171</x>
+      <y>351</y>
+      <width>90</width>
+      <height>26</height>
+      <background_color>
+        <color red="240" green="240" blue="240">
+        </color>
+      </background_color>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_82</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:MinValue_RBV</pv_name>
+      <x>591</x>
+      <y>351</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_85</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:MaxValue_RBV</pv_name>
+      <x>676</x>
+      <y>351</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_80</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:MeanValue_RBV</pv_name>
+      <x>761</x>
+      <y>351</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_81</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:Total_RBV</pv_name>
+      <x>846</x>
+      <y>351</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_84</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:Rate</pv_name>
+      <x>931</x>
+      <y>351</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="checkbox" version="2.0.0">
+      <name>Check Box</name>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:Show</pv_name>
+      <label>Show</label>
+      <x>1021</x>
+      <y>351</y>
+      <width>80</width>
+      <height>26</height>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_23</name>
+      <text>ROI</text>
+      <x>531</x>
+      <y>351</y>
+      <width>53</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_24</name>
+      <text>Min</text>
+      <x>591</x>
+      <y>331</y>
+      <width>81</width>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_25</name>
+      <text>Max</text>
+      <x>676</x>
+      <y>331</y>
+      <width>81</width>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_26</name>
+      <text>Mean</text>
+      <x>756</x>
+      <y>331</y>
+      <width>81</width>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_27</name>
+      <text>Total</text>
+      <x>846</x>
+      <y>331</y>
+      <width>81</width>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_28</name>
+      <text>Rate</text>
+      <x>931</x>
+      <y>331</y>
+      <width>81</width>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Action Button_1</name>
+      <actions>
+        <action type="write_pv">
+          <pv_name>$(pv_name)</pv_name>
+          <value>1</value>
+          <description>Reset ROI</description>
+        </action>
+      </actions>
+      <pv_name>$(S):Det:N1:Det4:XY:ROI:1:ResetPosition</pv_name>
+      <x>446</x>
+      <y>351</y>
+      <width>103</width>
+      <height>26</height>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Action Button_10</name>
+      <actions>
+        <action type="write_pv">
+          <pv_name>$(pv_name)</pv_name>
+          <value>1</value>
+          <description>Clear Array &amp; Counts</description>
+        </action>
+      </actions>
+      <pv_name>$(S):Det:N1:Det4:Reset2DArray</pv_name>
+      <x>291</x>
+      <y>351</y>
+      <width>150</width>
+      <height>26</height>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>Data Collection &amp; Beam Info</name>
+    <x>860</x>
+    <y>600</y>
+    <width>320</width>
+    <height>270</height>
+    <font>
+      <font family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <widget type="label" version="2.0.0">
+      <name>Label_69</name>
+      <text>Data Collection State</text>
+      <x>5</x>
+      <y>12</y>
+      <width>139</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_35</name>
+      <pv_name>$(S):Det:N1:DetectorState_RBV</pv_name>
+      <x>150</x>
+      <y>12</y>
+      <width>121</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_71</name>
+      <text>Pause</text>
+      <x>63</x>
+      <y>42</y>
+      <width>81</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_36</name>
+      <pv_name>$(S):Det:N1:Pause</pv_name>
+      <x>150</x>
+      <y>42</y>
+      <width>121</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_68</name>
+      <text>Total Counts</text>
+      <x>36</x>
+      <y>72</y>
+      <width>108</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_31</name>
+      <pv_name>$(S):Det:Neutrons</pv_name>
+      <x>150</x>
+      <y>72</y>
+      <width>121</width>
+      <height>26</height>
+      <format>2</format>
+      <precision>4</precision>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+      <tooltip>Total detector detector counts
+$(pv_name)
+$(pv_value)</tooltip>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_32</name>
+      <pv_name>$(S):Det:N1:Det1:EventRate_RBV</pv_name>
+      <x>150</x>
+      <y>102</y>
+      <width>121</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+      <tooltip>Count rate for the whole detector
+$(pv_name)
+$(pv_value)</tooltip>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_37</name>
+      <pv_name>$(S):Det:PCharge:C</pv_name>
+      <x>150</x>
+      <y>132</y>
+      <width>121</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+      <tooltip>Count rate for the whole detector
+$(pv_name)
+$(pv_value)</tooltip>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_70</name>
+      <text>Proton Charge (C)</text>
+      <x>5</x>
+      <y>132</y>
+      <width>139</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_72</name>
+      <text>Counts/sec</text>
+      <x>36</x>
+      <y>102</y>
+      <width>108</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_73</name>
+      <text>Beam Power</text>
+      <x>5</x>
+      <y>162</y>
+      <width>139</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update_38</name>
+      <pv_name>$(S):Det:rtdl:BeamPowerAvg</pv_name>
+      <x>150</x>
+      <y>162</y>
+      <width>121</width>
+      <height>26</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <wrap_words>false</wrap_words>
+      <tooltip>Accelerator Beam Power
+$(pv_name)
+$(pv_value)</tooltip>
+    </widget>
+    <widget type="led" version="2.0.0">
+      <name>LED</name>
+      <pv_name>$(S):CS:RunControl:Running</pv_name>
+      <x>252</x>
+      <y>195</y>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label_78</name>
+      <text>Running</text>
+      <x>150</x>
+      <y>192</y>
+      <width>92</width>
+      <height>26</height>
+      <horizontal_alignment>2</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+  </widget>
+  <widget type="tabs" version="2.0.0">
+    <name>Tabs</name>
+    <tabs>
+      <tab>
+        <name>TOF (All Modules)</name>
+        <children>
+          <widget type="group" version="2.0.0">
+            <name>$(NAME)</name>
+            <macros>
+              <AXIS_TITLE>Time Of Flight (ms)</AXIS_TITLE>
+              <DET>1</DET>
+              <DETNAME>Main TOF</DETNAME>
+              <NAME>Time Of Flight (All Modules)</NAME>
+              <R>N1:</R>
+            </macros>
+            <x>12</x>
+            <y>10</y>
+            <width>777</width>
+            <height>388</height>
+            <style>3</style>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <foreground_color>
+              <color name="Text_ForeGround" red="0" green="0" blue="0">
+              </color>
+            </foreground_color>
+            <widget type="xyplot" version="2.0.0">
+              <name>XY Graph_3</name>
+              <x>12</x>
+              <y>45</y>
+              <width>742</width>
+              <height>270</height>
+              <background_color>
+                <color name="OPI_Background" red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <show_toolbar>true</show_toolbar>
+              <show_legend>false</show_legend>
+              <rules>
+                <rule name="Log Rule" prop_id="y_axes[0].log_scale" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>true</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+                <rule name="Rule Set Min" prop_id="y_axes[0].minimum" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>0.0</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+              </rules>
+              <x_axis>
+                <title>$(AXIS_TITLE)</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <visible>true</visible>
+              </x_axis>
+              <y_axes>
+                <y_axis>
+                  <title>Number Of Events</title>
+                  <autoscale>true</autoscale>
+                  <log_scale>false</log_scale>
+                  <minimum>0.0</minimum>
+                  <maximum>100.0</maximum>
+                  <show_grid>true</show_grid>
+                  <title_font>
+                    <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                    </font>
+                  </title_font>
+                  <scale_font>
+                    <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                    </font>
+                  </scale_font>
+                  <visible>true</visible>
+                </y_axis>
+              </y_axes>
+              <traces>
+                <trace>
+                  <name></name>
+                  <x_pv>$(P)$(R)Det$(DET):TOF:XAxis.VALA</x_pv>
+                  <y_pv>$(P)$(R)Det$(DET):TOF:Array:ArrayData</y_pv>
+                  <err_pv></err_pv>
+                  <axis>0</axis>
+                  <trace_type>1</trace_type>
+                  <color>
+                    <color red="21" green="21" blue="196">
+                    </color>
+                  </color>
+                  <line_width>1</line_width>
+                  <line_style>0</line_style>
+                  <point_type>0</point_type>
+                  <point_size>4</point_size>
+                  <visible>true</visible>
+                </trace>
+              </traces>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_6</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>61</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_21</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>135</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_29</name>
+              <text>Start</text>
+              <x>61</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_7</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>220</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_22</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>294</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_30</name>
+              <text>Size</text>
+              <x>220</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_23</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MinValue_RBV</pv_name>
+              <x>402</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_31</name>
+              <text>Min</text>
+              <x>402</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_32</name>
+              <text>Max</text>
+              <x>483</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_24</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MaxValue_RBV</pv_name>
+              <x>483</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_33</name>
+              <text>Mean</text>
+              <x>564</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_25</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MeanValue_RBV</pv_name>
+              <x>564</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_34</name>
+              <text>Total</text>
+              <x>666</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_26</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Total_RBV</pv_name>
+              <x>666</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_4</name>
+              <actions>
+                <action type="open_display">
+                  <file>../../share/opi/ADnEDv3/ADnED_TOFArray.bob</file>
+                  <target>replace</target>
+                  <description>More Detail</description>
+                </action>
+              </actions>
+              <x>640</x>
+              <y>10</y>
+              <height>26</height>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_35</name>
+              <text>ROI</text>
+              <x>12</x>
+              <y>354</y>
+              <width>43</width>
+              <height>17</height>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button_3</name>
+              <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+              <x>12</x>
+              <y>10</y>
+              <height>26</height>
+              <off_label>Linear</off_label>
+              <off_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </off_color>
+              <on_label>Log</on_label>
+              <on_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </on_color>
+              <background_color>
+                <color name="Read_Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>d-Space (All Modules)</name>
+        <children>
+          <widget type="group" version="2.0.0">
+            <name>$(NAME)</name>
+            <macros>
+              <AXIS_TITLE>d-Space (A)</AXIS_TITLE>
+              <DET>2</DET>
+              <DETNAME>Main d-Space</DETNAME>
+              <NAME>d-Space (All Modules)</NAME>
+              <R>N1:</R>
+            </macros>
+            <x>12</x>
+            <y>10</y>
+            <width>777</width>
+            <height>388</height>
+            <style>3</style>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <foreground_color>
+              <color name="Text_ForeGround" red="0" green="0" blue="0">
+              </color>
+            </foreground_color>
+            <widget type="xyplot" version="2.0.0">
+              <name>XY Graph_4</name>
+              <x>12</x>
+              <y>45</y>
+              <width>742</width>
+              <height>270</height>
+              <background_color>
+                <color name="OPI_Background" red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <show_toolbar>true</show_toolbar>
+              <show_legend>false</show_legend>
+              <rules>
+                <rule name="Log Rule" prop_id="y_axes[0].log_scale" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>true</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+                <rule name="Rule Set Min" prop_id="y_axes[0].minimum" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>0.0</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+              </rules>
+              <x_axis>
+                <title>$(AXIS_TITLE)</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <visible>true</visible>
+              </x_axis>
+              <y_axes>
+                <y_axis>
+                  <title>Number Of Events</title>
+                  <autoscale>true</autoscale>
+                  <log_scale>false</log_scale>
+                  <minimum>0.0</minimum>
+                  <maximum>100.0</maximum>
+                  <show_grid>true</show_grid>
+                  <title_font>
+                    <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                    </font>
+                  </title_font>
+                  <scale_font>
+                    <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                    </font>
+                  </scale_font>
+                  <visible>true</visible>
+                </y_axis>
+              </y_axes>
+              <traces>
+                <trace>
+                  <name></name>
+                  <x_pv>$(P)$(R)Det$(DET):TOF:XAxis.VALA</x_pv>
+                  <y_pv>$(P)$(R)Det$(DET):TOF:Array:ArrayData</y_pv>
+                  <err_pv></err_pv>
+                  <axis>0</axis>
+                  <trace_type>1</trace_type>
+                  <color>
+                    <color red="21" green="21" blue="196">
+                    </color>
+                  </color>
+                  <line_width>1</line_width>
+                  <line_style>0</line_style>
+                  <point_type>0</point_type>
+                  <point_size>4</point_size>
+                  <visible>true</visible>
+                </trace>
+              </traces>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_8</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>61</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_27</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>135</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_36</name>
+              <text>Start</text>
+              <x>61</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_9</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>220</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_28</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>294</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_37</name>
+              <text>Size</text>
+              <x>220</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_29</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MinValue_RBV</pv_name>
+              <x>402</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_38</name>
+              <text>Min</text>
+              <x>402</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_39</name>
+              <text>Max</text>
+              <x>483</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_30</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MaxValue_RBV</pv_name>
+              <x>483</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_40</name>
+              <text>Mean</text>
+              <x>564</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_33</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MeanValue_RBV</pv_name>
+              <x>564</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_41</name>
+              <text>Total</text>
+              <x>666</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_34</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Total_RBV</pv_name>
+              <x>666</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_5</name>
+              <actions>
+                <action type="open_display">
+                  <file>../../share/opi/ADnEDv3/ADnED_TOFArray.bob</file>
+                  <target>replace</target>
+                  <description>More Detail</description>
+                </action>
+              </actions>
+              <x>640</x>
+              <y>10</y>
+              <height>26</height>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_42</name>
+              <text>ROI</text>
+              <x>12</x>
+              <y>354</y>
+              <width>43</width>
+              <height>17</height>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button_4</name>
+              <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+              <x>12</x>
+              <y>10</y>
+              <height>26</height>
+              <off_label>Linear</off_label>
+              <off_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </off_color>
+              <on_label>Log</on_label>
+              <on_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </on_color>
+              <background_color>
+                <color name="Read_Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>q-Space (All Modules)</name>
+        <children>
+          <widget type="group" version="2.0.0">
+            <name>$(NAME)</name>
+            <macros>
+              <AXIS_TITLE>q-Space</AXIS_TITLE>
+              <DET>3</DET>
+              <DETNAME>Main q-Space</DETNAME>
+              <NAME>q-Space (All Modules)</NAME>
+              <R>N1:</R>
+            </macros>
+            <x>12</x>
+            <y>10</y>
+            <width>777</width>
+            <height>388</height>
+            <style>3</style>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <foreground_color>
+              <color name="Text_ForeGround" red="0" green="0" blue="0">
+              </color>
+            </foreground_color>
+            <widget type="xyplot" version="2.0.0">
+              <name>XY Graph_5</name>
+              <x>12</x>
+              <y>45</y>
+              <width>742</width>
+              <height>270</height>
+              <background_color>
+                <color name="OPI_Background" red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <show_toolbar>true</show_toolbar>
+              <show_legend>false</show_legend>
+              <rules>
+                <rule name="Log Rule" prop_id="y_axes[0].log_scale" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>true</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+                <rule name="Rule Set Min" prop_id="y_axes[0].minimum" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>0.0</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+              </rules>
+              <x_axis>
+                <title>$(AXIS_TITLE)</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <visible>true</visible>
+              </x_axis>
+              <y_axes>
+                <y_axis>
+                  <title>Number Of Events</title>
+                  <autoscale>true</autoscale>
+                  <log_scale>false</log_scale>
+                  <minimum>0.0</minimum>
+                  <maximum>100.0</maximum>
+                  <show_grid>true</show_grid>
+                  <title_font>
+                    <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                    </font>
+                  </title_font>
+                  <scale_font>
+                    <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                    </font>
+                  </scale_font>
+                  <visible>true</visible>
+                </y_axis>
+              </y_axes>
+              <traces>
+                <trace>
+                  <name></name>
+                  <x_pv>$(P)$(R)Det$(DET):TOF:XAxis.VALA</x_pv>
+                  <y_pv>$(P)$(R)Det$(DET):TOF:Array:ArrayData</y_pv>
+                  <err_pv></err_pv>
+                  <axis>0</axis>
+                  <trace_type>1</trace_type>
+                  <color>
+                    <color red="21" green="21" blue="196">
+                    </color>
+                  </color>
+                  <line_width>1</line_width>
+                  <line_style>0</line_style>
+                  <point_type>0</point_type>
+                  <point_size>4</point_size>
+                  <visible>true</visible>
+                </trace>
+              </traces>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_10</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>61</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_39</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>135</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_43</name>
+              <text>Start</text>
+              <x>61</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_11</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>220</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_40</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>294</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_44</name>
+              <text>Size</text>
+              <x>220</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_41</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MinValue_RBV</pv_name>
+              <x>402</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_45</name>
+              <text>Min</text>
+              <x>402</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_46</name>
+              <text>Max</text>
+              <x>483</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_42</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MaxValue_RBV</pv_name>
+              <x>483</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_47</name>
+              <text>Mean</text>
+              <x>564</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_43</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MeanValue_RBV</pv_name>
+              <x>564</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_48</name>
+              <text>Total</text>
+              <x>666</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_44</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Total_RBV</pv_name>
+              <x>666</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_6</name>
+              <actions>
+                <action type="open_display">
+                  <file>../../share/opi/ADnEDv3/ADnED_TOFArray.bob</file>
+                  <target>replace</target>
+                  <description>More Detail</description>
+                </action>
+              </actions>
+              <x>640</x>
+              <y>10</y>
+              <height>26</height>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_49</name>
+              <text>ROI</text>
+              <x>12</x>
+              <y>354</y>
+              <width>43</width>
+              <height>17</height>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button_5</name>
+              <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+              <x>12</x>
+              <y>10</y>
+              <height>26</height>
+              <off_label>Linear</off_label>
+              <off_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </off_color>
+              <on_label>Log</on_label>
+              <on_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </on_color>
+              <background_color>
+                <color name="Read_Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>d-Space (ROI Filtered)</name>
+        <children>
+          <widget type="group" version="2.0.0">
+            <name>$(NAME)</name>
+            <macros>
+              <AXIS_TITLE>d-Space (A)</AXIS_TITLE>
+              <DET>4</DET>
+              <DETNAME>ROI d-Space</DETNAME>
+              <NAME>ROI d-Space (filtered based on 2D ROI)</NAME>
+              <R>N1:</R>
+            </macros>
+            <x>12</x>
+            <y>10</y>
+            <width>764</width>
+            <height>388</height>
+            <style>3</style>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <foreground_color>
+              <color name="Text_ForeGround" red="0" green="0" blue="0">
+              </color>
+            </foreground_color>
+            <widget type="xyplot" version="2.0.0">
+              <name>XY Graph_2</name>
+              <x>12</x>
+              <y>45</y>
+              <width>742</width>
+              <height>270</height>
+              <background_color>
+                <color name="OPI_Background" red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <show_toolbar>true</show_toolbar>
+              <show_legend>false</show_legend>
+              <rules>
+                <rule name="Log Rule" prop_id="y_axes[0].log_scale" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>true</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+                <rule name="Rule Set Min" prop_id="y_axes[0].minimum" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>0.0</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+              </rules>
+              <x_axis>
+                <title>$(AXIS_TITLE)</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <visible>true</visible>
+              </x_axis>
+              <y_axes>
+                <y_axis>
+                  <title>Number Of Events</title>
+                  <autoscale>true</autoscale>
+                  <log_scale>false</log_scale>
+                  <minimum>0.0</minimum>
+                  <maximum>100.0</maximum>
+                  <show_grid>true</show_grid>
+                  <title_font>
+                    <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                    </font>
+                  </title_font>
+                  <scale_font>
+                    <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                    </font>
+                  </scale_font>
+                  <visible>true</visible>
+                </y_axis>
+              </y_axes>
+              <traces>
+                <trace>
+                  <name></name>
+                  <x_pv>$(P)$(R)Det$(DET):TOF:XAxis.VALA</x_pv>
+                  <y_pv>$(P)$(R)Det$(DET):TOF:Array:ArrayData</y_pv>
+                  <err_pv></err_pv>
+                  <axis>0</axis>
+                  <trace_type>1</trace_type>
+                  <color>
+                    <color red="21" green="21" blue="196">
+                    </color>
+                  </color>
+                  <line_width>1</line_width>
+                  <line_style>0</line_style>
+                  <point_type>0</point_type>
+                  <point_size>4</point_size>
+                  <visible>true</visible>
+                </trace>
+              </traces>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_4</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>61</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_15</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>135</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_16</name>
+              <text>Start</text>
+              <x>61</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_5</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>220</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_16</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>294</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_17</name>
+              <text>Size</text>
+              <x>220</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_17</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MinValue_RBV</pv_name>
+              <x>402</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_18</name>
+              <text>Min</text>
+              <x>402</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_19</name>
+              <text>Max</text>
+              <x>483</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_18</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MaxValue_RBV</pv_name>
+              <x>483</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_20</name>
+              <text>Mean</text>
+              <x>564</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_19</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MeanValue_RBV</pv_name>
+              <x>564</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_21</name>
+              <text>Total</text>
+              <x>666</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_20</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Total_RBV</pv_name>
+              <x>666</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_3</name>
+              <actions>
+                <action type="open_display">
+                  <file>../../share/opi/ADnEDv3/ADnED_TOFArray.bob</file>
+                  <target>replace</target>
+                  <description>More Detail</description>
+                </action>
+              </actions>
+              <x>640</x>
+              <y>10</y>
+              <height>26</height>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_22</name>
+              <text>ROI</text>
+              <x>12</x>
+              <y>354</y>
+              <width>43</width>
+              <height>17</height>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button_2</name>
+              <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+              <x>12</x>
+              <y>10</y>
+              <height>26</height>
+              <off_label>Linear</off_label>
+              <off_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </off_color>
+              <on_label>Log</on_label>
+              <on_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </on_color>
+              <background_color>
+                <color name="Read_Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>q-Space (ROI Filtered)</name>
+        <children>
+          <widget type="group" version="2.0.0">
+            <name>Detector d-Space (filtered based on 2D ROI)_1</name>
+            <macros>
+              <AXIS_TITLE>q-Space</AXIS_TITLE>
+              <DET>5</DET>
+              <DETNAME>ROI q-Space</DETNAME>
+              <NAME>ROI q-Space (filtered based on 2D ROI)</NAME>
+              <R>N1:</R>
+            </macros>
+            <x>12</x>
+            <y>10</y>
+            <width>764</width>
+            <height>388</height>
+            <style>3</style>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <foreground_color>
+              <color name="Text_ForeGround" red="0" green="0" blue="0">
+              </color>
+            </foreground_color>
+            <widget type="xyplot" version="2.0.0">
+              <name>XY Graph_6</name>
+              <x>12</x>
+              <y>45</y>
+              <width>742</width>
+              <height>270</height>
+              <background_color>
+                <color name="OPI_Background" red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <show_toolbar>true</show_toolbar>
+              <show_legend>false</show_legend>
+              <rules>
+                <rule name="Log Rule" prop_id="y_axes[0].log_scale" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>true</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+                <rule name="Rule Set Min" prop_id="y_axes[0].minimum" out_exp="false">
+                  <exp bool_exp="pv0">
+                    <value>0.0</value>
+                  </exp>
+                  <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+                </rule>
+              </rules>
+              <x_axis>
+                <title>$(AXIS_TITLE)</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <visible>true</visible>
+              </x_axis>
+              <y_axes>
+                <y_axis>
+                  <title>Number Of Events</title>
+                  <autoscale>true</autoscale>
+                  <log_scale>false</log_scale>
+                  <minimum>0.0</minimum>
+                  <maximum>100.0</maximum>
+                  <show_grid>true</show_grid>
+                  <title_font>
+                    <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                    </font>
+                  </title_font>
+                  <scale_font>
+                    <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                    </font>
+                  </scale_font>
+                  <visible>true</visible>
+                </y_axis>
+              </y_axes>
+              <traces>
+                <trace>
+                  <name></name>
+                  <x_pv>$(P)$(R)Det$(DET):TOF:XAxis.VALA</x_pv>
+                  <y_pv>$(P)$(R)Det$(DET):TOF:Array:ArrayData</y_pv>
+                  <err_pv></err_pv>
+                  <axis>0</axis>
+                  <trace_type>1</trace_type>
+                  <color>
+                    <color red="21" green="21" blue="196">
+                    </color>
+                  </color>
+                  <line_width>1</line_width>
+                  <line_style>0</line_style>
+                  <point_type>0</point_type>
+                  <point_size>4</point_size>
+                  <visible>true</visible>
+                </trace>
+              </traces>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_12</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>61</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_45</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Min</pv_name>
+              <x>135</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_50</name>
+              <text>Start</text>
+              <x>61</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text_13</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>220</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <background_color>
+                <color name="WritePV_Background" red="128" green="255" blue="255">
+                </color>
+              </background_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_46</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Size</pv_name>
+              <x>294</x>
+              <y>349</y>
+              <width>64</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_51</name>
+              <text>Size</text>
+              <x>220</x>
+              <y>326</y>
+              <width>138</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_47</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MinValue_RBV</pv_name>
+              <x>402</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_52</name>
+              <text>Min</text>
+              <x>402</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_53</name>
+              <text>Max</text>
+              <x>483</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_48</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MaxValue_RBV</pv_name>
+              <x>483</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_54</name>
+              <text>Mean</text>
+              <x>564</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_49</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:MeanValue_RBV</pv_name>
+              <x>564</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_55</name>
+              <text>Total</text>
+              <x>666</x>
+              <y>326</y>
+              <width>74</width>
+              <height>17</height>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_50</name>
+              <pv_name>$(P)$(R)Det$(DET):TOF:ROI:1:Total_RBV</pv_name>
+              <x>666</x>
+              <y>349</y>
+              <width>74</width>
+              <height>26</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_7</name>
+              <actions>
+                <action type="open_display">
+                  <file>../../share/opi/ADnEDv3/ADnED_TOFArray.bob</file>
+                  <target>replace</target>
+                  <description>More Detail</description>
+                </action>
+              </actions>
+              <x>640</x>
+              <y>10</y>
+              <height>26</height>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_56</name>
+              <text>ROI</text>
+              <x>12</x>
+              <y>354</y>
+              <width>43</width>
+              <height>17</height>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button_6</name>
+              <pv_name>loc://$(S)_plot_log$(DET)1(0)</pv_name>
+              <x>12</x>
+              <y>10</y>
+              <height>26</height>
+              <off_label>Linear</off_label>
+              <off_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </off_color>
+              <on_label>Log</on_label>
+              <on_color>
+                <color name="Off" red="60" green="100" blue="60">
+                </color>
+              </on_color>
+              <background_color>
+                <color name="Read_Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+    </tabs>
+    <x>6</x>
+    <y>430</y>
+    <width>844</width>
+    <height>490</height>
+    <active_tab>3</active_tab>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>Cursor Infomation</name>
+    <x>860</x>
+    <y>430</y>
+    <width>320</width>
+    <height>170</height>
+    <font>
+      <font family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <widget type="textupdate" version="2.0.0">
+      <name>Text Update</name>
+      <pv_name>$(S):Det:Cursor4x4:Info</pv_name>
+      <x>5</x>
+      <y>12</y>
+      <width>260</width>
+      <height>80</height>
+      <format>6</format>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Action Button_8</name>
+      <actions>
+        <action type="open_display">
+          <file>CursorInfo/cursor_info.opi</file>
+          <macros>
+            <P>BL12</P>
+            <R>:Det:Cursor4x4:</R>
+          </macros>
+          <target>replace</target>
+          <description>Cursor Detail</description>
+        </action>
+      </actions>
+      <x>162</x>
+      <y>98</y>
+      <width>103</width>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+  </widget>
+</display>

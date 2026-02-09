@@ -167,3 +167,6 @@ cython_debug/
 
 
 junit.xml
+
+# MacOS
+.DS_Store
