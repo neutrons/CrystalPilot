@@ -14,5 +14,4 @@ def main() -> None:
             kwargs[key] = int(value)
         except Exception:
             pass
-    # app.create_task(app.view_model.auto_update_cssstatus_figure())
     app.server.start(**kwargs)

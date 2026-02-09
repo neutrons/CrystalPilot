@@ -1,6 +1,6 @@
 # Please do not edit or delete this file. It is needed to be able to update project from template.
-_commit: 0.42-18-g352e817
-_src_path: https://code.ornl.gov/ndip/project-templates/nova-application-template.git
+_commit: '0.49'
+_src_path: https://github.com/nova-sdk/nova-application-template.git
 application_type: Nova Application
 framework: Trame
 multitabs: true

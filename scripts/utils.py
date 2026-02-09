@@ -2,8 +2,11 @@
 
 import subprocess
 import sys
+from shutil import which
 
 import git
+
+DOCKER_COMMAND = "docker" if which("docker") is not None else "podman"
 
 
 def check_docker_image_exists(image_url: str) -> bool:
@@ -22,7 +25,7 @@ def check_docker_image_exists(image_url: str) -> bool:
         # The '--quiet' option minimizes output
         print(f"Attempting to verify container exists: {image_url}.")
         result = subprocess.run(
-            ["docker", "manifest", "inspect", image_url], capture_output=True, text=True, check=False
+            [DOCKER_COMMAND, "manifest", "inspect", image_url], capture_output=True, text=True, check=False
         )
 
         # If the command exited with 0, the image exists
