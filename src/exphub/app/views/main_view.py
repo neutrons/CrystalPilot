@@ -67,7 +67,7 @@ class MainApp(ThemedApp):
                     open("BL12_ADnED_2D_4x4.bob", mode="r") as xml_file,
                     open("BL12_ADnED_2D_4x4.macros", mode="r") as macros_file,
                 ):
-                    self.setup_webopi("model_cssstatus", xml_file.read(), macros_file.read())
+                    self.setup_webopi("model_cssstatus", xml_file.read(), macros_file.read(), 6)
             with layout.post_content:
                 pass
             return layout
@@ -89,7 +89,7 @@ class MainApp(ThemedApp):
 
         return full_name
 
-    def setup_webopi(self, state_name: str, xml: str, macros: str) -> None:
+    def setup_webopi(self, state_name: str, xml: str, macros: str, detector_count: int) -> None:
         bob_dict = parse(xml)
 
         decoded_macros = unescape(unquote_plus(macros))
@@ -102,7 +102,7 @@ class MainApp(ThemedApp):
         for pv in pv_names.copy():
             if "$(DET)" in pv:
                 pv_names.remove(pv)
-                for index in range(1, 6):
+                for index in range(1, detector_count):
                     pv_names.add(pv.replace("$(DET)", str(index)))
 
         client.Script(
