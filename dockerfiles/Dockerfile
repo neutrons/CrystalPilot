@@ -33,6 +33,7 @@ RUN mkdir -p /src
 COPY --from=source_image /src/pyproject.toml /src/
 COPY --from=source_image /src/*.lock /src/
 COPY --from=source_image /src/README.md /src/
+COPY --from=source_image /src/BL12* /src/
 COPY --from=source_image /src/src /src/src
 COPY --from=source_image /src/scripts /src/scripts
 WORKDIR /src
