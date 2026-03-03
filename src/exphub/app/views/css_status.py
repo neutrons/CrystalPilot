@@ -21,7 +21,7 @@ class CSSStatusView:
     def create_ui(self) -> None:
         with VBoxLayout(classes="border-md mb-1 px-2 py-1", stretch=True):
             with VBoxLayout(stretch=True):
-                PVPlot("BL12:Det:N1:Det4:XY:Array:ArrayData")
+                PVPlot("BL12:Det:N1:Det4:XY:Array:ArrayData", data_range=[0, 32000], data_width=1105)
 
             with HBoxLayout():
                 PVInput("BL12:Det:N1:Det4:XY:Scale:ManualMin", label="Min")
