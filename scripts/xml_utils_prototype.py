@@ -75,8 +75,8 @@ def push_tool_xml_prototype() -> None:
                 xml_content = src_file.read()
 
             # Replace placeholders with actual values
-            container_registry = "ghcr.io"
-            container_path = "neutrons/crystalpilot-prototype"
+            container_registry = "savannah.ornl.gov"
+            container_path = "ndip/tool-sources/single-crystal-diffraction/crystalpilot/prototypes"
 
             # Construct the full Docker image URL
             docker_image = f"{container_registry}/{container_path}:{prototype_image_tag}"
