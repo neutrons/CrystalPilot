@@ -53,11 +53,11 @@ RUN curl -fsSL https://pixi.sh/install.sh | sh
 ENV PATH="/root/.pixi/bin:${PATH}"
 RUN pixi install -e production
 SHELL [ "pixi", "run", "-e", "production" ]
-ENTRYPOINT [ "pixi", "run", "-e", "production", "--manifest-path", "/src/pyproject.toml" ]
+ENTRYPOINT []
 
 RUN pixi add --pypi supervisor
 RUN scripts/generate_static_client.sh
 
-RUN chmod og+rwX -R /src
+RUN chmod og+rwX -R /root /src
 
 CMD [ "supervisord" ]

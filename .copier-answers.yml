@@ -1,5 +1,5 @@
 # Please do not edit or delete this file. It is needed to be able to update project from template.
-_commit: '0.49'
+_commit: '0.50'
 _src_path: https://github.com/nova-sdk/nova-application-template.git
 application_type: Nova Application
 framework: Trame
