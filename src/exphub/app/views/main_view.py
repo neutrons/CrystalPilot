@@ -6,9 +6,11 @@ from nova.epics.trame import get_epics_instance
 from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
 from trame.app import get_server
+from trame.widgets import vuetify3 as vuetify
 
 from ..mvvm_factory import create_viewmodels
 from ..view_models.main import MainViewModel
+from .chat_pane import ChatPaneView
 from .tab_content_panel import TabContentPanel
 from .tabs_panel import TabsPanel
 
@@ -43,7 +45,17 @@ class MainApp(ThemedApp):
                     self.view_models["main"],
                 )
             with layout.post_content:
-                pass
+                # Agent toggle button (placed at bottom-right as a FAB)
+                vuetify.VBtn(
+                    icon="mdi-robot-outline",
+                    color="primary",
+                    click=self.view_models["chat"].toggle_drawer,
+                    style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;",
+                    size="large",
+                    elevation=4,
+                )
+                # Right-side chat drawer
+                ChatPaneView(self.server, self.view_models["chat"])
 
             with (
                 open("BL12_ADnED_2D_4x4.bob", mode="r") as xml_file,

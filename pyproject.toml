@@ -33,6 +33,15 @@ scikit-learn = ">=1.6.1"
 trame-plotly = ">=3.1.0"
 trame-datagrid = ">=0.2.2"
 cryptography = ">=46.0.3,<47"
+# Agent dependencies
+python-dotenv = ">=1.0.0"
+langchain = ">=0.3.0"
+langchain-core = ">=0.3.0"
+langchain-google-genai = ">=2.0.0"
+langchain-ollama = "*"
+langchain-openai = "*"
+langgraph = ">=0.4.0"
+jsonschema = "*"
 
 
 [tool.pixi.feature.dev.pypi-dependencies]

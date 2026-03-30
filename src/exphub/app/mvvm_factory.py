@@ -2,13 +2,27 @@
 
 from nova.mvvm.interface import BindingInterface
 
+from .models.chat import ChatModel
 from .models.main_model import MainModel
+from .view_models.chat import ChatViewModel
 from .view_models.main import MainViewModel
 
 
 def create_viewmodels(binding: BindingInterface) -> dict:
     model = MainModel()
     vm: dict = {}
-    vm["main"] = MainViewModel(model, binding)
+    main_vm = MainViewModel(model, binding)
+    vm["main"] = main_vm
+
+    # Chat / Agent viewmodel — shares the same MainModel so the agent
+    # can read and write the same Pydantic fields the left-side tabs use.
+    chat_model = ChatModel()
+    main_bindings = {
+        "experimentinfo": main_vm.experimentinfo_bind,
+        "angleplan": main_vm.angleplan_bind,
+        "eiccontrol": main_vm.eiccontrol_bind,
+        "dataanalysis": main_vm.dataanalysis_bind,
+    }
+    vm["chat"] = ChatViewModel(chat_model, model, binding, main_bindings)
 
     return vm
