@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Any, ClassVar, Dict, List
+from typing import Any, Dict, List, Optional
 
 # from mantid.simpleapi import *
 import mantid.simpleapi as mtdapi
@@ -25,18 +25,10 @@ class MantidWorkflow:
         # def __init__(self,temporal_time_interval)->None:
         # def set_up_mantid_info(self)->None:
         print("initializing mtd workflow")
-        self.ipts = 34069
-        self.ipts = 35078
-        self.ipts = 35036
-        print(self.ipts)
-        # TODO: connect ipts
-        self.ipts = 34655
-        self.ub_failsafe = "/SNS/TOPAZ/IPTS-35078/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
-        self.ub_failsafe = "/SNS/TOPAZ/IPTS-35036/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat"
-        self.ub_failsafe = "/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
-        self.output_path = "/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/".format(self.ipts)
-        self.calib_fname = "/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal".format(self.ipts)
-        self.calib_fname = "/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal".format(self.ipts)
+        self.ipts: int = 0  # placeholder; set by update_experiment_info() before use
+        self.ub_failsafe: str = ""  # set by update_experiment_info()
+        self.output_path: str = ""  # set by update_experiment_info()
+        self.calib_fname: str = ""  # set by update_experiment_info()
 
         # Sample information
         self.min_d: float = 7  # shortest lattice parameter
@@ -1340,10 +1332,15 @@ class TemporalAnalysisModel(BaseModel):
     all_time: List[float] = Field(default=[0.0, 10000], title="All Time")
     # mtd_workflow: MantidWorkflow = Field(default=MantidWorkflow(), title="Mantid Workflow")
     time_interval: float = Field(default=40, title="Time Interval")
-    mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow()
-    # mtd_workflow: ClassVar[MantidWorkflow] = MantidWorkflow(time_interval)
+    # Lazy instance; created in start_reading_live_mtd_data() once Mantid is ready.
+    _mtd_workflow: Optional[MantidWorkflow] = None
     # Optional back-reference to MainModel. Set by MainViewModel when wiring.
     _parent: Any = None
+
+    @property
+    def mtd_workflow(self) -> Optional[MantidWorkflow]:
+        """Return the MantidWorkflow instance, or None if not yet initialized."""
+        return self._mtd_workflow
 
     def set_parent(self, parent: Any) -> None:
         """Set a back-reference to the owning MainModel.
@@ -1376,6 +1373,8 @@ class TemporalAnalysisModel(BaseModel):
     def get_figure_intensity(self) -> go.Figure:
         # self.timestamp = time.time()
         fig = go.Figure()
+        if self._mtd_workflow is None:
+            return fig
         # self.time_steps=self.mtd_workflow.measure_times
         # if self.prediction_model_type=='Linear Interpolation':
 
@@ -1507,6 +1506,8 @@ class TemporalAnalysisModel(BaseModel):
     def get_figure_uncertainty(self) -> go.Figure:
         # self.timestamp = time.time()
         fig = go.Figure()
+        if self._mtd_workflow is None:
+            return fig
 
         if self.prediction_model_type == "Poisson Model":
             # if self.prediction_model_type=='Linear Interpolation':
@@ -1661,13 +1662,11 @@ class TemporalAnalysisModel(BaseModel):
         return fig
 
     def start_reading_live_mtd_data(self) -> None:
-        # def start_reading_live_mtd_data(self) -> MantidWorkflow:
-
-        # mtd_workflow=MantidWorkflow()
-        self.mtd_workflow.start_live_data_collection_instances()
-        # self.mtd_workflow=mtd_workflow
-        # return mtd_workflow
-        # return mtd_workflow
+        self._mtd_workflow = MantidWorkflow()
+        models = self.get_models()
+        if models is not None:
+            self._mtd_workflow.update_experiment_info(models)
+        self._mtd_workflow.start_live_data_collection_instances()
 
     async def get_live_mtd_data(self) -> None:  # nolonger used
         while True:
