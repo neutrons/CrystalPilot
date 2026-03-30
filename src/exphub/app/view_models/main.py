@@ -206,19 +206,24 @@ class MainViewModel:
         if self._live_update_task is not None and not self._live_update_task.done():
             print("Live update already running — ignoring duplicate start request.")
             return
+        self._live_update_task = asyncio.create_task(self._start_and_run_live_update())
+
+    async def _start_and_run_live_update(self) -> None:
+        """Start live data collection in a thread, then run the reduction loop."""
+        loop = asyncio.get_event_loop()
         try:
-            self.model.temporalanalysis.start_reading_live_mtd_data()
+            await loop.run_in_executor(None, self.model.temporalanalysis.start_reading_live_mtd_data)
         except RuntimeError as e:
             print(f"Failed to start live data: {e}")
             try:
                 self.model.chat.agent_status = f"Live data error: {e}"
             except Exception:
                 pass
+            self._live_update_task = None
             return
-        self._live_update_task = asyncio.create_task(self.get_live_mtd_data())
         self.view_state.is_live_update_running = True
         self.view_state_bind.update_in_view(self.view_state)
-        # asyncio.create_task(self.auto_update_temporalanalysis_figure())
+        await self.get_live_mtd_data()
 
     def stop_live_update(self) -> None:
         """Cancel the running live-update loop, if any."""
@@ -229,14 +234,19 @@ class MainViewModel:
         self.view_state_bind.update_in_view(self.view_state)
 
     async def get_live_mtd_data(self) -> None:
+        loop = asyncio.get_event_loop()
         while True:
             print("============================================================================================")
             print("get_live_mtd_data")
             try:
-                # self.update_temporalanalysis_figure()
+                # update_experiment_info only sets Python attrs — safe on event loop thread
                 models = self.model.temporalanalysis.get_models()
                 self.model.temporalanalysis.mtd_workflow.update_experiment_info(models)
-                self.model.temporalanalysis.mtd_workflow.live_data_reduction()
+                # live_data_reduction runs the full Mantid pipeline; offload to thread pool
+                # so the event loop (and GUI) stays responsive during the reduction.
+                await loop.run_in_executor(
+                    None, self.model.temporalanalysis.mtd_workflow.live_data_reduction
+                )
                 print("get_live_mtd_data done")
                 print("============================================================================================")
                 self.update_temporalanalysis_figure()
