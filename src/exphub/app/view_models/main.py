@@ -22,6 +22,7 @@ class ViewState(BaseModel):
     active_tab: str = Field(default="0")
     is_under_development: bool = Field(default=False)
     is_uninterruptable: bool = Field(default=False)
+    is_live_update_running: bool = Field(default=False)
 
 
 class MainViewModel:
@@ -35,6 +36,8 @@ class MainViewModel:
         # Debounce: avoid repeated updates in a short interval (seconds)
         self._temporalanalysis_last_update_time: float = 0.0
         self._temporalanalysis_min_interval: float = 1.0
+        # Task reference for the live-update loop; None means not running
+        self._live_update_task: asyncio.Task | None = None
         # Set parent link for temporalanalysis model so it can access sibling models
         try:
             if hasattr(self.model, "temporalanalysis") and hasattr(self.model.temporalanalysis, "set_parent"):
@@ -200,9 +203,30 @@ class MainViewModel:
             await asyncio.sleep(30)
 
     def create_auto_update_temporalanalysis_figure(self) -> None:
-        self.model.temporalanalysis.start_reading_live_mtd_data()
-        asyncio.create_task(self.get_live_mtd_data())
+        if self._live_update_task is not None and not self._live_update_task.done():
+            print("Live update already running — ignoring duplicate start request.")
+            return
+        try:
+            self.model.temporalanalysis.start_reading_live_mtd_data()
+        except RuntimeError as e:
+            print(f"Failed to start live data: {e}")
+            try:
+                self.model.chat.agent_status = f"Live data error: {e}"
+            except Exception:
+                pass
+            return
+        self._live_update_task = asyncio.create_task(self.get_live_mtd_data())
+        self.view_state.is_live_update_running = True
+        self.view_state_bind.update_in_view(self.view_state)
         # asyncio.create_task(self.auto_update_temporalanalysis_figure())
+
+    def stop_live_update(self) -> None:
+        """Cancel the running live-update loop, if any."""
+        if self._live_update_task is not None and not self._live_update_task.done():
+            self._live_update_task.cancel()
+        self._live_update_task = None
+        self.view_state.is_live_update_running = False
+        self.view_state_bind.update_in_view(self.view_state)
 
     async def get_live_mtd_data(self) -> None:
         while True:
@@ -233,10 +257,19 @@ class MainViewModel:
                         self.model.temporalanalysis.mtd_workflow.timeseries_data_plt = []
 
                         continue
+            except asyncio.CancelledError:
+                print("Live update loop cancelled.")
+                break
             except Exception as e:
                 print(e)
+                try:
+                    self.model.chat.agent_status = f"Live data error: {e}"
+                except Exception:
+                    pass
             # self.update_temporalanalysis_figure()
             await asyncio.sleep(40)
+        self.view_state.is_live_update_running = False
+        self.view_state_bind.update_in_view(self.view_state)
 
     def update_newtabtemplate_figure(self, _: Any = None) -> None:
         self.newtabtemplate_bind.update_in_view(self.model.newtabtemplate)

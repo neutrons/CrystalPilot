@@ -1,7 +1,6 @@
 """Model for temporal analysis."""
 
 import asyncio
-import sys
 import time
 from typing import Any, ClassVar, Dict, List
 
@@ -204,13 +203,12 @@ class MantidWorkflow:
         except RuntimeError as e:
             if "Another MonitorLiveData thread is running" in str(e):
                 conflict_current_run = mtdapi.mtd["live_event_ws"].getRunNumber()
-                print(
-                    "Warning: Another MonitorLiveData thread is already running for TOPAZ run %s."
-                    % (str(conflict_current_run)),
-                    "\nIt will continue with the current run unless you stop the existing instance manually or use a "
-                    "different OutputWorkspace.",
-                )
-                sys.exit(1)
+                msg = (
+                    "Another MonitorLiveData thread is already running for TOPAZ run %s. "
+                    "Stop the existing live-update session before starting a new one."
+                ) % str(conflict_current_run)
+                print("Warning:", msg)
+                raise RuntimeError(msg) from e
             else:
                 print(f"Unexpected error occurred: {str(e)}")
                 raise
@@ -218,8 +216,7 @@ class MantidWorkflow:
 
         # Proceed with data processing
         if not mtdapi.mtd.doesExist("live_event_ws"):
-            print("Live data workspace does not exist. Exiting.")
-            exit(1)
+            raise RuntimeError("Live data workspace 'live_event_ws' does not exist after StartLiveData.")
         self.initial_run = mtdapi.mtd["live_event_ws"].getRunNumber()
         self.initial_run_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
         print(f"initial run: {self.initial_run}")

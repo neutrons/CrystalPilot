@@ -117,7 +117,16 @@ class TemporalAnalysisView:
             self.figure_uncertainty.update(fig_u)
 
         with VBoxLayout(halign="center"):
-            vuetify.VBtn("Auto Update", click=self.view_model.create_auto_update_temporalanalysis_figure)
+            vuetify.VBtn(
+                "Auto Update",
+                click=self.view_model.create_auto_update_temporalanalysis_figure,
+                disabled=("controls.is_live_update_running",),
+            )
+            vuetify.VBtn(
+                "Stop",
+                click=self.view_model.stop_live_update,
+                disabled=("!controls.is_live_update_running",),
+            )
 
     def update_figure_intensity(self, figure_intensity: go.Figure) -> None:
         # debounce / re-entrancy guard
