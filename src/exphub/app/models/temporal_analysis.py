@@ -135,6 +135,13 @@ class MantidWorkflow:
         self.temporal_poisson_uncertainty: Any = [0]
         # Run the SortHKL algorithm
 
+    def stop(self) -> None:
+        """Stop the Mantid MonitorLiveData thread."""
+        try:
+            mtdapi.StopLiveData(InputWorkspace="live_event_ws")
+        except Exception as e:
+            print(f"StopLiveData warning: {e}")
+
     def update_experiment_info(self, _models: Any) -> None:
         from .main_model import MainModel
 
@@ -1660,6 +1667,11 @@ class TemporalAnalysisModel(BaseModel):
         # y_data = [i**2 for i in x_data]
         fig = make_subplots(rows=1, cols=2)
         return fig
+
+    def stop_live_data(self) -> None:
+        """Stop the Mantid MonitorLiveData thread if the workflow is running."""
+        if self._mtd_workflow is not None:
+            self._mtd_workflow.stop()
 
     def start_reading_live_mtd_data(self) -> None:
         self._mtd_workflow = MantidWorkflow()

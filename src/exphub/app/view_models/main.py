@@ -215,10 +215,6 @@ class MainViewModel:
             await loop.run_in_executor(None, self.model.temporalanalysis.start_reading_live_mtd_data)
         except RuntimeError as e:
             print(f"Failed to start live data: {e}")
-            try:
-                self.model.chat.agent_status = f"Live data error: {e}"
-            except Exception:
-                pass
             self._live_update_task = None
             return
         self.view_state.is_live_update_running = True
@@ -226,10 +222,11 @@ class MainViewModel:
         await self.get_live_mtd_data()
 
     def stop_live_update(self) -> None:
-        """Cancel the running live-update loop, if any."""
+        """Cancel the asyncio task and stop the Mantid MonitorLiveData thread."""
         if self._live_update_task is not None and not self._live_update_task.done():
             self._live_update_task.cancel()
         self._live_update_task = None
+        self.model.temporalanalysis.stop_live_data()
         self.view_state.is_live_update_running = False
         self.view_state_bind.update_in_view(self.view_state)
 
@@ -272,10 +269,6 @@ class MainViewModel:
                 break
             except Exception as e:
                 print(e)
-                try:
-                    self.model.chat.agent_status = f"Live data error: {e}"
-                except Exception:
-                    pass
             # self.update_temporalanalysis_figure()
             await asyncio.sleep(40)
         self.view_state.is_live_update_running = False
