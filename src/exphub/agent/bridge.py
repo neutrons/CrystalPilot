@@ -11,7 +11,7 @@ UI → Agent:  ``snapshot_models`` reads current Pydantic model values and
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -21,6 +21,28 @@ logger = logging.getLogger(__name__)
 # Import this constant in mvvm_factory and view_models/chat instead of
 # re-listing the names by hand.
 BRIDGED_SUBMODELS: tuple[str, ...] = ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
+
+
+def _coerce_list_field(model_cls: type, field_name: str, value: Any) -> Any:
+    """Coerce *value* to ``List[T]`` if the field annotation requires it.
+
+    When the agent sets a ``List[BaseModel]`` field (e.g. ``angle_list_pd``)
+    via a list of plain dicts, Pydantic won't auto-convert without
+    ``validate_assignment=True``.  This helper converts each dict element to
+    the declared item type explicitly.
+    """
+    if not isinstance(value, list):
+        return value
+    field = model_cls.model_fields.get(field_name)
+    if field is None or get_origin(field.annotation) is not list:
+        return value
+    args = get_args(field.annotation)
+    if not args:
+        return value
+    item_cls = args[0]
+    if not (isinstance(item_cls, type) and issubclass(item_cls, BaseModel)):
+        return value
+    return [item_cls(**item) if isinstance(item, dict) else item for item in value]
 
 
 def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
@@ -88,6 +110,7 @@ def apply_agent_config(
             if new_val == old_val:
                 continue
             try:
+                new_val = _coerce_list_field(type(sub), field_name, new_val)
                 setattr(sub, field_name, new_val)
                 updated.append(field_name)
                 dirty = True

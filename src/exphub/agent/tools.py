@@ -135,4 +135,77 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
 
         return json.dumps(params, default=str)
 
-    return [set_parameter, get_default_value, explain_parameter, get_parameter, list_parameters]
+    # ------------------------------------------------------------------ angle plan
+
+    @tool
+    def get_angle_plan() -> str:
+        """Return the current angle plan as a JSON array of runs.
+
+        Each element has: title, comment, phi, omega, wait_for, value, or_time.
+        The ``_index`` field gives the 0-based row position; pass it to
+        ``delete_run`` to remove that row.
+        """
+        if snapshot_fn is None:
+            return json.dumps({"error": "snapshot not available"})
+        current = snapshot_fn()
+        rows = current.get("angle_list_pd", [])
+        serialized = []
+        for i, row in enumerate(rows):
+            d = row.model_dump() if hasattr(row, "model_dump") else dict(row)
+            d["_index"] = i
+            serialized.append(d)
+        return json.dumps(serialized, default=str)
+
+    @tool
+    def append_run(
+        phi: float,
+        omega: float,
+        title: str = "",
+        comment: str = "",
+        wait_for: str = "PCharge",
+        value: float = 10.0,
+        or_time: float = 0.0,
+    ) -> dict:
+        """Append a new run to the angle plan table.
+
+        *phi* and *omega* are required goniometer angles in degrees.
+        The current table is read from the live UI, the new row is appended,
+        and the whole updated table is returned for storage.
+        """
+        current = snapshot_fn() if snapshot_fn is not None else {}
+        rows = current.get("angle_list_pd", [])
+        serialized = [r.model_dump() if hasattr(r, "model_dump") else dict(r) for r in rows]
+        serialized.append({
+            "title": title,
+            "comment": comment,
+            "phi": phi,
+            "omega": omega,
+            "wait_for": wait_for,
+            "value": value,
+            "or_time": or_time,
+        })
+        return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
+
+    @tool
+    def delete_run(row_index: int) -> dict:
+        """Delete a run from the angle plan by its 0-based index.
+
+        Use ``get_angle_plan`` first to find the correct ``_index`` value.
+        Returns the updated table (or an error dict if the index is out of range).
+        """
+        current = snapshot_fn() if snapshot_fn is not None else {}
+        rows = current.get("angle_list_pd", [])
+        if row_index < 0 or row_index >= len(rows):
+            return {"error": f"Row index {row_index} is out of range (table has {len(rows)} rows, indices 0–{len(rows)-1})."}
+        serialized = []
+        for i, row in enumerate(rows):
+            if i == row_index:
+                continue
+            serialized.append(row.model_dump() if hasattr(row, "model_dump") else dict(row))
+        return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
+
+    return [
+        set_parameter, get_default_value, explain_parameter,
+        get_parameter, list_parameters,
+        get_angle_plan, append_run, delete_run,
+    ]

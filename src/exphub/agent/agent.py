@@ -38,6 +38,11 @@ Your capabilities:
   parameters, angle plans, etc.)
 - Explain what each parameter means and what its default is.
 - Set parameter values when the user provides them.
+- List all available parameters with ``list_parameters``.
+- Read the current angle plan table with ``get_angle_plan``.
+- Add runs to the angle plan with ``append_run`` (phi and omega required).
+- Remove runs from the angle plan with ``delete_run`` (use the _index from
+  ``get_angle_plan``).
 - Answer general crystallography and beamline questions.
 
 When the user provides a value for a configuration field, ALWAYS call the
@@ -115,7 +120,9 @@ class Agent:
         if tool_msg.name == "get_default_value":
             return self._handle_get_default(state, tool_output)
 
-        if tool_msg.name == "set_parameter":
+        if tool_msg.name in ("set_parameter", "append_run", "delete_run"):
+            if isinstance(tool_output, dict) and "error" in tool_output and "parameter_name" not in tool_output:
+                return self._state_with_reply(state, f"Error: {tool_output['error']}")
             return self._handle_set_parameter(state, tool_output)
 
         if tool_msg.name == "get_parameter":
@@ -123,6 +130,9 @@ class Agent:
 
         if tool_msg.name == "list_parameters":
             return self._handle_list_parameters(state, tool_output)
+
+        if tool_msg.name == "get_angle_plan":
+            return self._handle_get_angle_plan(state, tool_output)
 
         return state
 
@@ -148,6 +158,23 @@ class Agent:
         opts = tool_output.get("valid_options")
         if opts:
             reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
+        return self._state_with_reply(state, reply)
+
+    def _handle_get_angle_plan(self, state: AgentState, tool_output) -> AgentState:
+        if isinstance(tool_output, dict) and "error" in tool_output:
+            return self._state_with_reply(state, f"Error reading angle plan: {tool_output['error']}")
+        if not isinstance(tool_output, list):
+            return self._state_with_reply(state, str(tool_output))
+        if not tool_output:
+            return self._state_with_reply(state, "The angle plan table is currently empty.")
+        header = "| # | Title | phi | omega | Wait For | Value | Or Time |"
+        sep    = "|---|-------|-----|-------|----------|-------|---------|"
+        rows = [
+            f"| {r.get('_index', i)} | {r.get('title', '')} | {r.get('phi', 0)} "
+            f"| {r.get('omega', 0)} | {r.get('wait_for', '')} | {r.get('value', 0)} | {r.get('or_time', 0)} |"
+            for i, r in enumerate(tool_output)
+        ]
+        reply = "**Current Angle Plan:**\n\n" + header + "\n" + sep + "\n" + "\n".join(rows)
         return self._state_with_reply(state, reply)
 
     def _handle_list_parameters(self, state: AgentState, tool_output) -> AgentState:
