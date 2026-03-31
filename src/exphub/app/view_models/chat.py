@@ -35,6 +35,7 @@ class ChatViewModel:
         main_model: MainModel,
         binding: BindingInterface,
         main_bindings: Dict[str, Any],
+        nav_fn=None,
     ) -> None:
         self.chat_model = chat_model
         self.main_model = main_model
@@ -45,6 +46,7 @@ class ChatViewModel:
         # Agent is created lazily on first message so startup isn't blocked
         self._agent: Agent | None = None
         self._agent_lock = threading.Lock()
+        self._nav_fn = nav_fn
 
         # Bridge errors from the previous turn, forwarded to the next invoke()
         self._pending_bridge_errors: dict[str, str] = {}
@@ -68,7 +70,7 @@ class ChatViewModel:
             schema_props = enrich_schema_with_options(schema_props, live_snapshot)
             # snapshot_fn lets the get_parameter / list_parameters tools read live UI state
             snapshot_fn = partial(snapshot_models, self.main_model)
-            self._agent = Agent(schema_properties=schema_props, snapshot_fn=snapshot_fn)
+            self._agent = Agent(schema_properties=schema_props, snapshot_fn=snapshot_fn, nav_fn=self._nav_fn)
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
     # ------------------------------------------------------------------ submit
@@ -99,6 +101,8 @@ class ChatViewModel:
             changed, errors = apply_agent_config(new_config, self.main_model, self.main_bindings)
             if changed:
                 logger.info("Agent updated fields: %s", changed)
+                self.chat_model.last_update_summary = "Updated: " + ", ".join(changed)
+                self.chat_model.update_snackbar_visible = True
             if errors:
                 logger.warning("Bridge errors (will be surfaced next turn): %s", errors)
                 self._pending_bridge_errors = errors

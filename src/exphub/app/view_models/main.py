@@ -19,7 +19,7 @@ from ..models.main_model import MainModel
 class ViewState(BaseModel):
     """View state for the application."""
 
-    active_tab: str = Field(default="0")
+    active_tab: int = Field(default=0)
     is_under_development: bool = Field(default=False)
     is_uninterruptable: bool = Field(default=False)
     is_live_update_running: bool = Field(default=False)
@@ -115,6 +115,15 @@ class MainViewModel:
             print(f"error in fields {results['errored']}, model not changed")
         else:
             print(f"model fields updated: {results['updated']}")
+
+    def navigate_to_tab(self, tab_number: int) -> None:
+        """Switch the active tab by number and push the change to the view.
+
+        Tab values: 1=IPTS Info, 2=Live Data Processing,
+        3=Experiment Steering, 5=Instrument Status, 6=Data Analysis.
+        """
+        self.view_state.active_tab = tab_number
+        self.view_state_bind.update_in_view(self.view_state)
 
     def upload_strategy(self) -> None:
         self.model.angleplan.load_ap(self.model.angleplan.plan_file)

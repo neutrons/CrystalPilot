@@ -128,6 +128,15 @@ class ChatPaneView:
                     **{"@click:append-inner": "trigger('chat_submit', [chat.user_input])"},
                 )
 
+        # Field-update snackbar (shown briefly when the agent writes parameters)
+        with vuetify.VSnackbar(
+            v_model="chat.update_snackbar_visible",
+            timeout=3000,
+            color="success",
+            location="bottom left",
+        ):
+            html.Span("{{ chat.last_update_summary }}")
+
     # ------------------------------------------------------------------ handler
 
     def _on_submit(self, text: str = "") -> None:

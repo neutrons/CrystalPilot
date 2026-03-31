@@ -26,3 +26,5 @@ class ChatModel(BaseModel):
     is_thinking: bool = Field(default=False, title="Agent Thinking")
     drawer_open: bool = Field(default=False, title="Chat Drawer Open")
     agent_status: str = Field(default="idle", title="Agent Status")
+    last_update_summary: str = Field(default="", title="Last Agent Update")
+    update_snackbar_visible: bool = Field(default=False, title="Update Notification Visible")

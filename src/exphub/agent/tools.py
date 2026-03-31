@@ -64,7 +64,24 @@ EXPERIMENT_PRESETS: dict[str, dict] = {
 }
 
 
-def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
+_TAB_MAP: dict[str, int] = {
+    "ipts_info": 1, "ipts": 1,
+    "live_data_processing": 2, "live_data": 2, "temporal_analysis": 2,
+    "experiment_steering": 3, "angle_plan": 3,
+    "instrument_status": 5, "css_status": 5,
+    "data_analysis": 6,
+}
+
+_TAB_NAMES: dict[int, str] = {
+    1: "IPTS Info",
+    2: "Live Data Processing",
+    3: "Experiment Steering",
+    5: "Instrument Status",
+    6: "Data Analysis",
+}
+
+
+def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
     Parameters
@@ -396,9 +413,39 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
             serialized.append(row.model_dump() if hasattr(row, "model_dump") else dict(row))
         return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
 
+    # ------------------------------------------------------------------ tab navigation
+
+    @tool
+    def navigate_to_tab(tab_name: str) -> dict:
+        """Switch the active tab in the CrystalPilot UI.
+
+        Accepted tab names (case-insensitive; spaces and dashes treated as
+        underscores): ``ipts_info`` (1), ``live_data_processing`` (2),
+        ``experiment_steering`` (3), ``instrument_status`` (5),
+        ``data_analysis`` (6).
+
+        Returns ``{"tab": <number>, "name": <label>}`` on success, or
+        ``{"error": ...}`` if the name is not recognised.
+        """
+        if nav_fn is None:
+            return {"error": "Tab navigation is not available in this session."}
+        key = tab_name.strip().lower().replace("-", "_").replace(" ", "_")
+        tab_number = _TAB_MAP.get(key)
+        if tab_number is None:
+            try:
+                tab_number = int(tab_name)
+                if tab_number not in _TAB_NAMES:
+                    raise ValueError
+            except ValueError:
+                valid = ", ".join(f"{v}={k}" for k, v in _TAB_NAMES.items())
+                return {"error": f"Unknown tab '{tab_name}'. Valid: {valid}"}
+        nav_fn(tab_number)
+        return {"tab": tab_number, "name": _TAB_NAMES.get(tab_number, f"tab {tab_number}")}
+
     return [
         set_parameter, get_default_value, explain_parameter,
         get_parameter, list_parameters, refresh_schema,
         set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, edit_run, delete_run,
+        navigate_to_tab,
     ]

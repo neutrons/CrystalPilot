@@ -51,6 +51,9 @@ Your capabilities:
   to change; use the _index from ``get_angle_plan``).
 - Remove runs from the angle plan with ``delete_run`` (use the _index from
   ``get_angle_plan``).
+- Navigate to a specific UI tab with ``navigate_to_tab``; accepted names:
+  ``ipts_info`` (1), ``live_data_processing`` (2), ``experiment_steering`` (3),
+  ``instrument_status`` (5), ``data_analysis`` (6).
 - Answer general crystallography and beamline questions.
 
 When the user provides a value for a configuration field, ALWAYS call the
@@ -66,12 +69,12 @@ Be concise and helpful. Use Markdown for formatting.
 class Agent:
     """CrystalPilot LangGraph agent."""
 
-    def __init__(self, schema_properties: dict[str, dict], snapshot_fn=None) -> None:
+    def __init__(self, schema_properties: dict[str, dict], snapshot_fn=None, nav_fn=None) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
-        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn)
+        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn)
         self.graph = self._build_graph()
 
     # ------------------------------------------------------------------ graph
@@ -151,6 +154,9 @@ class Agent:
         if tool_msg.name == "get_angle_plan":
             return self._handle_get_angle_plan(state, tool_output)
 
+        if tool_msg.name == "navigate_to_tab":
+            return self._handle_navigate_to_tab(state, tool_output)
+
         return state
 
     @staticmethod
@@ -161,6 +167,13 @@ class Agent:
         return "end"
 
     # ------------------------------------------------------------------ tool handlers
+
+    def _handle_navigate_to_tab(self, state: AgentState, tool_output) -> AgentState:
+        if isinstance(tool_output, dict) and "error" in tool_output:
+            return self._state_with_reply(state, f"Navigation error: {tool_output['error']}")
+        tab = tool_output.get("tab") if isinstance(tool_output, dict) else None
+        name = tool_output.get("name", f"tab {tab}") if isinstance(tool_output, dict) else f"tab {tab}"
+        return self._state_with_reply(state, f"Switched to **{name}** tab.")
 
     def _handle_get_parameter(self, state: AgentState, tool_output: dict) -> AgentState:
         if not isinstance(tool_output, dict):
