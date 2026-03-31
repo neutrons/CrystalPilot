@@ -1,6 +1,6 @@
 # CrystalPilot Codebase Analysis Report
 
-**Date:** 2026-03-30
+**Date:** 2026-03-30 (updated after Phase 0 refactor)
 **Branch:** `agentize`
 
 ---
@@ -58,12 +58,13 @@ CrystalPilot/
 │   │       ├── data_analysis.py     # Data Analysis tab
 │   │       └── newtabtemplate.py    # Extension template
 │   └── agent/                       # LLM-powered assistant
-│       ├── agent.py                 # LangGraph state machine
+│       ├── agent.py                 # LangGraph state machine (Agent class)
 │       ├── state.py                 # AgentState TypedDict
 │       ├── llm.py                   # LLM provider abstraction
-│       ├── tools.py                 # LangChain tools
+│       ├── tools.py                 # LangChain tools factory (make_tools)
 │       ├── schema_gen.py            # Pydantic → JSON schema
-│       └── bridge.py                # Agent ↔ UI model sync
+│       ├── bridge.py                # Agent ↔ UI model sync (BRIDGED_SUBMODELS)
+│       └── utils.py                 # Shared helpers: coerce_type, pretty_name
 ├── tests/
 ├── docs/
 ├── scripts/
@@ -232,13 +233,13 @@ The `agent/` package implements a conversational AI assistant that helps researc
 User text
     │
     ▼
-[agent node] ──── LLM with bound tools
+[_call_model_node] ──── LLM.bind_tools(make_tools(schema)) → AI message
     │
-    ▼
+    ▼ (if tool_calls present)
 [tools node] ──── set_parameter | explain_parameter | get_default_value
     │
     ▼
-[validator node] ── Validate + coerce types, update config_state
+[_handle_tool_result_node] ── Validate + coerce types, update config_state
     │
     ▼
 Reply text + updated config dict
@@ -246,12 +247,13 @@ Reply text + updated config dict
 
 ### Key Files
 
-**`agent/agent.py`** — `Agent` class
-- `__init__(schema_properties)` — Initialize with flattened Pydantic schema
-- `_build_graph()` — Construct LangGraph state machine
+**`agent/agent.py`** — `Agent` class (Phase 0: nested functions → class methods)
+- `__init__(schema_properties)` — Calls `make_tools(schema_properties)`, compiles LangGraph
+- `_build_graph()` — Wires three nodes: `agent` → `tools` → `validator`
+- `_call_model_node(state)` — LLM invocation node
+- `_handle_tool_result_node(state)` — Dispatches to `_handle_set_parameter`, `_handle_get_default`
+- `_should_continue(state)` — Conditional edge: `"tools"` or `"end"`
 - `invoke(user_text, config_state)` → `(reply: str, updated_config: dict)`
-- System prompt instructs LLM to guide experiment setup step by step
-- Tool validation coerces user values to correct types (arrays, enums, floats)
 
 **`agent/state.py`** — `AgentState` TypedDict
 ```python
@@ -263,12 +265,23 @@ class AgentState(TypedDict):
     nudge_count: int                 # Interaction counter
 ```
 
-**`agent/tools.py`** — Three LangChain tools
+**`agent/tools.py`** — Tool factory (Phase 0: replaced global mutable state)
+```python
+make_tools(schema_props: dict) -> list
+```
+Returns three LangChain tools that **close over** `schema_props` — no global mutable state:
+
 | Tool | Action |
 |------|--------|
 | `set_parameter(name, value)` | Record user-provided value |
 | `get_default_value(name)` | Return schema default |
 | `explain_parameter(name)` | Return field description |
+
+**`agent/utils.py`** — Shared helpers (Phase 0: extracted from agent.py)
+```python
+coerce_type(value, field_info) -> Any    # Cast to schema type (int/float/bool/list)
+pretty_name(key, schema_props) -> str    # Human-readable field label
+```
 
 **`agent/llm.py`** — LLM Provider Abstraction
 Selects backend via `LLM_PROVIDER` environment variable:
@@ -280,22 +293,49 @@ Selects backend via `LLM_PROVIDER` environment variable:
 
 **`agent/schema_gen.py`**
 - `schema_from_pydantic(model_cls)` — Extracts flat `{field: {type, title, description, default, enum}}` map from Pydantic models
-- Used by Agent for field validation and explanation
+- `schema_from_model_instance(model)` — Convenience wrapper for instances
+- Used by `ChatViewModel._ensure_agent()` to build the schema at first-use
 
 **`agent/bridge.py`** — Bidirectional sync
-- `snapshot_models(main_model)` → flat dict of current field values
-- `apply_agent_config(config_state, main_model, bindings)` → writes agent changes back to Pydantic models and pushes to Trame view
+```python
+BRIDGED_SUBMODELS: tuple  # ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
+                          # Single source of truth — imported by mvvm_factory + ChatViewModel
+
+snapshot_models(main_model) -> dict          # UI → Agent: flat {field: value}
+apply_agent_config(config, model, bindings)  # Agent → UI: setattr + push to Trame
+```
 
 ### Integration Flow (ChatViewModel)
 
 ```python
 ChatViewModel.handle_submit(user_text)
-  ├── bridge.snapshot_models(main_model)        # Capture current state
-  ├── agent.invoke(user_text, config_state)      # LLM turn
-  ├── bridge.apply_agent_config(...)             # Apply changes to models
-  ├── push updated models to Trame view          # Re-render UI
+  ├── snapshot_models(main_model)             # Capture current UI state
+  ├── agent.invoke(user_text, config_state)   # LLM turn → (reply, new_config)
+  ├── apply_agent_config(new_config, ...)     # Write changes → Pydantic → Trame
   └── append assistant reply to chat messages
+
+ChatViewModel._ensure_agent()               # Called lazily on first message
+  ├── schema_from_model_instance(main_model)
+  ├── for attr in BRIDGED_SUBMODELS:         # Uses bridge.BRIDGED_SUBMODELS
+  │     schema_props.update(schema_from_model_instance(sub))
+  └── Agent(schema_properties=schema_props)
+
+mvvm_factory.create_viewmodels()
+  └── main_bindings = {name: getattr(main_vm, f"{name}_bind")
+                       for name in BRIDGED_SUBMODELS}  # Derived, not hand-listed
 ```
+
+### Known Limitations (Future Phases)
+
+| Gap | Planned Phase |
+|-----|--------------|
+| Bridge silently swallows `setattr` validation errors | Phase 1 |
+| No `get_parameter` tool (agent can't read current values) | Phase 1 |
+| Dynamic option lists (dropdowns) not exposed to agent | Phase 2 |
+| No `list_parameters` tool for field discovery | Phase 2 |
+| Complex types (angle list rows) not bridgeable | Phase 3 |
+| No multi-field atomic set | Phase 4 |
+| No tab navigation from agent | Phase 5 |
 
 ---
 
