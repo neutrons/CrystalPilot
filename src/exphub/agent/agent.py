@@ -15,19 +15,19 @@ from __future__ import annotations
 import json
 import logging
 from textwrap import dedent
-from typing import Any, Set
+from typing import Any, Literal, Set
 
 from jsonschema import ValidationError
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import StateGraph
+from langgraph.prebuilt import ToolNode
 
 from .llm import get_configured_chat_model
 from .state import AgentState
-from .tools import get_all_tools
+from .tools import make_tools
+from .utils import coerce_type, pretty_name
 
 logger = logging.getLogger(__name__)
-
-# ------------------------------------------------------------------ helpers
 
 SYSTEM_PROMPT = dedent("""\
 You are CrystalPilot Assistant, an AI helper for single-crystal neutron
@@ -50,180 +50,121 @@ Be concise and helpful. Use Markdown for formatting.
 """)
 
 
-def _coerce_type(value: Any, field_info: dict) -> Any:
-    """Coerce a raw value into the type declared in the JSON schema."""
-    t = field_info.get("type")
-    if t == "array":
-        if isinstance(value, (list, tuple)):
-            return list(value)
-        if isinstance(value, str):
-            parts = [v.strip() for v in (value.split(",") if "," in value else value.split()) if v.strip()]
-            items_type = field_info.get("items", {}).get("type")
-            if items_type == "number":
-                return [float(v) for v in parts]
-            if items_type == "integer":
-                return [int(float(v)) for v in parts]
-            return parts
-        return [value]
-    if t == "number":
-        return float(value)
-    if t == "integer":
-        return int(float(value))
-    if t == "boolean":
-        if isinstance(value, bool):
-            return value
-        s = str(value).lower()
-        return s in ("true", "yes", "y", "1")
-    return value
-
-
-def _pretty(key: str, schema_props: dict) -> str:
-    info = schema_props.get(key, {})
-    return info.get("title") or key.replace("_", " ").title()
-
-
-# ================================================================= Agent
-
 class Agent:
     """CrystalPilot LangGraph agent."""
 
     def __init__(self, schema_properties: dict[str, dict]) -> None:
-        # Populate the global that tools.get_default_value reads
-        import exphub.agent.tools as _tools_mod
-        _tools_mod._SCHEMA_PROPERTIES = schema_properties
-
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
+        self._tools = make_tools(schema_properties)
         self.graph = self._build_graph()
 
-    # ------------------------------------------------------------ graph build
+    # ------------------------------------------------------------------ graph
 
     def _build_graph(self):
-        tools = get_all_tools()
-
-        def call_model(state: AgentState):
-            msgs = [SystemMessage(content=SYSTEM_PROMPT)]
-
-            cfg_state = state.get("config_state", {})
-            if state.get("in_config_mode"):
-                ctx = f"CONTEXT: Current config values: {json.dumps(cfg_state, default=str)}"
-                msgs.append(SystemMessage(content=ctx))
-
-            msgs.extend(state["messages"][-6:])
-
-            llm = get_configured_chat_model().bind_tools(tools)
-            out = llm.invoke(msgs)
-            return {
-                "messages": [out],
-                "config_state": state.get("config_state", {}),
-                "in_config_mode": state.get("in_config_mode", False),
-                "nudge_count": state.get("nudge_count", 0),
-            }
-
-        def handle_tool_result(state: AgentState):
-            tool_msg = state["messages"][-1]
-            if not isinstance(tool_msg, ToolMessage):
-                return state
-
-            try:
-                tool_output = json.loads(tool_msg.content)
-            except (json.JSONDecodeError, TypeError):
-                tool_output = tool_msg.content
-
-            reply = ""
-
-            if tool_msg.name == "explain_parameter":
-                return {
-                    "messages": [AIMessage(content=str(tool_output))],
-                    "config_state": state["config_state"],
-                    "in_config_mode": state["in_config_mode"],
-                }
-
-            if tool_msg.name == "get_default_value":
-                param = tool_output["parameter_name"]
-                default = tool_output["default"]
-                pretty = _pretty(param, self.schema_properties)
-                reply = (
-                    f"The default value for **{pretty}** is `{default}`."
-                    if default is not None
-                    else f"There is no default defined for **{pretty}**."
-                )
-                return {
-                    "messages": [AIMessage(content=reply)],
-                    "config_state": state["config_state"],
-                    "in_config_mode": state["in_config_mode"],
-                }
-
-            if tool_msg.name == "set_parameter":
-                return self._handle_set_parameter(state, tool_output)
-
-            return state
-
-        def should_continue(state: AgentState) -> str:
-            last = state["messages"][-1]
-            if hasattr(last, "tool_calls") and last.tool_calls:
-                return "tools"
-            return "end"
-
-        from langgraph.prebuilt import ToolNode
-
         builder = StateGraph(AgentState)
-        builder.add_node("agent", call_model)
-        builder.add_node("tools", ToolNode(tools))
-        builder.add_node("validator", handle_tool_result)
+        builder.add_node("agent", self._call_model_node)
+        builder.add_node("tools", ToolNode(self._tools))
+        builder.add_node("validator", self._handle_tool_result_node)
 
         builder.set_entry_point("agent")
-        builder.add_conditional_edges("agent", should_continue, {"tools": "tools", "end": "__end__"})
+        builder.add_conditional_edges(
+            "agent",
+            self._should_continue,
+            {"tools": "tools", "end": "__end__"},
+        )
         builder.add_edge("tools", "validator")
         builder.add_edge("validator", "__end__")
-
         return builder.compile()
 
-    # ------------------------------------------------------------ set_parameter
+    # ------------------------------------------------------------------ nodes
 
-    def _handle_set_parameter(self, state: AgentState, tool_output: dict):
+    def _call_model_node(self, state: AgentState) -> AgentState:
+        msgs = [SystemMessage(content=SYSTEM_PROMPT)]
+
+        if state.get("in_config_mode"):
+            cfg = state.get("config_state", {})
+            msgs.append(SystemMessage(content=f"CONTEXT: Current config values: {json.dumps(cfg, default=str)}"))
+
+        msgs.extend(state["messages"][-6:])
+
+        llm = get_configured_chat_model().bind_tools(self._tools)
+        out = llm.invoke(msgs)
+        return {
+            "messages": [out],
+            "config_state": state.get("config_state", {}),
+            "in_config_mode": state.get("in_config_mode", False),
+            "nudge_count": state.get("nudge_count", 0),
+        }
+
+    def _handle_tool_result_node(self, state: AgentState) -> AgentState:
+        tool_msg = state["messages"][-1]
+        if not isinstance(tool_msg, ToolMessage):
+            return state
+
+        try:
+            tool_output = json.loads(tool_msg.content)
+        except (json.JSONDecodeError, TypeError):
+            tool_output = tool_msg.content
+
+        if tool_msg.name == "explain_parameter":
+            return self._state_with_reply(state, str(tool_output))
+
+        if tool_msg.name == "get_default_value":
+            return self._handle_get_default(state, tool_output)
+
+        if tool_msg.name == "set_parameter":
+            return self._handle_set_parameter(state, tool_output)
+
+        return state
+
+    @staticmethod
+    def _should_continue(state: AgentState) -> Literal["tools", "end"]:
+        last = state["messages"][-1]
+        if hasattr(last, "tool_calls") and last.tool_calls:
+            return "tools"
+        return "end"
+
+    # ------------------------------------------------------------------ tool handlers
+
+    def _handle_get_default(self, state: AgentState, tool_output: dict) -> AgentState:
+        param = tool_output["parameter_name"]
+        default = tool_output["default"]
+        label = pretty_name(param, self.schema_properties)
+        if default is not None:
+            reply = f"The default value for **{label}** is `{default}`."
+        else:
+            reply = f"There is no default defined for **{label}**."
+        return self._state_with_reply(state, reply)
+
+    def _handle_set_parameter(self, state: AgentState, tool_output: dict) -> AgentState:
         if not isinstance(tool_output, dict):
-            return {
-                "messages": [AIMessage(content="Invalid tool output format.")],
-                "config_state": state["config_state"],
-                "in_config_mode": state["in_config_mode"],
-            }
+            return self._state_with_reply(state, "Invalid tool output format.")
 
         key = tool_output["parameter_name"]
         raw_value = tool_output["parameter_value"]
 
         info = self.schema_properties.get(key)
         if not info:
-            reply = f"Unknown parameter '{key}'. Please check the name."
-            return {
-                "messages": [AIMessage(content=reply)],
-                "config_state": state["config_state"],
-                "in_config_mode": state["in_config_mode"],
-            }
+            return self._state_with_reply(state, f"Unknown parameter '{key}'. Please check the name.")
 
         try:
-            value = _coerce_type(raw_value, info)
+            value = coerce_type(raw_value, info)
 
-            # Enum check
             if info.get("enum") and isinstance(value, str):
                 lc = value.strip().lower()
                 match = next((c for c in info["enum"] if str(c).lower() == lc), None)
                 if match is None:
                     opts = ", ".join(str(c) for c in info["enum"])
-                    return {
-                        "messages": [AIMessage(content=f"Invalid value '{value}'. Choose from: {opts}")],
-                        "config_state": state["config_state"],
-                        "in_config_mode": state["in_config_mode"],
-                    }
+                    return self._state_with_reply(state, f"Invalid value '{value}'. Choose from: {opts}")
                 value = match
 
             state["config_state"][key] = value
             self._answered.add(key)
-
-            pretty = _pretty(key, self.schema_properties)
-            reply = f"Set **{pretty}** = `{value}`."
+            label = pretty_name(key, self.schema_properties)
+            reply = f"Set **{label}** = `{value}`."
 
         except (ValidationError, ValueError, TypeError) as err:
             reply = f"Invalid value for **{key}**: {err}"
@@ -235,7 +176,17 @@ class Agent:
             "nudge_count": state.get("nudge_count", 0),
         }
 
-    # ------------------------------------------------------------ public API
+    # ------------------------------------------------------------------ helpers
+
+    @staticmethod
+    def _state_with_reply(state: AgentState, reply: str) -> AgentState:
+        return {
+            "messages": [AIMessage(content=reply)],
+            "config_state": state["config_state"],
+            "in_config_mode": state["in_config_mode"],
+        }
+
+    # ------------------------------------------------------------------ public API
 
     def invoke(self, user_text: str, config_state: dict | None = None) -> tuple[str, dict]:
         """Run the agent for a single user turn.
@@ -256,7 +207,6 @@ class Agent:
         self._config_state = result.get("config_state", cfg)
         self._in_config_mode = result.get("in_config_mode", False)
 
-        # Extract the last AI message text
         reply = ""
         for msg in reversed(result["messages"]):
             if isinstance(msg, AIMessage) and msg.content:

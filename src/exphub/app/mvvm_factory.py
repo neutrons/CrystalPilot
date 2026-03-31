@@ -2,6 +2,7 @@
 
 from nova.mvvm.interface import BindingInterface
 
+from ..agent.bridge import BRIDGED_SUBMODELS
 from .models.chat import ChatModel
 from .models.main_model import MainModel
 from .view_models.chat import ChatViewModel
@@ -17,12 +18,7 @@ def create_viewmodels(binding: BindingInterface) -> dict:
     # Chat / Agent viewmodel — shares the same MainModel so the agent
     # can read and write the same Pydantic fields the left-side tabs use.
     chat_model = ChatModel()
-    main_bindings = {
-        "experimentinfo": main_vm.experimentinfo_bind,
-        "angleplan": main_vm.angleplan_bind,
-        "eiccontrol": main_vm.eiccontrol_bind,
-        "dataanalysis": main_vm.dataanalysis_bind,
-    }
+    main_bindings = {name: getattr(main_vm, f"{name}_bind") for name in BRIDGED_SUBMODELS}
     vm["chat"] = ChatViewModel(chat_model, model, binding, main_bindings)
 
     return vm

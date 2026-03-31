@@ -17,8 +17,10 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Sub-model names on MainModel that we bridge (the field name on MainModel)
-_BRIDGED_SUBMODELS = ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
+# Sub-model attribute names on MainModel that the agent can read and write.
+# Import this constant in mvvm_factory and view_models/chat instead of
+# re-listing the names by hand.
+BRIDGED_SUBMODELS: tuple[str, ...] = ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
 
 
 def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
@@ -27,7 +29,7 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
     Field names are kept as-is (e.g. ``ipts_number``, ``crystalsystem``).
     """
     flat: Dict[str, Any] = {}
-    for attr_name in _BRIDGED_SUBMODELS:
+    for attr_name in BRIDGED_SUBMODELS:
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue
@@ -64,7 +66,7 @@ def apply_agent_config(
     """
     updated: list[str] = []
 
-    for attr_name in _BRIDGED_SUBMODELS:
+    for attr_name in BRIDGED_SUBMODELS:
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue

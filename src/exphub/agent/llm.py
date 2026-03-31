@@ -21,10 +21,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from langchain_google_genai import ChatGoogleGenerativeAI
-    import google.generativeai as genai
 except Exception:
     ChatGoogleGenerativeAI = None  # type: ignore[assignment,misc]
-    genai = None
 
 try:
     from langchain_openai import ChatOpenAI as ChatOpenAI_openai
@@ -94,10 +92,3 @@ def get_configured_chat_model():
     )
 
 
-def get_base_gemini_model():
-    """Return a raw google.generativeai model for RAG sessions."""
-    if genai is None:
-        raise ImportError("google-generativeai is required")
-    api_key = _require_key("GOOGLE_API_KEY", "Set GOOGLE_API_KEY in .env")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash")
