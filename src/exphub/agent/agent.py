@@ -47,6 +47,8 @@ Your capabilities:
   centering_list, point_group_list).
 - Read the current angle plan table with ``get_angle_plan``.
 - Add runs to the angle plan with ``append_run`` (phi and omega required).
+- Edit a specific run with ``edit_run`` (provide row_index and only the fields
+  to change; use the _index from ``get_angle_plan``).
 - Remove runs from the angle plan with ``delete_run`` (use the _index from
   ``get_angle_plan``).
 - Answer general crystallography and beamline questions.
@@ -135,7 +137,7 @@ class Agent:
         if tool_msg.name == "list_presets":
             return self._state_with_reply(state, str(tool_output))
 
-        if tool_msg.name in ("set_parameter", "append_run", "delete_run"):
+        if tool_msg.name in ("set_parameter", "append_run", "edit_run", "delete_run"):
             if isinstance(tool_output, dict) and "error" in tool_output and "parameter_name" not in tool_output:
                 return self._state_with_reply(state, f"Error: {tool_output['error']}")
             return self._handle_set_parameter(state, tool_output)

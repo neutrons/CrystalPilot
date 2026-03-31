@@ -333,6 +333,52 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
         return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
 
     @tool
+    def edit_run(
+        row_index: int,
+        phi: float | None = None,
+        omega: float | None = None,
+        title: str | None = None,
+        comment: str | None = None,
+        wait_for: str | None = None,
+        value: float | None = None,
+        or_time: float | None = None,
+    ) -> dict:
+        """Edit an existing run in the angle plan by its 0-based index.
+
+        Only the fields you provide are updated; omitted fields keep their
+        current value.  Use ``get_angle_plan`` first to find the correct
+        ``_index`` value and verify current field values.
+
+        Returns the updated full table (or an error dict if the index is out
+        of range).
+        """
+        current = snapshot_fn() if snapshot_fn is not None else {}
+        rows = current.get("angle_list_pd", [])
+        if row_index < 0 or row_index >= len(rows):
+            return {"error": f"Row index {row_index} is out of range (table has {len(rows)} rows, indices 0–{len(rows)-1})."}
+
+        serialized = []
+        for i, row in enumerate(rows):
+            d = row.model_dump() if hasattr(row, "model_dump") else dict(row)
+            if i == row_index:
+                if phi is not None:
+                    d["phi"] = phi
+                if omega is not None:
+                    d["omega"] = omega
+                if title is not None:
+                    d["title"] = title
+                if comment is not None:
+                    d["comment"] = comment
+                if wait_for is not None:
+                    d["wait_for"] = wait_for
+                if value is not None:
+                    d["value"] = value
+                if or_time is not None:
+                    d["or_time"] = or_time
+            serialized.append(d)
+        return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
+
+    @tool
     def delete_run(row_index: int) -> dict:
         """Delete a run from the angle plan by its 0-based index.
 
@@ -354,5 +400,5 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
         set_parameter, get_default_value, explain_parameter,
         get_parameter, list_parameters, refresh_schema,
         set_multiple_parameters, apply_preset, list_presets,
-        get_angle_plan, append_run, delete_run,
+        get_angle_plan, append_run, edit_run, delete_run,
     ]
