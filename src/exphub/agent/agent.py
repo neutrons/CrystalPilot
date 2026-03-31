@@ -23,6 +23,7 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 
 from .llm import get_configured_chat_model
+from .rag import BeamlineKnowledgeBase
 from .state import AgentState
 from .tools import make_tools
 from .utils import coerce_type, pretty_name
@@ -54,6 +55,9 @@ Your capabilities:
 - Navigate to a specific UI tab with ``navigate_to_tab``; accepted names:
   ``ipts_info`` (1), ``live_data_processing`` (2), ``experiment_steering`` (3),
   ``instrument_status`` (5), ``data_analysis`` (6).
+- Look up beamline and crystallography documentation with ``retrieve_docs``;
+  use it whenever the user asks about instrument specs, parameter meanings,
+  crystal systems, point groups, angle plan concepts, or troubleshooting.
 - Answer general crystallography and beamline questions.
 
 When the user provides a value for a configuration field, ALWAYS call the
@@ -74,7 +78,14 @@ class Agent:
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
-        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn)
+
+        try:
+            rag = BeamlineKnowledgeBase()
+        except Exception as exc:
+            logger.warning("RAG init failed (%s) — retrieve_docs will be unavailable", exc)
+            rag = None
+
+        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn, rag=rag)
         self.graph = self._build_graph()
 
     # ------------------------------------------------------------------ graph
@@ -92,7 +103,11 @@ class Agent:
             {"tools": "tools", "end": "__end__"},
         )
         builder.add_edge("tools", "validator")
-        builder.add_edge("validator", "__end__")
+        builder.add_conditional_edges(
+            "validator",
+            self._validator_routing,
+            {"agent": "agent", "end": "__end__"},
+        )
         return builder.compile()
 
     # ------------------------------------------------------------------ nodes
@@ -157,7 +172,20 @@ class Agent:
         if tool_msg.name == "navigate_to_tab":
             return self._handle_navigate_to_tab(state, tool_output)
 
+        if tool_msg.name == "retrieve_docs":
+            # Pass through unchanged — _validator_routing sends back to the
+            # agent node so the LLM can synthesise a reply from the passages.
+            return state
+
         return state
+
+    @staticmethod
+    def _validator_routing(state: AgentState) -> Literal["agent", "end"]:
+        """Route back to the agent after retrieve_docs so it can synthesise a reply."""
+        last = state["messages"][-1]
+        if isinstance(last, ToolMessage) and last.name == "retrieve_docs":
+            return "agent"
+        return "end"
 
     @staticmethod
     def _should_continue(state: AgentState) -> Literal["tools", "end"]:

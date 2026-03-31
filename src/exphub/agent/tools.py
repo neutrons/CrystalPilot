@@ -81,7 +81,7 @@ _TAB_NAMES: dict[int, str] = {
 }
 
 
-def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None) -> list:
+def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag=None) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
     Parameters
@@ -442,10 +442,36 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None) -> 
         nav_fn(tab_number)
         return {"tab": tab_number, "name": _TAB_NAMES.get(tab_number, f"tab {tab_number}")}
 
+    # ------------------------------------------------------------------ RAG retrieval
+
+    @tool
+    def retrieve_docs(query: str) -> str:
+        """Search the CrystalPilot knowledge base for documentation relevant to *query*.
+
+        Use this to answer questions about:
+        - Crystal systems, centering types, point groups, space groups
+        - Instrument specifics for TOPAZ, CORELLI, MANDI (wavelength ranges,
+          Q limits, typical parameter values)
+        - Data reduction parameter meanings (max_q, tolerance, peak_radius, etc.)
+        - Angle plan concepts (phi, omega, PCharge, wait_for)
+        - IPTS numbers, experiment workflow, EIC Control
+        - Mantid algorithms used during reduction
+        - Troubleshooting common diffraction issues
+
+        Returns up to 3 relevant passages from the knowledge base, or a
+        message if nothing is found.
+        """
+        if rag is None:
+            return "Knowledge base is not available in this session."
+        passages = rag.retrieve(query)
+        if not passages:
+            return "No relevant documentation found for that query."
+        return "\n\n---\n\n".join(passages)
+
     return [
         set_parameter, get_default_value, explain_parameter,
         get_parameter, list_parameters, refresh_schema,
         set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, edit_run, delete_run,
-        navigate_to_tab,
+        navigate_to_tab, retrieve_docs,
     ]
