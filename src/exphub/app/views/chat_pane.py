@@ -1,12 +1,14 @@
-"""Right-side chat drawer view for CrystalPilot.
+"""Right-side chat panel view for CrystalPilot.
 
-Renders a Vuetify3 v-navigation-drawer on the right containing:
+Renders an inline right panel (not an overlay drawer) containing:
 - A scrollable message list (user / assistant bubbles)
 - A text input bar at the bottom
-- A thinking indicator
+- A thinking / status indicator
 """
 
 from __future__ import annotations
+
+import asyncio
 
 from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
@@ -54,18 +56,28 @@ _CHAT_CSS = """
     padding: 8px 12px;
     border-top: 1px solid #e0e0e0;
 }
+.chat-status-bar {
+    flex: 0 0 auto;
+    padding: 2px 12px;
+    font-size: 0.75rem;
+    color: #757575;
+    font-style: italic;
+    min-height: 20px;
+}
 """
 
 
 class ChatPaneView:
-    """Builds the right-side navigation drawer chat UI."""
+    """Builds the right-side inline chat panel UI."""
 
     def __init__(self, server, chat_vm: ChatViewModel) -> None:
         self.server = server
         self.chat_vm = chat_vm
         self.ctrl = server.controller
 
-        # Register the submit trigger so the UI can call it from JS
+        # Register the submit trigger so the UI can call it from JS.
+        # _on_submit is synchronous — it schedules the async handle_submit
+        # via asyncio.ensure_future so the trame event loop is not blocked.
         self.ctrl.trigger("chat_submit")(self._on_submit)
 
         # Connect the chat binding to a trame reactive namespace
@@ -79,12 +91,15 @@ class ChatPaneView:
         # Inject CSS via trame's client.Style (safe, doesn't use v-html)
         client.Style(_CHAT_CSS)
 
-        with vuetify.VNavigationDrawer(
-            v_model="chat.drawer_open",
-            location="right",
-            temporary=True,
-            width="400",
-            style="display: flex; flex-direction: column;",
+        # Inline right panel — shown/hidden via v-show so it squeezes the
+        # sibling tab-content div rather than overlaying it.
+        with html.Div(
+            v_show="chat.drawer_open",
+            style=(
+                "flex: 0 0 400px; display: flex; flex-direction: column; "
+                "border-left: 1px solid rgba(0,0,0,0.12); background: white; "
+                "overflow: hidden;"
+            ),
         ):
             # ── Header ──
             with vuetify.VToolbar(density="compact", color="primary"):
@@ -98,7 +113,6 @@ class ChatPaneView:
 
             # ── Messages area ──
             with html.Div(classes="chat-messages-container", ref="chatMessages"):
-                # v-for over the reactive messages array
                 # :class binds dynamically: 'chat-bubble chat-bubble-user' or 'chat-bubble chat-bubble-assistant'
                 with html.Div(
                     v_for="(msg, idx) in chat.messages",
@@ -114,6 +128,10 @@ class ChatPaneView:
                     style="font-style: italic; opacity: 0.7;",
                 ):
                     html.Span("Thinking ...")
+
+            # ── Status bar (debug / processing step) ──
+            with html.Div(classes="chat-status-bar"):
+                html.Span("{{ chat.agent_status }}")
 
             # ── Input area ──
             with html.Div(classes="chat-input-area"):
@@ -139,7 +157,8 @@ class ChatPaneView:
 
     # ------------------------------------------------------------------ handler
 
-    async def _on_submit(self, text: str = "") -> None:
+    def _on_submit(self, text: str = "") -> None:
+        """Sync trigger handler — schedules the async agent call on the event loop."""
         if not text or not text.strip():
             return
-        await self.chat_vm.handle_submit(text.strip())
+        asyncio.ensure_future(self.chat_vm.handle_submit(text.strip()))

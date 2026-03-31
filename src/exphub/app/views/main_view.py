@@ -8,6 +8,7 @@ from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
 from trame.app import get_server
 from trame.widgets import vuetify3 as vuetify
+from trame_client.widgets import html
 
 from ..mvvm_factory import create_viewmodels
 from ..view_models.main import MainViewModel
@@ -42,25 +43,30 @@ class MainApp(ThemedApp):
 
         with super().create_ui() as layout:
             layout.toolbar_title.set_text("CrystalPilot")
-            with layout.pre_content:
-                TabsPanel(self.view_models["main"])
-            with layout.content:
-                TabContentPanel(
-                    self.server,
-                    self.view_models["main"],
-                )
-            with layout.post_content:
-                # Agent toggle button (placed at bottom-right as a FAB)
+
+            # Agent toggle button in toolbar (top-right, next to exit button)
+            with layout.actions:
                 vuetify.VBtn(
                     icon="mdi-robot-outline",
-                    color="primary",
                     click=self.view_models["chat"].toggle_drawer,
-                    style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;",
-                    size="large",
-                    elevation=4,
+                    variant="text",
+                    size="small",
+                    title="Toggle Agent Pane",
                 )
-                # Right-side chat drawer
-                ChatPaneView(self.server, self.view_models["chat"])
+
+            with layout.pre_content:
+                TabsPanel(self.view_models["main"])
+
+            # Main content + inline chat panel side-by-side so the chat pane
+            # squeezes the tab content instead of overlapping it.
+            with layout.content:
+                with html.Div(style="display: flex; height: 100%; overflow: hidden;"):
+                    with html.Div(style="flex: 1 1 0; overflow: hidden;"):
+                        TabContentPanel(
+                            self.server,
+                            self.view_models["main"],
+                        )
+                    ChatPaneView(self.server, self.view_models["chat"])
 
             with (
                 open("BL12_ADnED_2D_4x4.bob", mode="r") as xml_file,

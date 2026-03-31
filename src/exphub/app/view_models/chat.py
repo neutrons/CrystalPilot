@@ -82,9 +82,11 @@ class ChatViewModel:
         if not user_text.strip():
             return
 
+        print(f"[CrystalPilot Agent] User: {user_text[:120]}")
         self.chat_model.messages.append({"role": "user", "content": user_text})
         self.chat_model.user_input = ""
         self.chat_model.is_thinking = True
+        self.chat_model.agent_status = "Initialising agent…"
         self._push_chat()
 
         try:
@@ -93,9 +95,13 @@ class ChatViewModel:
             pending_errors = self._pending_bridge_errors or None
             self._pending_bridge_errors = {}
 
+            self.chat_model.agent_status = "Calling LLM…"
+            self._push_chat()
+            print("[CrystalPilot Agent] Calling LLM (run_in_executor)…")
+
             # Offload the blocking LLM call to a thread-pool executor so the
             # asyncio event loop (and the Trame/Vue UI) stays responsive.
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             reply, new_config = await loop.run_in_executor(
                 None,
                 lambda: self._agent.invoke(
@@ -105,8 +111,13 @@ class ChatViewModel:
                 ),
             )
 
+            print(f"[CrystalPilot Agent] Reply: {reply[:120]}")
+            self.chat_model.agent_status = "Applying configuration…"
+            self._push_chat()
+
             changed, errors = apply_agent_config(new_config, self.main_model, self.main_bindings)
             if changed:
+                print(f"[CrystalPilot Agent] Updated fields: {changed}")
                 logger.info("Agent updated fields: %s", changed)
                 schema_props = self._agent.schema_properties
                 pretty_fields = [pretty_name(f, schema_props) for f in changed]
@@ -119,11 +130,13 @@ class ChatViewModel:
             self.chat_model.messages.append({"role": "assistant", "content": reply})
 
         except Exception as exc:
+            print(f"[CrystalPilot Agent] Error: {exc}")
             logger.exception("Agent error")
             self._pending_bridge_errors = {}
             self.chat_model.messages.append({"role": "assistant", "content": f"Error: {exc}"})
 
         self.chat_model.is_thinking = False
+        self.chat_model.agent_status = ""
         self._push_chat()
 
     # ------------------------------------------------------------------ helpers
