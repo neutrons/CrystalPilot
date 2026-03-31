@@ -59,9 +59,13 @@ class MainApp(ThemedApp):
 
             # Main content + inline chat panel side-by-side so the chat pane
             # squeezes the tab content instead of overlapping it.
+            # The inner wrapper must be display:flex + flex-direction:column so
+            # that VBoxLayout(stretch=True) children can grow vertically.
             with layout.content:
                 with html.Div(style="display: flex; height: 100%; overflow: hidden;"):
-                    with html.Div(style="flex: 1 1 0; overflow: hidden;"):
+                    with html.Div(
+                        style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden;"
+                    ):
                         TabContentPanel(
                             self.server,
                             self.view_models["main"],

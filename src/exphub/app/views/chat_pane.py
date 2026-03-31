@@ -8,8 +8,6 @@ Renders an inline right panel (not an overlay drawer) containing:
 
 from __future__ import annotations
 
-import asyncio
-
 from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets import html
@@ -75,9 +73,8 @@ class ChatPaneView:
         self.chat_vm = chat_vm
         self.ctrl = server.controller
 
-        # Register the submit trigger so the UI can call it from JS.
-        # _on_submit is synchronous — it schedules the async handle_submit
-        # via asyncio.ensure_future so the trame event loop is not blocked.
+        # Register the submit trigger. trame automatically awaits async trigger
+        # handlers (protocol.py: `if inspect.isawaitable(result): await result`).
         self.ctrl.trigger("chat_submit")(self._on_submit)
 
         # Connect the chat binding to a trame reactive namespace
@@ -135,16 +132,25 @@ class ChatPaneView:
 
             # ── Input area ──
             with html.Div(classes="chat-input-area"):
-                vuetify.VTextField(
-                    v_model="chat.user_input",
-                    placeholder="Ask CrystalPilot Agent…",
-                    variant="outlined",
-                    density="compact",
-                    hide_details=True,
-                    append_inner_icon="mdi-send",
-                    **{"@keydown.enter": "trigger('chat_submit', [chat.user_input])"},
-                    **{"@click:append-inner": "trigger('chat_submit', [chat.user_input])"},
-                )
+                with vuetify.VRow(no_gutters=True, align="center", style="gap: 4px;"):
+                    with vuetify.VCol():
+                        vuetify.VTextField(
+                            v_model="chat.user_input",
+                            placeholder="Ask CrystalPilot Agent…",
+                            variant="outlined",
+                            density="compact",
+                            hide_details=True,
+                            # keyup fires AFTER the v-model state is updated;
+                            # keydown can race with the state sync.
+                            **{"@keyup.enter": "trigger('chat_submit', [chat.user_input])"},
+                        )
+                    vuetify.VBtn(
+                        icon="mdi-send",
+                        color="primary",
+                        variant="tonal",
+                        size="small",
+                        **{"@click": "trigger('chat_submit', [chat.user_input])"},
+                    )
 
         # Field-update snackbar (shown briefly when the agent writes parameters)
         with vuetify.VSnackbar(
@@ -157,8 +163,16 @@ class ChatPaneView:
 
     # ------------------------------------------------------------------ handler
 
-    def _on_submit(self, text: str = "") -> None:
-        """Sync trigger handler — schedules the async agent call on the event loop."""
+    async def _on_submit(self, text: str = "") -> None:
+        """Trigger handler — trame awaits async trigger results automatically."""
+        print(f"[ChatPane] _on_submit called, text='{text}'")
+        # Fallback: if the trigger arg arrived empty (state-sync race), read the
+        # current value from the Python model (which the state.change callback
+        # keeps in sync from v-model updates).
         if not text or not text.strip():
+            text = self.chat_vm.chat_model.user_input
+            print(f"[ChatPane] fallback to model user_input='{text}'")
+        if not text or not text.strip():
+            print("[ChatPane] text is empty, ignoring submit")
             return
-        asyncio.ensure_future(self.chat_vm.handle_submit(text.strip()))
+        await self.chat_vm.handle_submit(text.strip())
