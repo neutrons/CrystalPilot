@@ -42,6 +42,9 @@ Your capabilities:
 - Set many parameters at once with ``set_multiple_parameters``.
 - Apply a named instrument preset with ``apply_preset``; use ``list_presets``
   to see what is available.
+- Call ``refresh_schema`` after the user changes a field whose change causes
+  available options for other fields to update (e.g. crystalsystem →
+  centering_list, point_group_list).
 - Read the current angle plan table with ``get_angle_plan``.
 - Add runs to the angle plan with ``append_run`` (phi and omega required).
 - Remove runs from the angle plan with ``delete_run`` (use the _index from
@@ -123,6 +126,9 @@ class Agent:
         if tool_msg.name == "get_default_value":
             return self._handle_get_default(state, tool_output)
 
+        if tool_msg.name == "refresh_schema":
+            return self._handle_refresh_schema(state, tool_output)
+
         if tool_msg.name in ("set_multiple_parameters", "apply_preset"):
             return self._handle_set_multiple(state, tool_output)
 
@@ -167,6 +173,20 @@ class Agent:
         opts = tool_output.get("valid_options")
         if opts:
             reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
+        return self._state_with_reply(state, reply)
+
+    def _handle_refresh_schema(self, state: AgentState, tool_output) -> AgentState:
+        if not isinstance(tool_output, dict):
+            return self._state_with_reply(state, str(tool_output))
+        if "error" in tool_output:
+            return self._state_with_reply(state, f"Schema refresh error: {tool_output['error']}")
+        fields = tool_output.get("refreshed_fields", [])
+        total = tool_output.get("total_fields", 0)
+        if fields:
+            names = ", ".join(f"**{pretty_name(f, self.schema_properties)}**" for f in fields)
+            reply = f"Schema refreshed — updated options for: {names}."
+        else:
+            reply = f"Schema refreshed — no option changes detected ({total} fields checked)."
         return self._state_with_reply(state, reply)
 
     def _handle_set_multiple(self, state: AgentState, tool_output: dict) -> AgentState:

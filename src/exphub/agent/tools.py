@@ -12,6 +12,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from .schema_gen import enrich_schema_with_options
 from .utils import coerce_type
 
 logger = logging.getLogger(__name__)
@@ -183,6 +184,35 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
 
         return json.dumps(params, default=str)
 
+    # ------------------------------------------------------------------ schema refresh
+
+    @tool
+    def refresh_schema() -> str:
+        """Refresh the agent's knowledge of valid options for dropdown fields.
+
+        Call this after the user changes a field that affects available choices
+        (e.g. changing ``crystalsystem`` updates ``centering_list`` and
+        ``point_group_list``).
+
+        The agent's in-memory schema is updated in-place so subsequent
+        ``set_parameter`` calls immediately validate against the new options.
+        Returns a JSON summary listing which fields had their options updated.
+        """
+        if snapshot_fn is None:
+            return json.dumps({"error": "snapshot not available"})
+        snap = snapshot_fn()
+        enriched = enrich_schema_with_options(schema_props, snap)
+
+        # Update schema_props in-place — same dict reference used by all tools
+        # and by Agent.schema_properties, so the change is visible everywhere.
+        updated_fields: list[str] = []
+        for key, new_info in enriched.items():
+            if new_info.get("enum") != schema_props.get(key, {}).get("enum"):
+                updated_fields.append(key)
+            schema_props[key] = new_info
+
+        return json.dumps({"refreshed_fields": updated_fields, "total_fields": len(schema_props)})
+
     # ------------------------------------------------------------------ multi-set / presets
 
     def _validate_multi(params: dict) -> tuple[dict, dict]:
@@ -322,7 +352,7 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
 
     return [
         set_parameter, get_default_value, explain_parameter,
-        get_parameter, list_parameters,
+        get_parameter, list_parameters, refresh_schema,
         set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, delete_run,
     ]
