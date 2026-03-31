@@ -197,6 +197,33 @@ class MainViewModel:
         finally:
             self._temporalanalysis_updating = False
 
+    def _build_temporal_figures(self) -> tuple:
+        """Build both figures in the caller's thread (intended for thread-pool use)."""
+        return (
+            self.model.temporalanalysis.get_figure_intensity(),
+            self.model.temporalanalysis.get_figure_uncertainty(),
+        )
+
+    async def _update_figures_async(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Offload figure construction to thread pool, then push results to view on event loop."""
+        if self._temporalanalysis_updating:
+            return
+        now = time.time()
+        if now - self._temporalanalysis_last_update_time < self._temporalanalysis_min_interval:
+            return
+        self._temporalanalysis_last_update_time = now
+        self._temporalanalysis_updating = True
+        try:
+            fig_i, fig_u = await loop.run_in_executor(None, self._build_temporal_figures)
+            self.temporalanalysis_updatefigure_intensity_bind.update_in_view(fig_i)
+            self.temporalanalysis_updatefigure_uncertainty_bind.update_in_view(fig_u)
+            try:
+                self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
+            except Exception:
+                pass
+        finally:
+            self._temporalanalysis_updating = False
+
     async def auto_update_temporalanalysis_figure(self) -> None:
         while True:
             self.update_temporalanalysis_figure()
@@ -246,7 +273,7 @@ class MainViewModel:
                 )
                 print("get_live_mtd_data done")
                 print("============================================================================================")
-                self.update_temporalanalysis_figure()
+                await self._update_figures_async(loop)
                 print(
                     "=====================update temporal done========================================================="
                 )
