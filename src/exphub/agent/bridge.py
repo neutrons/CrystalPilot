@@ -55,13 +55,13 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue
-        for field_name in sub.model_fields:
+        for field_name in type(sub).model_fields:
             val = getattr(sub, field_name, None)
             if isinstance(val, BaseModel):
                 # Expand the `options` sub-model so option lists are visible
                 # in the snapshot (e.g. instrument_list, crystalsystem_list).
                 if field_name == "options":
-                    for opt_field in val.model_fields:
+                    for opt_field in type(val).model_fields:
                         flat[opt_field] = getattr(val, opt_field, None)
                 continue
             flat[field_name] = val
@@ -102,7 +102,7 @@ def apply_agent_config(
         bind = bindings.get(attr_name)
         dirty = False
 
-        for field_name in sub.model_fields:
+        for field_name in type(sub).model_fields:
             if field_name not in config_state:
                 continue
             new_val = config_state[field_name]

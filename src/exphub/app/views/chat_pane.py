@@ -139,7 +139,7 @@ class ChatPaneView:
 
     # ------------------------------------------------------------------ handler
 
-    def _on_submit(self, text: str = "") -> None:
+    async def _on_submit(self, text: str = "") -> None:
         if not text or not text.strip():
             return
-        self.chat_vm.handle_submit(text.strip())
+        await self.chat_vm.handle_submit(text.strip())

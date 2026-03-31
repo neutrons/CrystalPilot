@@ -1,6 +1,7 @@
 """Main file."""
 
 import logging
+import os
 
 from nova.epics.trame import get_epics_instance
 from nova.mvvm.trame_binding import TrameBinding
@@ -34,6 +35,10 @@ class MainApp(ThemedApp):
     def create_ui(self) -> None:
         self.set_theme("CompactTheme")
         self.state.trame__title = "CrystalPilot"
+
+        # Suppress the NOVA Examples / Tutorial / Documentation buttons that
+        # ThemedApp injects when PIXI_ENVIRONMENT_NAME != "production".
+        os.environ["PIXI_ENVIRONMENT_NAME"] = "production"
 
         with super().create_ui() as layout:
             layout.toolbar_title.set_text("CrystalPilot")

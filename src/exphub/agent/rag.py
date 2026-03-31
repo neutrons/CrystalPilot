@@ -47,14 +47,34 @@ def _load_documents(knowledge_dir: Path) -> list[str]:
 
 
 def _chunk_text(text: str, source: str) -> list[str]:
-    """Split *text* into overlapping word-windows, tagged with *source*."""
-    words = text.split()
+    """Split *text* into semantically coherent chunks, tagged with *source*.
+
+    Strategy (heading-aware, then word-window):
+    1. Split on ``## `` boundaries so each Markdown section stays together.
+    2. Any section that exceeds *_CHUNK_SIZE* words is further split into
+       overlapping word-windows (same overlap as before).
+    This keeps related content in one chunk and avoids cutting mid-sentence.
+    """
+    # Split into sections on level-2 headings; re-attach the heading marker.
+    raw_sections: list[str] = []
+    for i, part in enumerate(text.split("\n## ")):
+        raw_sections.append(part if i == 0 else "## " + part)
+
     result: list[str] = []
-    i = 0
-    while i < len(words):
-        snippet = " ".join(words[i : i + _CHUNK_SIZE])
-        result.append(f"[{source}]\n{snippet}")
-        i += _CHUNK_SIZE - _OVERLAP
+    for section in raw_sections:
+        section = section.strip()
+        if not section:
+            continue
+        words = section.split()
+        if len(words) <= _CHUNK_SIZE:
+            result.append(f"[{source}]\n{section}")
+        else:
+            # Sub-chunk large sections with overlap
+            i = 0
+            while i < len(words):
+                snippet = " ".join(words[i : i + _CHUNK_SIZE])
+                result.append(f"[{source}]\n{snippet}")
+                i += _CHUNK_SIZE - _OVERLAP
     return result
 
 

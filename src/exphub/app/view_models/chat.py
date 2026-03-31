@@ -10,6 +10,7 @@ Manages:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 from functools import partial
@@ -20,6 +21,7 @@ from nova.mvvm.interface import BindingInterface
 from ...agent.agent import Agent
 from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
+from ...agent.utils import pretty_name
 from ..models.chat import ChatModel
 from ..models.main_model import MainModel
 
@@ -75,7 +77,7 @@ class ChatViewModel:
 
     # ------------------------------------------------------------------ submit
 
-    def handle_submit(self, user_text: str) -> None:
+    async def handle_submit(self, user_text: str) -> None:
         """Process a user message: run agent, apply config changes, update UI."""
         if not user_text.strip():
             return
@@ -88,20 +90,27 @@ class ChatViewModel:
         try:
             self._ensure_agent()
             current_state = snapshot_models(self.main_model)
-
-            # Pass any validation errors from the previous turn so the agent
-            # can explain them to the user instead of silently losing them.
-            reply, new_config = self._agent.invoke(
-                user_text,
-                config_state=current_state,
-                bridge_errors=self._pending_bridge_errors or None,
-            )
+            pending_errors = self._pending_bridge_errors or None
             self._pending_bridge_errors = {}
+
+            # Offload the blocking LLM call to a thread-pool executor so the
+            # asyncio event loop (and the Trame/Vue UI) stays responsive.
+            loop = asyncio.get_event_loop()
+            reply, new_config = await loop.run_in_executor(
+                None,
+                lambda: self._agent.invoke(
+                    user_text,
+                    config_state=current_state,
+                    bridge_errors=pending_errors,
+                ),
+            )
 
             changed, errors = apply_agent_config(new_config, self.main_model, self.main_bindings)
             if changed:
                 logger.info("Agent updated fields: %s", changed)
-                self.chat_model.last_update_summary = "Updated: " + ", ".join(changed)
+                schema_props = self._agent.schema_properties
+                pretty_fields = [pretty_name(f, schema_props) for f in changed]
+                self.chat_model.last_update_summary = "Updated: " + ", ".join(pretty_fields)
                 self.chat_model.update_snackbar_visible = True
             if errors:
                 logger.warning("Bridge errors (will be surfaced next turn): %s", errors)
