@@ -121,6 +121,9 @@ class Agent:
         if tool_msg.name == "get_parameter":
             return self._handle_get_parameter(state, tool_output)
 
+        if tool_msg.name == "list_parameters":
+            return self._handle_list_parameters(state, tool_output)
+
         return state
 
     @staticmethod
@@ -142,6 +145,20 @@ class Agent:
         value = tool_output.get("value")
         label = pretty_name(param, self.schema_properties)
         reply = f"Current value of **{label}** is `{value}`." if value is not None else f"**{label}** is not set."
+        opts = tool_output.get("valid_options")
+        if opts:
+            reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
+        return self._state_with_reply(state, reply)
+
+    def _handle_list_parameters(self, state: AgentState, tool_output) -> AgentState:
+        if isinstance(tool_output, list):
+            lines = [f"- **{p['title']}** (`{p['name']}`)" +
+                     (f": {p['description']}" if p.get("description") else "") +
+                     (f" — options: {', '.join(p['options'])}" if p.get("options") else "")
+                     for p in tool_output]
+            reply = "**Available parameters:**\n" + "\n".join(lines)
+        else:
+            reply = str(tool_output)
         return self._state_with_reply(state, reply)
 
     def _handle_get_default(self, state: AgentState, tool_output: dict) -> AgentState:

@@ -19,7 +19,7 @@ from nova.mvvm.interface import BindingInterface
 
 from ...agent.agent import Agent
 from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models
-from ...agent.schema_gen import schema_from_model_instance
+from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
 from ..models.chat import ChatModel
 from ..models.main_model import MainModel
 
@@ -63,7 +63,10 @@ class ChatViewModel:
                 sub = getattr(self.main_model, attr, None)
                 if sub is not None:
                     schema_props.update(schema_from_model_instance(sub))
-            # snapshot_fn lets the get_parameter tool read live UI state
+            # Enrich schema with live option lists (instrument_list, etc.)
+            live_snapshot = snapshot_models(self.main_model)
+            schema_props = enrich_schema_with_options(schema_props, live_snapshot)
+            # snapshot_fn lets the get_parameter / list_parameters tools read live UI state
             snapshot_fn = partial(snapshot_models, self.main_model)
             self._agent = Agent(schema_properties=schema_props, snapshot_fn=snapshot_fn)
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))

@@ -59,3 +59,43 @@ def schema_from_pydantic(model_cls: Type[BaseModel]) -> Dict[str, dict]:
 def schema_from_model_instance(model: BaseModel) -> Dict[str, dict]:
     """Convenience: call ``schema_from_pydantic`` on the instance's class."""
     return schema_from_pydantic(type(model))
+
+
+def enrich_schema_with_options(
+    schema_props: Dict[str, dict],
+    snapshot: Dict[str, Any],
+) -> Dict[str, dict]:
+    """Inject live option lists from *snapshot* as ``enum`` values into *schema_props*.
+
+    Convention: a snapshot key ending in ``_list`` or ``_options`` is treated as
+    the valid-choices list for the corresponding field (the base name after
+    stripping the suffix).  Only all-string lists are promoted to ``enum``; any
+    other type is ignored.
+
+    Example::
+
+        snapshot = {"crystalsystem_list": ["Cubic", "Triclinic", ...]}
+        # → enriched["crystalsystem"]["enum"] = ["Cubic", "Triclinic", ...]
+
+    Returns a shallow copy of *schema_props* with ``enum`` keys added/replaced
+    where matches are found; the original dict is not mutated.
+    """
+    enriched = {k: dict(v) for k, v in schema_props.items()}
+
+    for key, value in snapshot.items():
+        if not isinstance(value, list) or not value:
+            continue
+        if not all(isinstance(v, str) for v in value):
+            continue
+
+        if key.endswith("_list"):
+            field_name = key[:-5]
+        elif key.endswith("_options"):
+            field_name = key[:-8]
+        else:
+            continue
+
+        if field_name in enriched:
+            enriched[field_name] = {**enriched[field_name], "enum": value}
+
+    return enriched

@@ -35,8 +35,12 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
             continue
         for field_name in sub.model_fields:
             val = getattr(sub, field_name, None)
-            # Skip complex nested models / options objects
             if isinstance(val, BaseModel):
+                # Expand the `options` sub-model so option lists are visible
+                # in the snapshot (e.g. instrument_list, crystalsystem_list).
+                if field_name == "options":
+                    for opt_field in val.model_fields:
+                        flat[opt_field] = getattr(val, opt_field, None)
                 continue
             flat[field_name] = val
     return flat
