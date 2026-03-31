@@ -15,13 +15,17 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 
 
-def make_tools(schema_props: dict[str, dict]) -> list:
+def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
     Parameters
     ----------
     schema_props:
         Flat ``{field_name: schema_info}`` dict generated from the Pydantic models.
+    snapshot_fn:
+        Optional zero-argument callable that returns the current flat config dict
+        (i.e. ``bridge.snapshot_models`` partially applied with the live model).
+        Required for the ``get_parameter`` tool to work at runtime.
     """
 
     @tool
@@ -50,4 +54,20 @@ def make_tools(schema_props: dict[str, dict]) -> list:
             return f"{info['title']} (no additional description available)."
         return f"Sorry, I don't have a description for '{parameter_name}'."
 
-    return [set_parameter, get_default_value, explain_parameter]
+    @tool
+    def get_parameter(parameter_name: str) -> str:
+        """Return the current live value of a configuration parameter from the UI.
+
+        Use this to confirm what is already set before asking the user, or to
+        read back a value after setting it.
+        """
+        if snapshot_fn is None:
+            return json.dumps({"parameter_name": parameter_name, "value": None, "error": "snapshot not available"})
+        current = snapshot_fn()
+        if parameter_name not in current:
+            known = parameter_name in schema_props
+            msg = "parameter exists in schema but has no bridged value" if known else "unknown parameter"
+            return json.dumps({"parameter_name": parameter_name, "value": None, "error": msg})
+        return json.dumps({"parameter_name": parameter_name, "value": current[parameter_name]})
+
+    return [set_parameter, get_default_value, explain_parameter, get_parameter]

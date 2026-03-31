@@ -5,12 +5,14 @@ Manages:
 - Submitting user messages to the agent
 - Applying agent config changes back into the main model / trame bindings
 - Snapshotting the main model state so the agent always has fresh context
+- Surfacing bridge validation errors back to the agent on the next turn
 """
 
 from __future__ import annotations
 
 import logging
 import threading
+from functools import partial
 from typing import Any, Dict
 
 from nova.mvvm.interface import BindingInterface
@@ -44,6 +46,9 @@ class ChatViewModel:
         self._agent: Agent | None = None
         self._agent_lock = threading.Lock()
 
+        # Bridge errors from the previous turn, forwarded to the next invoke()
+        self._pending_bridge_errors: dict[str, str] = {}
+
     # ------------------------------------------------------------------ agent
 
     def _ensure_agent(self) -> None:
@@ -58,7 +63,9 @@ class ChatViewModel:
                 sub = getattr(self.main_model, attr, None)
                 if sub is not None:
                     schema_props.update(schema_from_model_instance(sub))
-            self._agent = Agent(schema_properties=schema_props)
+            # snapshot_fn lets the get_parameter tool read live UI state
+            snapshot_fn = partial(snapshot_models, self.main_model)
+            self._agent = Agent(schema_properties=schema_props, snapshot_fn=snapshot_fn)
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
     # ------------------------------------------------------------------ submit
@@ -76,14 +83,28 @@ class ChatViewModel:
         try:
             self._ensure_agent()
             current_state = snapshot_models(self.main_model)
-            reply, new_config = self._agent.invoke(user_text, config_state=current_state)
-            changed = apply_agent_config(new_config, self.main_model, self.main_bindings)
+
+            # Pass any validation errors from the previous turn so the agent
+            # can explain them to the user instead of silently losing them.
+            reply, new_config = self._agent.invoke(
+                user_text,
+                config_state=current_state,
+                bridge_errors=self._pending_bridge_errors or None,
+            )
+            self._pending_bridge_errors = {}
+
+            changed, errors = apply_agent_config(new_config, self.main_model, self.main_bindings)
             if changed:
                 logger.info("Agent updated fields: %s", changed)
+            if errors:
+                logger.warning("Bridge errors (will be surfaced next turn): %s", errors)
+                self._pending_bridge_errors = errors
+
             self.chat_model.messages.append({"role": "assistant", "content": reply})
 
         except Exception as exc:
             logger.exception("Agent error")
+            self._pending_bridge_errors = {}
             self.chat_model.messages.append({"role": "assistant", "content": f"Error: {exc}"})
 
         self.chat_model.is_thinking = False

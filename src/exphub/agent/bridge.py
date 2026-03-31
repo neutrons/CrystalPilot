@@ -46,7 +46,7 @@ def apply_agent_config(
     config_state: Dict[str, Any],
     main_model: BaseModel,
     bindings: Dict[str, Any],
-) -> list[str]:
+) -> tuple[list[str], dict[str, str]]:
     """Write agent config_state values into the matching Pydantic sub-models.
 
     Parameters
@@ -56,15 +56,18 @@ def apply_agent_config(
     main_model
         The ``MainModel`` instance.
     bindings
-        Mapping of sub-model attribute name → its ``TrameBinding``, e.g.
-        ``{"experimentinfo": vm.experimentinfo_bind, ...}``.
+        Mapping of sub-model attribute name → its ``TrameBinding``.
 
     Returns
     -------
-    list[str]
-        Names of fields that were successfully updated.
+    updated : list[str]
+        Names of fields that were successfully written to the model.
+    errors : dict[str, str]
+        Mapping of ``field_name → error message`` for fields that failed
+        Pydantic validation. The caller should surface these to the agent.
     """
     updated: list[str] = []
+    errors: dict[str, str] = {}
 
     for attr_name in BRIDGED_SUBMODELS:
         sub = getattr(main_model, attr_name, None)
@@ -86,6 +89,7 @@ def apply_agent_config(
                 dirty = True
                 logger.debug("bridge: %s.%s = %r", attr_name, field_name, new_val)
             except Exception as exc:
+                errors[field_name] = str(exc)
                 logger.warning("bridge: failed to set %s.%s: %s", attr_name, field_name, exc)
 
         if dirty and bind is not None:
@@ -94,4 +98,4 @@ def apply_agent_config(
             except Exception as exc:
                 logger.warning("bridge: failed to push %s to view: %s", attr_name, exc)
 
-    return updated
+    return updated, errors

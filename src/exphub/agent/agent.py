@@ -53,12 +53,12 @@ Be concise and helpful. Use Markdown for formatting.
 class Agent:
     """CrystalPilot LangGraph agent."""
 
-    def __init__(self, schema_properties: dict[str, dict]) -> None:
+    def __init__(self, schema_properties: dict[str, dict], snapshot_fn=None) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
-        self._tools = make_tools(schema_properties)
+        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn)
         self.graph = self._build_graph()
 
     # ------------------------------------------------------------------ graph
@@ -118,6 +118,9 @@ class Agent:
         if tool_msg.name == "set_parameter":
             return self._handle_set_parameter(state, tool_output)
 
+        if tool_msg.name == "get_parameter":
+            return self._handle_get_parameter(state, tool_output)
+
         return state
 
     @staticmethod
@@ -128,6 +131,18 @@ class Agent:
         return "end"
 
     # ------------------------------------------------------------------ tool handlers
+
+    def _handle_get_parameter(self, state: AgentState, tool_output: dict) -> AgentState:
+        if not isinstance(tool_output, dict):
+            return self._state_with_reply(state, "Could not read parameter value.")
+        param = tool_output.get("parameter_name", "?")
+        err = tool_output.get("error")
+        if err:
+            return self._state_with_reply(state, f"Could not read **{param}**: {err}")
+        value = tool_output.get("value")
+        label = pretty_name(param, self.schema_properties)
+        reply = f"Current value of **{label}** is `{value}`." if value is not None else f"**{label}** is not set."
+        return self._state_with_reply(state, reply)
 
     def _handle_get_default(self, state: AgentState, tool_output: dict) -> AgentState:
         param = tool_output["parameter_name"]
@@ -188,14 +203,42 @@ class Agent:
 
     # ------------------------------------------------------------------ public API
 
-    def invoke(self, user_text: str, config_state: dict | None = None) -> tuple[str, dict]:
+    def invoke(
+        self,
+        user_text: str,
+        config_state: dict | None = None,
+        bridge_errors: dict[str, str] | None = None,
+    ) -> tuple[str, dict]:
         """Run the agent for a single user turn.
 
-        Returns (reply_text, updated_config_state).
+        Parameters
+        ----------
+        user_text:
+            The latest message from the user.
+        config_state:
+            Current flat config snapshot from the UI (bridge.snapshot_models).
+        bridge_errors:
+            Optional dict of ``{field: error_msg}`` from the *previous* turn's
+            ``apply_agent_config`` call. When provided, these are prepended as a
+            system note so the agent knows which writes failed and why.
+
+        Returns
+        -------
+        (reply_text, updated_config_state)
         """
         cfg = dict(config_state or self._config_state)
+
+        messages: list = []
+        if bridge_errors:
+            lines = "\n".join(f"- `{k}`: {v}" for k, v in bridge_errors.items())
+            messages.append(HumanMessage(
+                content=f"[SYSTEM] The following parameter writes were rejected by the UI:\n{lines}\n"
+                        "Please inform the user and suggest corrections."
+            ))
+        messages.append(HumanMessage(content=user_text))
+
         initial_state: AgentState = {
-            "messages": [HumanMessage(content=user_text)],
+            "messages": messages,
             "config_state": cfg,
             "in_config_mode": self._in_config_mode,
             "next_to_ask": "",
