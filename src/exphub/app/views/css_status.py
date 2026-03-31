@@ -21,7 +21,11 @@ class CSSStatusView:
     def create_ui(self) -> None:
         with VBoxLayout(classes="border-md mb-1 px-2 py-1", stretch=True):
             with VBoxLayout(stretch=True):
-                PVPlot("BL12:Det:N1:Det4:XY:Array:ArrayData", data_range=[0, 32000], data_width=1105)
+                PVPlot(
+                    "BL12:Det:N1:Det4:XY:Array:ArrayData",
+                    scaling_pv_name="BL12:Det:N1:Det4:XY:Scale:Result",
+                    data_width=1105,
+                )
 
             with HBoxLayout():
                 PVInput("BL12:Det:N1:Det4:XY:Scale:ManualMin", label="Min")
@@ -44,8 +48,8 @@ class CSSStatusView:
                 PVInput("BL12:Det:N1:Det4:XY:ROI:1:MinValue_RBV", label="Min")
                 PVInput("BL12:Det:N1:Det4:XY:ROI:1:MaxValue_RBV", label="Max")
                 PVInput("BL12:Det:N1:Det4:XY:ROI:1:MeanValue_RBV", label="Mean")
-                PVInput("BL12:Det:N1:Det4:XY:ROI:1:Total_RBV", label="Mean")
-                PVInput("BL12:Det:N1:Det4:XY:ROI:1:Rate", append="e/s", label="Mean")
+                PVInput("BL12:Det:N1:Det4:XY:ROI:1:Total_RBV", label="Total")
+                PVInput("BL12:Det:N1:Det4:XY:ROI:1:Rate", append="e/s", label="Rate")
                 PVInput("BL12:Det:N1:Det4:XY:ROI:1:Show", label="Show", type="checkbox")
 
         with GridLayout(columns=3, gap="0.25em", stretch=True):
