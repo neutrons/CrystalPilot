@@ -12,7 +12,55 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from .utils import coerce_type
+
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Experiment presets — named parameter bundles the agent can apply at once.
+# Extend this dict to add new presets without touching agent or tool code.
+# ---------------------------------------------------------------------------
+EXPERIMENT_PRESETS: dict[str, dict] = {
+    "topaz_standard": {
+        "instrument": "TOPAZ",
+        "max_q": 17.0,
+        "num_peaks_to_find": 500,
+        "tolerance": 0.12,
+        "predict_peaks": True,
+        "peak_radius": 0.11,
+        "bkg_inner_radius": 0.115,
+        "bkg_outer_radius": 0.14,
+        "pred_min_dspacing": 0.499,
+        "pred_max_dspacing": 11.0,
+        "pred_min_wavelength": 0.4,
+        "pred_max_wavelength": 3.45,
+    },
+    "corelli_standard": {
+        "instrument": "CORELLI",
+        "max_q": 14.0,
+        "num_peaks_to_find": 300,
+        "tolerance": 0.15,
+        "predict_peaks": True,
+        "peak_radius": 0.13,
+        "bkg_inner_radius": 0.135,
+        "bkg_outer_radius": 0.16,
+        "pred_min_dspacing": 0.5,
+        "pred_max_dspacing": 10.0,
+        "pred_min_wavelength": 0.7,
+        "pred_max_wavelength": 2.89,
+    },
+    "mandi_standard": {
+        "instrument": "MANDI",
+        "max_q": 10.0,
+        "num_peaks_to_find": 200,
+        "tolerance": 0.10,
+        "predict_peaks": True,
+        "pred_min_dspacing": 0.7,
+        "pred_max_dspacing": 7.0,
+        "pred_min_wavelength": 0.8,
+        "pred_max_wavelength": 4.0,
+    },
+}
 
 
 def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
@@ -135,6 +183,74 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
 
         return json.dumps(params, default=str)
 
+    # ------------------------------------------------------------------ multi-set / presets
+
+    def _validate_multi(params: dict) -> tuple[dict, dict]:
+        """Validate a {field: value} dict against schema_props.
+
+        Returns (validated, errors) dicts.  Enum matching is case-insensitive.
+        """
+        validated: dict = {}
+        errors: dict = {}
+        for key, raw_value in params.items():
+            info = schema_props.get(key)
+            if not info:
+                errors[key] = "unknown parameter"
+                continue
+            try:
+                value = coerce_type(raw_value, info)
+                if info.get("enum") and isinstance(value, str):
+                    lc = value.strip().lower()
+                    match = next((c for c in info["enum"] if str(c).lower() == lc), None)
+                    if match is None:
+                        opts = ", ".join(str(c) for c in info["enum"])
+                        errors[key] = f"invalid value — choose from: {opts}"
+                        continue
+                    value = match
+                validated[key] = value
+            except (ValueError, TypeError) as err:
+                errors[key] = str(err)
+        return validated, errors
+
+    @tool
+    def set_multiple_parameters(parameters: dict) -> dict:
+        """Set several configuration parameters in a single call.
+
+        *parameters* is a ``{field_name: value}`` dict.  Each value is
+        validated against its schema type and allowed enum values before
+        being accepted.  Use this instead of calling ``set_parameter``
+        repeatedly when configuring several fields at once.
+
+        Returns ``{"validated": {...}, "errors": {...}}``.
+        """
+        validated, errors = _validate_multi(parameters)
+        return {"validated": validated, "errors": errors}
+
+    @tool
+    def apply_preset(preset_name: str) -> dict:
+        """Apply a named experiment preset — sets many parameters at once.
+
+        Use ``list_presets`` to discover available preset names.
+        Returns ``{"preset_name": ..., "validated": {...}, "errors": {...}}``.
+        """
+        key = preset_name.strip().lower().replace(" ", "_")
+        preset = EXPERIMENT_PRESETS.get(key)
+        if preset is None:
+            available = ", ".join(EXPERIMENT_PRESETS.keys())
+            return {"error": f"Unknown preset '{preset_name}'. Available: {available}"}
+        validated, errors = _validate_multi(preset)
+        return {"preset_name": preset_name, "validated": validated, "errors": errors}
+
+    @tool
+    def list_presets() -> str:
+        """List all available experiment presets with their parameter values.
+
+        Returns a JSON array of ``{"name": ..., "parameters": {...}}`` objects.
+        Use ``apply_preset(name)`` to apply one.
+        """
+        result = [{"name": name, "parameters": params} for name, params in EXPERIMENT_PRESETS.items()]
+        return json.dumps(result, default=str)
+
     # ------------------------------------------------------------------ angle plan
 
     @tool
@@ -207,5 +323,6 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None) -> list:
     return [
         set_parameter, get_default_value, explain_parameter,
         get_parameter, list_parameters,
+        set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, delete_run,
     ]

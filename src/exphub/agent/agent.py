@@ -39,6 +39,9 @@ Your capabilities:
 - Explain what each parameter means and what its default is.
 - Set parameter values when the user provides them.
 - List all available parameters with ``list_parameters``.
+- Set many parameters at once with ``set_multiple_parameters``.
+- Apply a named instrument preset with ``apply_preset``; use ``list_presets``
+  to see what is available.
 - Read the current angle plan table with ``get_angle_plan``.
 - Add runs to the angle plan with ``append_run`` (phi and omega required).
 - Remove runs from the angle plan with ``delete_run`` (use the _index from
@@ -120,6 +123,12 @@ class Agent:
         if tool_msg.name == "get_default_value":
             return self._handle_get_default(state, tool_output)
 
+        if tool_msg.name in ("set_multiple_parameters", "apply_preset"):
+            return self._handle_set_multiple(state, tool_output)
+
+        if tool_msg.name == "list_presets":
+            return self._state_with_reply(state, str(tool_output))
+
         if tool_msg.name in ("set_parameter", "append_run", "delete_run"):
             if isinstance(tool_output, dict) and "error" in tool_output and "parameter_name" not in tool_output:
                 return self._state_with_reply(state, f"Error: {tool_output['error']}")
@@ -159,6 +168,40 @@ class Agent:
         if opts:
             reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
         return self._state_with_reply(state, reply)
+
+    def _handle_set_multiple(self, state: AgentState, tool_output: dict) -> AgentState:
+        if not isinstance(tool_output, dict):
+            return self._state_with_reply(state, "Invalid tool output for multi-set.")
+        if "error" in tool_output and "validated" not in tool_output:
+            return self._state_with_reply(state, f"Error: {tool_output['error']}")
+
+        validated = tool_output.get("validated", {})
+        errors = tool_output.get("errors", {})
+        preset_name = tool_output.get("preset_name")
+
+        for key, value in validated.items():
+            state["config_state"][key] = value
+            self._answered.add(key)
+
+        parts: list[str] = []
+        if preset_name:
+            parts.append(f"Applied preset **{preset_name}**.")
+        if validated:
+            fields = ", ".join(
+                f"**{pretty_name(k, self.schema_properties)}** = `{v}`"
+                for k, v in validated.items()
+            )
+            parts.append(f"Set {len(validated)} parameter(s): {fields}.")
+        if errors:
+            errs = ", ".join(f"**{k}**: {v}" for k, v in errors.items())
+            parts.append(f"Could not set: {errs}.")
+
+        return {
+            "messages": [AIMessage(content=" ".join(parts) or "No changes applied.")],
+            "config_state": state["config_state"],
+            "in_config_mode": True,
+            "nudge_count": state.get("nudge_count", 0),
+        }
 
     def _handle_get_angle_plan(self, state: AgentState, tool_output) -> AgentState:
         if isinstance(tool_output, dict) and "error" in tool_output:
