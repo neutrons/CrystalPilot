@@ -66,7 +66,7 @@ _CHAT_CSS = """
 
 
 class ChatPaneView:
-    """Builds the right-side inline chat panel UI."""
+    """Builds the right-side inline chat panel UI for the NeuDiff Agent."""
 
     def __init__(self, server, chat_vm: ChatViewModel) -> None:
         self.server = server
@@ -100,7 +100,7 @@ class ChatPaneView:
         ):
             # ── Header ──
             with vuetify.VToolbar(density="compact", color="primary"):
-                vuetify.VToolbarTitle("CrystalPilot Agent", style="font-size: 0.95rem;")
+                vuetify.VToolbarTitle("NeuDiff Agent", style="font-size: 0.95rem;")
                 vuetify.VSpacer()
                 vuetify.VBtn(
                     icon="mdi-close",
@@ -136,7 +136,7 @@ class ChatPaneView:
                     with vuetify.VCol():
                         vuetify.VTextField(
                             v_model="chat.user_input",
-                            placeholder="Ask CrystalPilot Agent…",
+                            placeholder="Ask NeuDiff Agent…",
                             variant="outlined",
                             density="compact",
                             hide_details=True,
@@ -149,7 +149,7 @@ class ChatPaneView:
                         color="primary",
                         variant="tonal",
                         size="small",
-                        **{"@click": "trigger('chat_submit', [chat.user_input])"},
+                        click="trigger('chat_submit', [chat.user_input])",
                     )
 
         # Field-update snackbar (shown briefly when the agent writes parameters)
