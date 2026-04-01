@@ -45,11 +45,11 @@ class ExperimentInfoModel(BaseModel):
         title="Crystal system",
         description="unconventional crystal systems",
     )
-    point_group: str = Field(default="23", title="Point group")
+    point_group: str = Field(default="m-3", title="Point group")
 
     instrument: str = Field(default="TOPAZ", title="Instrument Name")
     ipts_number: str = Field(
-        default="12345", title="IPTS Number", min_length=1, description="Proposal number for the experiment"
+        default="35036", title="IPTS Number", min_length=1, description="Proposal number for the experiment"
     )
     run_nums: str = Field(
         default="", title="Run Numbers", description="Comma separated list of run numbers, support ranges like 1:10"

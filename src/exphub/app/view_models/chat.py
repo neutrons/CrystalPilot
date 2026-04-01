@@ -26,6 +26,7 @@ from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_in
 from ...agent.utils import pretty_name
 from ..models.chat import ChatModel
 from ..models.main_model import MainModel
+from ..views.md_render import md_to_html
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,9 @@ class ChatViewModel:
             )
             if handler_reply is not None:
                 print(f"[CrystalPilot Agent] Handler shortcut: {handler_reply[:80]}")
-                self.chat_model.messages.append({"role": "assistant", "content": handler_reply})
+                self.chat_model.messages.append(
+                    {"role": "assistant", "content": handler_reply, "html": md_to_html(handler_reply)}
+                )
                 self.chat_model.is_thinking = False
                 self.chat_model.agent_status = ""
                 self._push_chat()
@@ -142,6 +145,9 @@ class ChatViewModel:
             )
 
             print(f"[CrystalPilot Agent] Reply: {reply[:120]}")
+            # Show which keys in config_state differ from the snapshot
+            diff_keys = {k for k in new_config if new_config[k] != current_state.get(k)}
+            print(f"[CrystalPilot Agent] Config diff keys: {diff_keys or '(none)'}")
             self.chat_model.agent_status = "Applying configuration…"
             self._push_chat()
 
@@ -157,13 +163,18 @@ class ChatViewModel:
                 logger.warning("Bridge errors (will be surfaced next turn): %s", errors)
                 self._pending_bridge_errors = errors
 
-            self.chat_model.messages.append({"role": "assistant", "content": reply})
+            self.chat_model.messages.append(
+                {"role": "assistant", "content": reply, "html": md_to_html(reply)}
+            )
 
         except Exception as exc:
             print(f"[CrystalPilot Agent] Error: {exc}")
             logger.exception("Agent error")
             self._pending_bridge_errors = {}
-            self.chat_model.messages.append({"role": "assistant", "content": f"Error: {exc}"})
+            err_msg = f"Error: {exc}"
+            self.chat_model.messages.append(
+                {"role": "assistant", "content": err_msg, "html": md_to_html(err_msg)}
+            )
 
         self.chat_model.is_thinking = False
         self.chat_model.agent_status = ""

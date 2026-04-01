@@ -328,7 +328,7 @@ class AnglePlanView:
             # vuetify.VSpacer()
         #######################################################################################
 
-        # InputField(v_model="model_eiccontrol.IPTS_number")
+        # InputField(v_model="model_eiccontrol.ipts_number")
         # InputField(v_model="model_eiccontrol.instrument_name")
 
         with GridLayout(columns=4, gap="0.5em"):

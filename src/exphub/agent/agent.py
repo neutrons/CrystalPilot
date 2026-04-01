@@ -25,7 +25,7 @@ from langgraph.prebuilt import ToolNode
 from .llm import get_configured_chat_model
 from .rag import BeamlineKnowledgeBase
 from .state import AgentState
-from .tools import make_tools
+from .tools import make_tools, resolve_param_name
 from .utils import coerce_type, pretty_name
 
 logger = logging.getLogger(__name__)
@@ -102,6 +102,15 @@ class Agent:
 
     def _call_model_node(self, state: AgentState) -> AgentState:
         msgs = [SystemMessage(content=SYSTEM_PROMPT)]
+
+        # Always include available parameter names so the LLM knows exact field
+        # names for set_parameter calls (compact one-liner per field).
+        param_lines = ", ".join(
+            f"`{k}` ({v.get('title', k)})" for k, v in self.schema_properties.items()
+        )
+        msgs.append(SystemMessage(
+            content=f"AVAILABLE PARAMETERS (use these exact names with set_parameter): {param_lines}"
+        ))
 
         if state.get("in_config_mode"):
             cfg = state.get("config_state", {})
@@ -307,7 +316,7 @@ class Agent:
         key = tool_output["parameter_name"]
         raw_value = tool_output["parameter_value"]
 
-        info = self.schema_properties.get(key)
+        key, info = resolve_param_name(key, self.schema_properties)
         if not info:
             return self._state_with_reply(state, f"Unknown parameter '{key}'. Please check the name.")
 

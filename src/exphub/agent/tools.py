@@ -19,6 +19,30 @@ from .utils import coerce_type
 logger = logging.getLogger(__name__)
 
 
+def resolve_param_name(name: str, schema_props: dict[str, dict]) -> tuple[str, dict | None]:
+    """Resolve a parameter name with fuzzy matching against schema_props."""
+    info = schema_props.get(name)
+    if info:
+        return name, info
+    norm = name.lower().replace(" ", "").replace("-", "").replace("_", "")
+    # Exact normalized match
+    for prop_key, prop_info in schema_props.items():
+        if prop_key.lower().replace("_", "") == norm:
+            return prop_key, prop_info
+        title = prop_info.get("title", "")
+        if title.lower().replace(" ", "").replace("-", "").replace("_", "") == norm:
+            return prop_key, prop_info
+    # Unique prefix/substring fallback (only if exactly one candidate)
+    candidates = [
+        (k, v) for k, v in schema_props.items()
+        if norm in k.lower().replace("_", "")
+        or norm in v.get("title", "").lower().replace(" ", "").replace("_", "")
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    return name, None
+
+
 def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag=None) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
@@ -45,18 +69,18 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag
     @tool
     def get_default_value(parameter_name: str) -> str:
         """Return the schema default for a parameter as a JSON string."""
-        info = schema_props.get(parameter_name, {})
-        return json.dumps({"parameter_name": parameter_name, "default": info.get("default")})
+        resolved, info = resolve_param_name(parameter_name, schema_props)
+        return json.dumps({"parameter_name": resolved, "default": (info or {}).get("default")})
 
     @tool
     def explain_parameter(parameter_name: str) -> str:
         """Return the human-readable description of a parameter from its schema."""
-        info = schema_props.get(parameter_name)
+        resolved, info = resolve_param_name(parameter_name, schema_props)
         if info and "description" in info:
             return info["description"]
         if info and "title" in info:
             return f"{info['title']} (no additional description available)."
-        return f"Sorry, I don't have a description for '{parameter_name}'."
+        return f"Sorry, I don't have a description for '{resolved}'."
 
     @tool
     def get_parameter(parameter_name: str) -> str:
@@ -68,19 +92,20 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag
         """
         if snapshot_fn is None:
             return json.dumps({"parameter_name": parameter_name, "value": None, "error": "snapshot not available"})
+        resolved, _ = resolve_param_name(parameter_name, schema_props)
         current = snapshot_fn()
-        if parameter_name not in current:
-            known = parameter_name in schema_props
+        if resolved not in current:
+            known = resolved in schema_props
             msg = "parameter exists in schema but has no bridged value" if known else "unknown parameter"
-            return json.dumps({"parameter_name": parameter_name, "value": None, "error": msg})
-        result: dict = {"parameter_name": parameter_name, "value": current[parameter_name]}
+            return json.dumps({"parameter_name": resolved, "value": None, "error": msg})
+        result: dict = {"parameter_name": resolved, "value": current[resolved]}
         # Attach valid choices when available (schema enum or live option list)
-        info = schema_props.get(parameter_name, {})
+        info = schema_props.get(resolved, {})
         if info.get("enum"):
             result["valid_options"] = info["enum"]
         else:
             for suffix in ("_list", "_options"):
-                opt_key = parameter_name + suffix
+                opt_key = resolved + suffix
                 opt_val = current.get(opt_key)
                 if isinstance(opt_val, list) and opt_val and all(isinstance(v, str) for v in opt_val):
                     result["valid_options"] = opt_val

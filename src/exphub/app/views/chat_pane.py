@@ -18,28 +18,71 @@ from ..view_models.chat import ChatViewModel
 # ── CSS for chat bubbles (injected via trame client.Style) ─────────────
 _CHAT_CSS = """
 .chat-bubble {
-    max-width: 85%;
-    padding: 8px 14px;
+    max-width: 90%;
+    padding: 10px 14px;
     border-radius: 12px;
     margin: 4px 0;
     word-wrap: break-word;
-    white-space: pre-wrap;
     font-size: 0.85rem;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 .chat-bubble-user {
-    background-color: #1976d2;
-    color: white;
+    background-color: #e0e0e0;
+    color: #212121;
     align-self: flex-end;
-    margin-left: auto;
+    margin-left: 40px;
     border-bottom-right-radius: 4px;
+    white-space: pre-wrap;
 }
 .chat-bubble-assistant {
-    background-color: #f5f5f5;
+    background-color: #e8f5e9;
     color: #212121;
     align-self: flex-start;
-    margin-right: auto;
+    margin-right: 40px;
     border-bottom-left-radius: 4px;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+}
+/* Markdown elements inside assistant bubbles */
+.chat-bubble-assistant h2,
+.chat-bubble-assistant h3,
+.chat-bubble-assistant h4 {
+    margin: 6px 0 4px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.chat-bubble-assistant h2 { font-size: 1.0rem; }
+.chat-bubble-assistant pre {
+    background: #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    margin: 6px 0;
+    white-space: pre;
+}
+.chat-bubble-assistant code {
+    background: #e0e0e0;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.8rem;
+    font-family: 'Roboto Mono', monospace;
+}
+.chat-bubble-assistant pre code {
+    background: none;
+    padding: 0;
+}
+.chat-bubble-assistant ul,
+.chat-bubble-assistant ol {
+    margin: 4px 0;
+    padding-left: 20px;
+}
+.chat-bubble-assistant li {
+    margin: 2px 0;
+}
+.chat-bubble-assistant strong {
+    font-weight: 600;
 }
 .chat-messages-container {
     display: flex;
@@ -47,7 +90,7 @@ _CHAT_CSS = """
     overflow-y: auto;
     flex: 1 1 auto;
     padding: 12px;
-    gap: 4px;
+    gap: 6px;
 }
 .chat-input-area {
     flex: 0 0 auto;
@@ -110,13 +153,19 @@ class ChatPaneView:
 
             # ── Messages area ──
             with html.Div(classes="chat-messages-container", ref="chatMessages"):
-                # :class binds dynamically: 'chat-bubble chat-bubble-user' or 'chat-bubble chat-bubble-assistant'
-                with html.Div(
-                    v_for="(msg, idx) in chat.messages",
-                    key="idx",
-                    **{":class": "'chat-bubble chat-bubble-' + msg.role"},
-                ):
-                    html.Span("{{ msg.content }}")
+                with html.Template(v_for="(msg, idx) in chat.messages", __properties=[("key", ":key")], key="idx"):
+                    # User bubble: plain text, light grey, right-aligned
+                    html.Div(
+                        "{{ msg.content }}",
+                        v_if="msg.role === 'user'",
+                        classes="chat-bubble chat-bubble-user",
+                    )
+                    # Assistant bubble: rendered markdown, light green, left-aligned
+                    html.Div(
+                        v_if="msg.role === 'assistant'",
+                        v_html="msg.html || msg.content",
+                        classes="chat-bubble chat-bubble-assistant",
+                    )
 
                 # Thinking indicator
                 with html.Div(

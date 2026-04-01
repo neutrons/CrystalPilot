@@ -28,6 +28,8 @@ def coerce_type(value: Any, field_info: dict) -> Any:
         if isinstance(value, bool):
             return value
         return str(value).lower() in ("true", "yes", "y", "1")
+    if t == "string":
+        return str(value)
     return value
 
 

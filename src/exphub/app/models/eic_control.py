@@ -29,7 +29,7 @@ class EICControlModel(BaseModel):
     # token_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/token.txt", title="IPTS token")
 
     is_simulation: bool = Field(default=True, title="Simulation")
-    IPTS_number: str = Field(default="35036", title="IPTS number")
+    ipts_number: str = Field(default="35036", title="IPTS number")
     instrument_name: str = Field(default="TOPAZ", title="Instrument name", description="Name of the instrument")
     beamline: str = Field(default="bl12", title="Beamline", description="Name of the beamline")
     # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
@@ -62,7 +62,7 @@ class EICControlModel(BaseModel):
     def submit_eic(self, angleplan: List[Dict]) -> None:
         # Implement the submit logic here
         self.beamline = self.beamline_database[self.instrument_name]
-        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.IPTS_number)
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.ipts_number)
         eic_client.is_eic_enabled(print_results=True)
 
         desc = "CrystalPilot Submission"
@@ -108,7 +108,7 @@ class EICControlModel(BaseModel):
     def stop_run(self) -> None:
         # Implement the stop logic here
         self.beamline = self.beamline_database[self.instrument_name]
-        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.IPTS_number)
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.ipts_number)
         eic_client.is_eic_enabled(print_results=True)
         # if self.scan_id
         print(self.eic_submission_scan_id)
