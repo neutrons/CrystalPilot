@@ -58,7 +58,7 @@ class CSSStatusView:
                         vuetify.VTab("d-Space (ROI Filtered)", value=3)
                         vuetify.VTab("q-Space (ROI Filtered)", value=4)
 
-                with VBoxLayout(v_show="model_cssstatus.active_details_plot == 0", stretch=True):
+                with VBoxLayout(v_if="model_cssstatus.active_details_plot == 0", stretch=True):
                     with HBoxLayout(stretch=True):
                         PVPlot("BL12:Det:N1:Det1:TOF:Array:ArrayData")
 
@@ -75,7 +75,7 @@ class CSSStatusView:
                             href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/../../share/opi/ADnEDv3/ADnED_TOFArray.bob&macros=%7B%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID154%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BAXIS_TITLE%26quot%3B%3A%26quot%3BTime%20Of%20Flight%20(ms)%26quot%3B%2C%26quot%3BDET%26quot%3B%3A%26quot%3B1%26quot%3B%2C%26quot%3BDETNAME%26quot%3B%3A%26quot%3BMain%20TOF%26quot%3B%2C%26quot%3BNAME%26quot%3B%3A%26quot%3BTime%20Of%20Flight%20(All%20Modules)%26quot%3B%7D",
                             target="_blank",
                         )
-                with VBoxLayout(v_show="model_cssstatus.active_details_plot == 1", stretch=True):
+                with VBoxLayout(v_if="model_cssstatus.active_details_plot == 1", stretch=True):
                     with HBoxLayout(stretch=True):
                         PVPlot("BL12:Det:N1:Det2:TOF:Array:ArrayData")
 
@@ -92,7 +92,7 @@ class CSSStatusView:
                             href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/../../share/opi/ADnEDv3/ADnED_TOFArray.bob&macros=%7B%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID154%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BAXIS_TITLE%26quot%3B%3A%26quot%3Bd-Space%20(A)%26quot%3B%2C%26quot%3BDET%26quot%3B%3A%26quot%3B2%26quot%3B%2C%26quot%3BDETNAME%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BNAME%26quot%3B%3A%26quot%3Bd-Space%20(All%20Modules)%26quot%3B%7D",
                             target="_blank",
                         )
-                with VBoxLayout(v_show="model_cssstatus.active_details_plot == 2", stretch=True):
+                with VBoxLayout(v_if="model_cssstatus.active_details_plot == 2", stretch=True):
                     with HBoxLayout(stretch=True):
                         PVPlot("BL12:Det:N1:Det3:TOF:Array:ArrayData")
 
@@ -109,7 +109,7 @@ class CSSStatusView:
                             href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/../../share/opi/ADnEDv3/ADnED_TOFArray.bob&macros=%7B%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID154%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BAXIS_TITLE%26quot%3B%3A%26quot%3Bq-Space%26quot%3B%2C%26quot%3BDET%26quot%3B%3A%26quot%3B3%26quot%3B%2C%26quot%3BDETNAME%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BNAME%26quot%3B%3A%26quot%3Bq-Space%20(All%20Modules)%26quot%3B%7D",
                             target="_blank",
                         )
-                with VBoxLayout(v_show="model_cssstatus.active_details_plot == 3", stretch=True):
+                with VBoxLayout(v_if="model_cssstatus.active_details_plot == 3", stretch=True):
                     with HBoxLayout(stretch=True):
                         PVPlot("BL12:Det:N1:Det4:TOF:Array:ArrayData")
 
@@ -126,7 +126,7 @@ class CSSStatusView:
                             href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/../../share/opi/ADnEDv3/ADnED_TOFArray.bob&macros=%7B%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID318%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BAXIS_TITLE%26quot%3B%3A%26quot%3Bd-Space%20(A)%26quot%3B%2C%26quot%3BDET%26quot%3B%3A%26quot%3B4%26quot%3B%2C%26quot%3BDETNAME%26quot%3B%3A%26quot%3BROI%20d-Space%26quot%3B%2C%26quot%3BNAME%26quot%3B%3A%26quot%3BROI%20d-Space%20(filtered%20based%20on%202D%20ROI)%26quot%3B%7D",
                             target="_blank",
                         )
-                with VBoxLayout(v_show="model_cssstatus.active_details_plot == 4", stretch=True):
+                with VBoxLayout(v_if="model_cssstatus.active_details_plot == 4", stretch=True):
                     with HBoxLayout(stretch=True):
                         PVPlot("BL12:Det:N1:Det5:TOF:Array:ArrayData")
 

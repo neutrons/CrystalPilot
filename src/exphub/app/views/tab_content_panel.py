@@ -30,7 +30,7 @@ class TabContentPanel:
             AnglePlanView(self.view_model)
         # with VBoxLayout(v_show="controls.active_tab == 4", stretch=True):
         #     EICControlView(self.view_model)
-        with VBoxLayout(v_show="controls.active_tab == 5", stretch=True):
+        with VBoxLayout(v_if="controls.active_tab == 5", stretch=True):
             CSSStatusView(self.view_model)
         with VBoxLayout(v_show="controls.active_tab == 6", stretch=True):
             DataAnalysisView(self.view_model)
