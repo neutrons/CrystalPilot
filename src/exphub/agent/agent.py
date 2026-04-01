@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
-from textwrap import dedent
+from pathlib import Path
 from typing import Any, Literal, Set
 
 from jsonschema import ValidationError
@@ -30,50 +30,35 @@ from .utils import coerce_type, pretty_name
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = dedent("""\
-You are CrystalPilot Assistant, an AI helper for single-crystal neutron
-diffraction experiments at ORNL beamlines.
+_PROMPT_DIR = Path(__file__).parent / "prompts"
 
-Your capabilities:
-- Guide users through experiment configuration (IPTS info, reduction
-  parameters, angle plans, etc.)
-- Explain what each parameter means and what its default is.
-- Set parameter values when the user provides them.
-- List all available parameters with ``list_parameters``.
-- Set many parameters at once with ``set_multiple_parameters``.
-- Apply a named instrument preset with ``apply_preset``; use ``list_presets``
-  to see what is available.
-- Call ``refresh_schema`` after the user changes a field whose change causes
-  available options for other fields to update (e.g. crystalsystem →
-  centering_list, point_group_list).
-- Read the current angle plan table with ``get_angle_plan``.
-- Add runs to the angle plan with ``append_run`` (phi and omega required).
-- Edit a specific run with ``edit_run`` (provide row_index and only the fields
-  to change; use the _index from ``get_angle_plan``).
-- Remove runs from the angle plan with ``delete_run`` (use the _index from
-  ``get_angle_plan``).
-- Navigate to a specific UI tab with ``navigate_to_tab``; accepted names:
-  ``ipts_info`` (1), ``live_data_processing`` (2), ``experiment_steering`` (3),
-  ``instrument_status`` (5), ``data_analysis`` (6).
-- Look up beamline and crystallography documentation with ``retrieve_docs``;
-  use it whenever the user asks about instrument specs, parameter meanings,
-  crystal systems, point groups, angle plan concepts, or troubleshooting.
-- Answer general crystallography and beamline questions.
 
-When the user provides a value for a configuration field, ALWAYS call the
-`set_parameter` tool with the appropriate parameter_name and parameter_value.
+def _load_system_prompt() -> str:
+    """Load the system prompt from the external Markdown file."""
+    prompt_file = _PROMPT_DIR / "system_prompt.md"
+    try:
+        return prompt_file.read_text(encoding="utf-8")
+    except OSError:
+        logger.warning("Could not read %s — using fallback prompt", prompt_file)
+        return (
+            "You are CrystalPilot Assistant, an AI helper for single-crystal "
+            "neutron diffraction experiments at ORNL beamlines. Be concise and helpful."
+        )
 
-When the user asks what a parameter means, call `explain_parameter`.
-When the user asks for the default, call `get_default_value`.
 
-Be concise and helpful. Use Markdown for formatting.
-""")
+SYSTEM_PROMPT = _load_system_prompt()
 
 
 class Agent:
     """CrystalPilot LangGraph agent."""
 
-    def __init__(self, schema_properties: dict[str, dict], snapshot_fn=None, nav_fn=None) -> None:
+    def __init__(
+        self,
+        schema_properties: dict[str, dict],
+        snapshot_fn=None,
+        nav_fn=None,
+        mcp_tools: list | None = None,
+    ) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
@@ -86,6 +71,9 @@ class Agent:
             rag = None
 
         self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn, rag=rag)
+        if mcp_tools:
+            self._tools.extend(mcp_tools)
+            logger.info("Added %d MCP tools to agent", len(mcp_tools))
         self.graph = self._build_graph()
 
     # ------------------------------------------------------------------ graph

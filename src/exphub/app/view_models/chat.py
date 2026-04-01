@@ -20,6 +20,8 @@ from nova.mvvm.interface import BindingInterface
 
 from ...agent.agent import Agent
 from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models
+from ...agent.handlers import run_handlers
+from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
 from ...agent.utils import pretty_name
 from ..models.chat import ChatModel
@@ -50,6 +52,9 @@ class ChatViewModel:
         self._agent_lock = threading.Lock()
         self._nav_fn = nav_fn
 
+        # MCP service for external tool integration (optional)
+        self._mcp_service = MCPService()
+
         # Bridge errors from the previous turn, forwarded to the next invoke()
         self._pending_bridge_errors: dict[str, str] = {}
 
@@ -72,7 +77,14 @@ class ChatViewModel:
             schema_props = enrich_schema_with_options(schema_props, live_snapshot)
             # snapshot_fn lets the get_parameter / list_parameters tools read live UI state
             snapshot_fn = partial(snapshot_models, self.main_model)
-            self._agent = Agent(schema_properties=schema_props, snapshot_fn=snapshot_fn, nav_fn=self._nav_fn)
+            # Collect MCP tools if any servers are configured
+            mcp_tools = self._mcp_service.get_all_tools() if self._mcp_service.is_available() else []
+            self._agent = Agent(
+                schema_properties=schema_props,
+                snapshot_fn=snapshot_fn,
+                nav_fn=self._nav_fn,
+                mcp_tools=mcp_tools or None,
+            )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
     # ------------------------------------------------------------------ submit
@@ -91,6 +103,24 @@ class ChatViewModel:
 
         try:
             self._ensure_agent()
+
+            # Pre-agent handler chain: handle deterministic commands without LLM
+            snapshot_fn = partial(snapshot_models, self.main_model)
+            schema_props = self._agent.schema_properties if self._agent else {}
+            handler_reply = run_handlers(
+                user_text,
+                snapshot_fn=snapshot_fn,
+                schema_props=schema_props,
+                nav_fn=self._nav_fn,
+            )
+            if handler_reply is not None:
+                print(f"[CrystalPilot Agent] Handler shortcut: {handler_reply[:80]}")
+                self.chat_model.messages.append({"role": "assistant", "content": handler_reply})
+                self.chat_model.is_thinking = False
+                self.chat_model.agent_status = ""
+                self._push_chat()
+                return
+
             current_state = snapshot_models(self.main_model)
             pending_errors = self._pending_bridge_errors or None
             self._pending_bridge_errors = {}

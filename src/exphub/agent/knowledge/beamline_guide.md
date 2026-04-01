@@ -286,3 +286,74 @@ data reduction:
 ### Background is too high
 - Reduce `bkg_outer_radius` to exclude diffuse scattering
 - Check for preferred orientation or multiple grains in the crystal
+
+---
+
+## Parameter Reference: Sample Information
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| experiment_name | string | Used to create a directory in the shared folder under the IPTS directory | test |
+| instrument_name | enum | Instrument name: TOPAZ, MANDI, or CORELLI | TOPAZ |
+| molecular_formula | string | Molecular formula, e.g. for oxalic acid dihydrate: C2 O6 H6 | |
+| Z | number | Number of formula units in the unit cell | 1.0 |
+| unit_cell_volume | number | Unit cell volume in Angstroms cubed (A^3) | |
+| sample_radius | number | Crystal radius in mm, used to calculate linear absorption coefficients | 0.0 |
+| crystal_system | enum | Crystal system (Triclinic, Monoclinic, Orthorhombic, Tetragonal, Trigonal/Rhombohedral, Trigonal/Hexagonal, Hexagonal, Cubic) | Triclinic |
+| centering | string | Bravais lattice centering for the point group (P, I, F, A, B, C, R, H) | |
+| point_group | string | Crystallographic point group | |
+
+---
+
+## Parameter Reference: Reduction Input
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| ipts_number | string | Proposal number for the experiment | 12345 |
+| calibration_file | string | Calibration file for the current instrument cycle | |
+| run_nums | string | Range of run numbers, first:last (e.g. 32751:32758) | |
+| maxq | number | Q limits for peak integration (A^-1) | 17.0 |
+| split_threshold | integer | Split threshold for event filtering | 80 |
+| export_folder | string | Output directory for reduced data files | |
+| background_file | string | NXS file for background measurement of the current cycle | NONE |
+| ub_filename | string | Optional UB matrix file | NONE |
+| min_dspacing | number | Minimum d-spacing (A) or Q cutoff | 0.5 |
+| data_directory | string | Directory containing the nexus data files | |
+
+---
+
+## Parameter Reference: Peak Input
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| num_peaks_to_find | integer | Peaks to find per run for UB matrix determination | 500 |
+| abc_min | number | Shorter than shortest cell edge in the Niggli reduced cell (A) | 3.0 |
+| abc_max | number | Longest lattice parameter (A) | 18.0 |
+| tolerance | number | Tolerance for indexing peaks to integer HKL | 0.12 |
+| num_borderCh | integer | Width of border region where peaks are rejected | 18 |
+| predict_peaks | boolean | Enable prediction of peaks from UB matrix | false |
+| min_pred_dspacing | number | Minimum d-spacing for predicted peaks (A) | 0.499 |
+| max_pred_dspacing | number | Maximum d-spacing for predicted peaks (A) | 11.0 |
+| min_pred_wl | number | Minimum wavelength for predicted peaks (A) | 0.4 |
+| max_pred_wl | number | Maximum wavelength for predicted peaks (A) | 3.45 |
+| peak_radius | number | Longest axis radius for ellipse integration (A^-1) | 0.11 |
+| bkg_inner_radius | number | Inner radius of background shell (A^-1) | 0.115 |
+| bkg_outer_radius | number | Outer radius of background shell (A^-1) | 0.14 |
+
+---
+
+## Parameter Reference: Anvred Input
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| spectra_file | string | Spectrum file for the current instrument cycle | |
+| normalize_to_wavelength | number | Normalize spectra to this wavelength (A) | 1.0 |
+| scale_factor | number | Multiply FSQ and sig(FSQ) by this factor | 1.0 |
+| min_intensity | number | Minimum integrated intensity cutoff | 1.0 |
+| min_isig | number | Minimum I/sig(I) ratio | 1.0 |
+| z_score | number | Maximum |I - <I>|/<sigI> ratio; negative disables test | 5.0 |
+| min_wavelength | number | Minimum wavelength (A) | 0.4 |
+| max_wavelength | number | Maximum wavelength (A) | 3.5 |
+| min_dspacing | number | Minimum d-spacing (A) | 0.5 |
+| reject_border_width | integer | Width of border where peaks are rejected | 18 |
+| start_batch_number | integer | Starting batch number for output | 1 |

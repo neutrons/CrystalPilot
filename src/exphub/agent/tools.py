@@ -12,73 +12,11 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from .constants import EXPERIMENT_PRESETS, TAB_MAP, TAB_NAMES
 from .schema_gen import enrich_schema_with_options
 from .utils import coerce_type
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Experiment presets — named parameter bundles the agent can apply at once.
-# Extend this dict to add new presets without touching agent or tool code.
-# ---------------------------------------------------------------------------
-EXPERIMENT_PRESETS: dict[str, dict] = {
-    "topaz_standard": {
-        "instrument": "TOPAZ",
-        "max_q": 17.0,
-        "num_peaks_to_find": 500,
-        "tolerance": 0.12,
-        "predict_peaks": True,
-        "peak_radius": 0.11,
-        "bkg_inner_radius": 0.115,
-        "bkg_outer_radius": 0.14,
-        "pred_min_dspacing": 0.499,
-        "pred_max_dspacing": 11.0,
-        "pred_min_wavelength": 0.4,
-        "pred_max_wavelength": 3.45,
-    },
-    "corelli_standard": {
-        "instrument": "CORELLI",
-        "max_q": 14.0,
-        "num_peaks_to_find": 300,
-        "tolerance": 0.15,
-        "predict_peaks": True,
-        "peak_radius": 0.13,
-        "bkg_inner_radius": 0.135,
-        "bkg_outer_radius": 0.16,
-        "pred_min_dspacing": 0.5,
-        "pred_max_dspacing": 10.0,
-        "pred_min_wavelength": 0.7,
-        "pred_max_wavelength": 2.89,
-    },
-    "mandi_standard": {
-        "instrument": "MANDI",
-        "max_q": 10.0,
-        "num_peaks_to_find": 200,
-        "tolerance": 0.10,
-        "predict_peaks": True,
-        "pred_min_dspacing": 0.7,
-        "pred_max_dspacing": 7.0,
-        "pred_min_wavelength": 0.8,
-        "pred_max_wavelength": 4.0,
-    },
-}
-
-
-_TAB_MAP: dict[str, int] = {
-    "ipts_info": 1, "ipts": 1,
-    "live_data_processing": 2, "live_data": 2, "temporal_analysis": 2,
-    "experiment_steering": 3, "angle_plan": 3,
-    "instrument_status": 5, "css_status": 5,
-    "data_analysis": 6,
-}
-
-_TAB_NAMES: dict[int, str] = {
-    1: "IPTS Info",
-    2: "Live Data Processing",
-    3: "Experiment Steering",
-    5: "Instrument Status",
-    6: "Data Analysis",
-}
 
 
 def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag=None) -> list:
@@ -430,17 +368,17 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag
         if nav_fn is None:
             return {"error": "Tab navigation is not available in this session."}
         key = tab_name.strip().lower().replace("-", "_").replace(" ", "_")
-        tab_number = _TAB_MAP.get(key)
+        tab_number = TAB_MAP.get(key)
         if tab_number is None:
             try:
                 tab_number = int(tab_name)
-                if tab_number not in _TAB_NAMES:
+                if tab_number not in TAB_NAMES:
                     raise ValueError
             except ValueError:
-                valid = ", ".join(f"{v}={k}" for k, v in _TAB_NAMES.items())
+                valid = ", ".join(f"{v}={k}" for k, v in TAB_NAMES.items())
                 return {"error": f"Unknown tab '{tab_name}'. Valid: {valid}"}
         nav_fn(tab_number)
-        return {"tab": tab_number, "name": _TAB_NAMES.get(tab_number, f"tab {tab_number}")}
+        return {"tab": tab_number, "name": TAB_NAMES.get(tab_number, f"tab {tab_number}")}
 
     # ------------------------------------------------------------------ RAG retrieval
 
