@@ -27,6 +27,12 @@ from .rag import BeamlineKnowledgeBase
 from .state import AgentState
 from .tools import make_tools, resolve_param_name
 from .utils import coerce_type, pretty_name
+from .validation import (
+    check_unit_cell_volume,
+    dependent_fields_to_reset,
+    validate_centering,
+    validate_point_group,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -331,10 +337,42 @@ class Agent:
                     return self._state_with_reply(state, f"Invalid value '{value}'. Choose from: {opts}")
                 value = match
 
-            state["config_state"][key] = value
+            # --- Cross-field validation (crystal system cascade) ---
+            cfg = state["config_state"]
+
+            if key == "point_group":
+                err = validate_point_group(value, cfg.get("crystalsystem"))
+                if err:
+                    return self._state_with_reply(state, err)
+
+            if key == "centering":
+                err = validate_centering(value, cfg.get("point_group"))
+                if err:
+                    return self._state_with_reply(state, err)
+
+            # Record the value
+            cfg[key] = value
             self._answered.add(key)
             label = pretty_name(key, self.schema_properties)
             reply = f"Set **{label}** = `{value}`."
+
+            # Reset dependent fields when upstream changes
+            resets = dependent_fields_to_reset(key)
+            if resets:
+                cleared = []
+                for dep in resets:
+                    if dep in cfg:
+                        del cfg[dep]
+                    self._answered.discard(dep)
+                    cleared.append(f"**{pretty_name(dep, self.schema_properties)}**")
+                if cleared:
+                    reply += f" (Cleared {', '.join(cleared)} — please re-select.)"
+
+            # Unit cell volume sanity check
+            if key in ("molecular_formula", "Z", "unit_cell_volume"):
+                is_error, msg = check_unit_cell_volume(cfg)
+                if is_error:
+                    reply += f"\n\n{msg}"
 
         except (ValidationError, ValueError, TypeError) as err:
             reply = f"Invalid value for **{key}**: {err}"
