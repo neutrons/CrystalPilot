@@ -24,6 +24,7 @@ from ...agent.handlers import run_handlers
 from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
 from ...agent.utils import pretty_name
+from ...agent.workflow import PhaseManager
 from ..models.chat import ChatModel
 from ..models.main_model import MainModel
 from ..views.md_render import md_to_html
@@ -56,6 +57,9 @@ class ChatViewModel:
         # MCP service for external tool integration (optional)
         self._mcp_service = MCPService()
 
+        # Phase manager for experiment workflow tracking
+        self._phase_manager = PhaseManager()
+
         # Bridge errors from the previous turn, forwarded to the next invoke()
         self._pending_bridge_errors: dict[str, str] = {}
 
@@ -85,6 +89,7 @@ class ChatViewModel:
                 snapshot_fn=snapshot_fn,
                 nav_fn=self._nav_fn,
                 mcp_tools=mcp_tools or None,
+                phase_manager=self._phase_manager,
             )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
@@ -113,6 +118,7 @@ class ChatViewModel:
                 snapshot_fn=snapshot_fn,
                 schema_props=schema_props,
                 nav_fn=self._nav_fn,
+                phase_manager=self._phase_manager,
             )
             if handler_reply is not None:
                 print(f"[CrystalPilot Agent] Handler shortcut: {handler_reply[:80]}")

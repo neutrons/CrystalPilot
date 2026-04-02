@@ -436,6 +436,183 @@ class TestBeamlineKnowledgeBase:
 # validation.py
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# workflow.py
+# ---------------------------------------------------------------------------
+
+class TestPhaseManager:
+    def test_initial_phase_is_setup(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        assert pm.current_name == "setup"
+        assert pm.current_state.status == "active"
+
+    def test_complete_and_advance(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        msg = pm.complete_current()
+        assert msg is not None
+        assert "complete" in msg.lower() or "Ready" in msg
+        assert pm.is_pending_confirm
+
+        msg = pm.advance()
+        assert pm.current_name == "monitor"
+        assert "Live Data" in msg
+
+    def test_advance_without_confirm(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        # Advance directly (skipping complete_current)
+        msg = pm.advance()
+        assert pm.current_name == "monitor"
+
+    def test_go_to_phase(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        msg = pm.go_to_phase("analyse")
+        assert msg is not None
+        assert "Data Analysis" in msg
+        assert pm.current_name == "analyse"
+
+    def test_go_to_invalid_phase(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        assert pm.go_to_phase("nonexistent") is None
+
+    def test_get_phase_fields_scopes_correctly(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()  # setup phase
+        all_fields = {
+            "ipts_number": {"title": "IPTS"},
+            "max_q": {"title": "Max Q"},
+            "spectra_filename": {"title": "Spectra"},
+        }
+        scoped = pm.get_phase_fields(all_fields)
+        assert "ipts_number" in scoped
+        assert "max_q" not in scoped
+        assert "spectra_filename" not in scoped
+
+    def test_get_phase_fields_returns_all_when_no_prefixes(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        pm.go_to_phase("monitor")  # monitor has no field_prefixes
+        all_fields = {"ipts_number": {}, "max_q": {}}
+        scoped = pm.get_phase_fields(all_fields)
+        assert scoped == all_fields
+
+    def test_status_summary(self):
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        summary = pm.status_summary()
+        assert "IPTS Info" in summary
+        assert "Data Analysis" in summary
+
+    def test_full_workflow_cycle(self):
+        from exphub.agent.workflow import PhaseManager, PHASE_NAMES
+
+        pm = PhaseManager()
+        for i in range(len(PHASE_NAMES) - 1):
+            pm.complete_current()
+            pm.advance()
+        # Should be at last phase
+        assert pm.current_name == "analyse"
+        # Completing last phase returns None
+        assert pm.complete_current() is None
+
+
+# ---------------------------------------------------------------------------
+# handlers.py — intent & phase handlers
+# ---------------------------------------------------------------------------
+
+class TestHandleIntent:
+    def test_start_experiment_enters_setup(self):
+        from exphub.agent.handlers import handle_intent
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        pm.go_to_phase("analyse")  # start somewhere else
+        result = handle_intent("start experiment", None, {}, None, phase_manager=pm)
+        assert result is not None
+        assert pm.current_name == "setup"
+
+    def test_keyword_enters_correct_phase(self):
+        from exphub.agent.handlers import handle_intent
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        result = handle_intent("show me the data analysis", None, {}, None, phase_manager=pm)
+        assert result is not None
+        assert pm.current_name == "analyse"
+
+    def test_no_match_returns_none(self):
+        from exphub.agent.handlers import handle_intent
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        assert handle_intent("what is TOPAZ?", None, {}, None, phase_manager=pm) is None
+
+    def test_no_phase_manager_returns_none(self):
+        from exphub.agent.handlers import handle_intent
+
+        assert handle_intent("start experiment", None, {}, None, phase_manager=None) is None
+
+
+class TestHandlePhaseConfirm:
+    def test_yes_advances(self):
+        from exphub.agent.handlers import handle_phase_confirm
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        pm.complete_current()  # sets pending_confirm
+        result = handle_phase_confirm("yes", None, {}, None, phase_manager=pm)
+        assert result is not None
+        assert pm.current_name == "monitor"
+
+    def test_no_stays(self):
+        from exphub.agent.handlers import handle_phase_confirm
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        pm.complete_current()
+        result = handle_phase_confirm("no", None, {}, None, phase_manager=pm)
+        assert result is not None
+        assert pm.current_name == "setup"
+        assert not pm.is_pending_confirm
+
+    def test_not_pending_returns_none(self):
+        from exphub.agent.handlers import handle_phase_confirm
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        assert handle_phase_confirm("yes", None, {}, None, phase_manager=pm) is None
+
+
+class TestHandleWorkflowStatus:
+    def test_shows_status(self):
+        from exphub.agent.handlers import handle_workflow_status
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        result = handle_workflow_status("where am I", None, {}, None, phase_manager=pm)
+        assert result is not None
+        assert "IPTS Info" in result
+
+    def test_no_match(self):
+        from exphub.agent.handlers import handle_workflow_status
+        from exphub.agent.workflow import PhaseManager
+
+        pm = PhaseManager()
+        assert handle_workflow_status("hello", None, {}, None, phase_manager=pm) is None
+
+
 class TestKeywordScore:
     def test_full_overlap_scores_high(self):
         from exphub.agent.rag import _keyword_score

@@ -14,6 +14,7 @@ import re
 from typing import Any, Callable
 
 from .constants import EXPERIMENT_PRESETS, TAB_MAP, TAB_NAMES
+from .workflow import PhaseManager
 
 # Type alias for handler functions
 HandlerFn = Callable[
@@ -122,6 +123,114 @@ def handle_help(
 
 
 # ---------------------------------------------------------------------------
+# Intent detection (4A)
+# ---------------------------------------------------------------------------
+
+_INTENT_START = (
+    "start experiment", "new experiment", "begin experiment",
+    "start setup", "begin setup", "set up experiment",
+    "let's start", "lets start", "let's begin", "lets begin",
+)
+
+_INTENT_PHASE_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "setup": ("setup", "configure", "ipts info", "sample info", "enter metadata"),
+    "monitor": ("monitor", "live data", "live reduction", "stream", "auto update"),
+    "plan": ("plan", "angle plan", "strategy", "experiment steering"),
+    "refine_plan": ("refine plan", "edit plan", "modify plan", "edit angle"),
+    "submit": ("submit", "eic", "execute plan"),
+    "observe": ("observe", "instrument status", "motor position", "watch"),
+    "analyse": ("analyse", "analyze", "reduction", "integrate", "data analysis"),
+}
+
+
+def handle_intent(
+    user_text: str,
+    snapshot_fn: Callable[[], dict] | None,
+    schema_props: dict[str, dict],
+    nav_fn: Callable[[int], None] | None,
+    *,
+    phase_manager: PhaseManager | None = None,
+) -> str | None:
+    """Detect workflow-starting intents and enter the appropriate phase."""
+    if phase_manager is None:
+        return None
+    norm = _normalize(user_text)
+
+    # "start experiment" → enter phase 0 (setup)
+    if any(t in norm for t in _INTENT_START):
+        msg = phase_manager.go_to_phase("setup")
+        if nav_fn:
+            nav_fn(phase_manager.current.tab)
+        return msg or "Starting experiment setup."
+
+    # Phase-specific keywords
+    for phase_name, keywords in _INTENT_PHASE_KEYWORDS.items():
+        if any(kw in norm for kw in keywords):
+            msg = phase_manager.go_to_phase(phase_name)
+            if msg and nav_fn:
+                nav_fn(phase_manager.current.tab)
+            return msg
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Phase confirmation (4B)
+# ---------------------------------------------------------------------------
+
+_CONFIRM_YES = ("yes", "y", "ok", "sure", "proceed", "continue", "next", "go ahead", "ready")
+_CONFIRM_NO = ("no", "n", "not yet", "wait", "hold", "stay")
+
+
+def handle_phase_confirm(
+    user_text: str,
+    snapshot_fn: Callable[[], dict] | None,
+    schema_props: dict[str, dict],
+    nav_fn: Callable[[int], None] | None,
+    *,
+    phase_manager: PhaseManager | None = None,
+) -> str | None:
+    """Handle yes/no confirmation for phase transitions."""
+    if phase_manager is None or not phase_manager.is_pending_confirm:
+        return None
+    norm = _normalize(user_text)
+
+    if norm in _CONFIRM_YES or any(norm.startswith(c) for c in _CONFIRM_YES):
+        msg = phase_manager.advance()
+        if nav_fn:
+            nav_fn(phase_manager.current.tab)
+        return msg
+
+    if norm in _CONFIRM_NO or any(norm.startswith(c) for c in _CONFIRM_NO):
+        phase_manager.current_state.pending_confirm = False
+        return f"Staying in **{phase_manager.current.tab_name}**. Let me know when you're ready to move on."
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Workflow status
+# ---------------------------------------------------------------------------
+
+def handle_workflow_status(
+    user_text: str,
+    snapshot_fn: Callable[[], dict] | None,
+    schema_props: dict[str, dict],
+    nav_fn: Callable[[int], None] | None,
+    *,
+    phase_manager: PhaseManager | None = None,
+) -> str | None:
+    """Handle 'show status' / 'where am I' requests."""
+    if phase_manager is None:
+        return None
+    norm = _normalize(user_text)
+    triggers = ("show status", "workflow status", "where am i", "which phase", "current phase")
+    if not any(t in norm for t in triggers):
+        return None
+    return "**Experiment Workflow:**\n\n" + phase_manager.status_summary()
+
+
+# ---------------------------------------------------------------------------
 # Handler chain
 # ---------------------------------------------------------------------------
 
@@ -132,18 +241,35 @@ HANDLERS: list[HandlerFn] = [
     handle_navigate,
 ]
 
+# Handlers that need a PhaseManager are kept separate so run_handlers
+# can pass the extra keyword argument without changing the base type.
+_PHASE_HANDLERS = [
+    handle_phase_confirm,
+    handle_intent,
+    handle_workflow_status,
+]
+
 
 def run_handlers(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None = None,
     schema_props: dict[str, dict] | None = None,
     nav_fn: Callable[[int], None] | None = None,
+    phase_manager: PhaseManager | None = None,
 ) -> str | None:
     """Run through the handler chain, returning the first non-None reply.
 
     Returns ``None`` if no handler matched — caller should invoke the agent.
     """
     props = schema_props or {}
+
+    # Phase-aware handlers first (confirmation should intercept before anything else)
+    if phase_manager is not None:
+        for handler in _PHASE_HANDLERS:
+            result = handler(user_text, snapshot_fn, props, nav_fn, phase_manager=phase_manager)
+            if result is not None:
+                return result
+
     for handler in HANDLERS:
         result = handler(user_text, snapshot_fn, props, nav_fn)
         if result is not None:

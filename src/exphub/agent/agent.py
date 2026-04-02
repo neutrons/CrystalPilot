@@ -64,11 +64,13 @@ class Agent:
         snapshot_fn=None,
         nav_fn=None,
         mcp_tools: list | None = None,
+        phase_manager=None,
     ) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
+        self._phase_manager = phase_manager
 
         try:
             self._rag = BeamlineKnowledgeBase()
@@ -105,14 +107,27 @@ class Agent:
     def _call_model_node(self, state: AgentState) -> AgentState:
         msgs = [SystemMessage(content=SYSTEM_PROMPT)]
 
-        # Always include available parameter names so the LLM knows exact field
-        # names for set_parameter calls (compact one-liner per field).
-        param_lines = ", ".join(
-            f"`{k}` ({v.get('title', k)})" for k, v in self.schema_properties.items()
-        )
-        msgs.append(SystemMessage(
-            content=f"AVAILABLE PARAMETERS (use these exact names with set_parameter): {param_lines}"
-        ))
+        # Inject current phase context if a PhaseManager is available
+        if self._phase_manager is not None:
+            phase = self._phase_manager.current
+            scoped = self._phase_manager.get_phase_fields(self.schema_properties)
+            param_lines = ", ".join(
+                f"`{k}` ({v.get('title', k)})" for k, v in scoped.items()
+            )
+            msgs.append(SystemMessage(
+                content=(
+                    f"CURRENT PHASE: {phase.tab_name} — {phase.description}. "
+                    f"PHASE PARAMETERS (use these exact names with set_parameter): {param_lines}"
+                )
+            ))
+        else:
+            # No phase manager — show all parameters
+            param_lines = ", ".join(
+                f"`{k}` ({v.get('title', k)})" for k, v in self.schema_properties.items()
+            )
+            msgs.append(SystemMessage(
+                content=f"AVAILABLE PARAMETERS (use these exact names with set_parameter): {param_lines}"
+            ))
 
         if state.get("in_config_mode"):
             cfg = state.get("config_state", {})
