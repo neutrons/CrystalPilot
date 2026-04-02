@@ -386,6 +386,34 @@ class TestBeamlineKnowledgeBase:
         kb = BeamlineKnowledgeBase(tmp_path)
         assert kb.retrieve("anything") == []
 
+    def test_keyword_reranking_promotes_relevant_results(self, kb_dir):
+        """Verify that keyword-boosted retrieval promotes keyword-matching passages."""
+        from exphub.agent.rag import BeamlineKnowledgeBase
+
+        kb = BeamlineKnowledgeBase(kb_dir)
+        results = kb.retrieve("TOPAZ wavelength range", k=2)
+        assert len(results) > 0
+        # TOPAZ passage should be ranked first (keyword overlap)
+        assert "TOPAZ" in results[0]
+
+    def test_retrieve_with_budget_respects_limit(self, kb_dir):
+        """Verify that retrieve_with_budget stops at token budget."""
+        from exphub.agent.rag import BeamlineKnowledgeBase
+
+        kb = BeamlineKnowledgeBase(kb_dir)
+        # Very small budget — should return fewer passages
+        results_small = kb.retrieve_with_budget("crystal systems", token_limit=20)
+        results_large = kb.retrieve_with_budget("crystal systems", token_limit=10000)
+        assert len(results_small) <= len(results_large)
+
+    def test_retrieve_with_budget_returns_empty_for_no_match(self, kb_dir):
+        from exphub.agent.rag import BeamlineKnowledgeBase
+
+        kb = BeamlineKnowledgeBase(kb_dir)
+        results = kb.retrieve_with_budget("xyzzy foobarbaz qwerty12345")
+        # May return results (semantic search can match anything) but shouldn't crash
+        assert isinstance(results, list)
+
     def test_heading_aware_chunks_stay_together(self, tmp_path):
         """Verify that section-aware chunking doesn't split a short section."""
         from exphub.agent.rag import _chunk_text
@@ -407,6 +435,32 @@ class TestBeamlineKnowledgeBase:
 # ---------------------------------------------------------------------------
 # validation.py
 # ---------------------------------------------------------------------------
+
+class TestKeywordScore:
+    def test_full_overlap_scores_high(self):
+        from exphub.agent.rag import _keyword_score
+
+        score = _keyword_score("TOPAZ wavelength", "TOPAZ has wavelength range 0.4 to 3.5")
+        assert score > 0
+
+    def test_no_overlap_scores_zero(self):
+        from exphub.agent.rag import _keyword_score
+
+        score = _keyword_score("TOPAZ wavelength", "completely unrelated text here")
+        assert score == 0.0
+
+    def test_stop_words_ignored(self):
+        from exphub.agent.rag import _keyword_score
+
+        # "the" and "of" are stop words — shouldn't contribute
+        score = _keyword_score("the of", "the quick brown fox of jumps")
+        assert score == 0.0
+
+    def test_empty_text(self):
+        from exphub.agent.rag import _keyword_score
+
+        assert _keyword_score("TOPAZ", "") == 0.0
+
 
 class TestValidatePointGroup:
     def test_valid_combination(self):

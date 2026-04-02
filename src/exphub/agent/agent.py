@@ -71,12 +71,12 @@ class Agent:
         self._in_config_mode = False
 
         try:
-            rag = BeamlineKnowledgeBase()
+            self._rag = BeamlineKnowledgeBase()
         except Exception as exc:
             logger.warning("RAG init failed (%s) — retrieve_docs will be unavailable", exc)
-            rag = None
+            self._rag = None
 
-        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn, rag=rag)
+        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn, rag=self._rag)
         if mcp_tools:
             self._tools.extend(mcp_tools)
             logger.info("Added %d MCP tools to agent", len(mcp_tools))
@@ -97,11 +97,7 @@ class Agent:
             {"tools": "tools", "end": "__end__"},
         )
         builder.add_edge("tools", "validator")
-        builder.add_conditional_edges(
-            "validator",
-            self._validator_routing,
-            {"agent": "agent", "end": "__end__"},
-        )
+        builder.add_edge("validator", "__end__")
         return builder.compile()
 
     # ------------------------------------------------------------------ nodes
@@ -184,19 +180,9 @@ class Agent:
             return self._handle_navigate_to_tab(state, tool_output)
 
         if tool_msg.name == "retrieve_docs":
-            # Pass through unchanged — _validator_routing sends back to the
-            # agent node so the LLM can synthesise a reply from the passages.
-            return state
+            return self._handle_retrieve_docs(state, tool_msg.content)
 
         return state
-
-    @staticmethod
-    def _validator_routing(state: AgentState) -> Literal["agent", "end"]:
-        """Route back to the agent after retrieve_docs so it can synthesise a reply."""
-        last = state["messages"][-1]
-        if isinstance(last, ToolMessage) and last.name == "retrieve_docs":
-            return "agent"
-        return "end"
 
     @staticmethod
     def _should_continue(state: AgentState) -> Literal["tools", "end"]:
@@ -206,6 +192,28 @@ class Agent:
         return "end"
 
     # ------------------------------------------------------------------ tool handlers
+
+    def _handle_retrieve_docs(self, state: AgentState, raw_passages: str) -> AgentState:
+        """Synthesise an answer from retrieved passages using the RAG LLM."""
+        if not self._rag or raw_passages.startswith("No relevant") or raw_passages.startswith("Knowledge base"):
+            return self._state_with_reply(state, raw_passages)
+
+        # Extract the original query from the last tool call
+        query = ""
+        for msg in reversed(state["messages"]):
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    if tc.get("name") == "retrieve_docs":
+                        query = tc.get("args", {}).get("query", "")
+                        break
+                if query:
+                    break
+
+        if not query:
+            return self._state_with_reply(state, raw_passages)
+
+        answer = self._rag.answer(query)
+        return self._state_with_reply(state, answer)
 
     def _handle_navigate_to_tab(self, state: AgentState, tool_output) -> AgentState:
         if isinstance(tool_output, dict) and "error" in tool_output:

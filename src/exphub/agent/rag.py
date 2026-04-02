@@ -10,13 +10,16 @@ installed, so the agent can still work without the heavier dependencies.
 Usage::
 
     kb = BeamlineKnowledgeBase()
-    passages = kb.retrieve("what is the TOPAZ wavelength range", k=3)
+    passages = kb.retrieve("what is the TOPAZ wavelength range")
+    answer  = kb.answer("what is the TOPAZ wavelength range")  # synthesised
 """
 
 from __future__ import annotations
 
 import hashlib
 import logging
+import math
+import re
 from pathlib import Path
 from typing import Sequence
 
@@ -28,6 +31,33 @@ _COLLECTION_NAME = "crystalpilot_docs"
 _CHUNK_SIZE = 150    # words per chunk
 _OVERLAP = 25        # word overlap between adjacent chunks
 _DEFAULT_K = 3       # passages returned by default
+_RERANK_K = 60       # candidates fetched for reranking
+_CONTEXT_TOKEN_LIMIT = 3000  # max tokens fed to the synthesis LLM
+
+
+# ---------------------------------------------------------------------------
+# Keyword scoring (BM25-ish boost for reranking)
+# ---------------------------------------------------------------------------
+
+_STOP_WORDS = frozenset(
+    {"the", "a", "an", "of", "in", "on", "at", "to", "by", "for",
+     "with", "and", "or", "from", "is", "it", "this", "that", "are"}
+)
+
+
+def _keyword_score(query: str, text: str) -> float:
+    """Return a BM25-ish keyword overlap score between *query* and *text*."""
+    q_words = [w for w in re.findall(r"\w+", query.lower()) if w not in _STOP_WORDS]
+    d_words = re.findall(r"\w+", text.lower())
+    if not d_words:
+        return 0.0
+    overlap = len(set(q_words) & set(d_words))
+    return overlap / (1.0 + math.log2(len(d_words)))
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token count (words * 1.3)."""
+    return int(len(text.split()) * 1.3)
 
 
 # ---------------------------------------------------------------------------
@@ -218,21 +248,108 @@ class BeamlineKnowledgeBase:
             logger.warning("RAG: neither chromadb nor scikit-learn installed — RAG disabled")
 
     def retrieve(self, query: str, k: int = _DEFAULT_K) -> list[str]:
-        """Return up to *k* passages most relevant to *query*."""
+        """Return up to *k* passages most relevant to *query*.
+
+        When ChromaDB is available, fetches many candidates and reranks with
+        keyword boosting before returning the top *k*.
+        """
         if self._collection is not None:
             return self._retrieve_chromadb(query, k)
         if self._fallback_vectorizer is not None:
             return self._retrieve_tfidf(query, k)
         return []
 
-    def _retrieve_chromadb(self, query: str, k: int) -> list[str]:
-        """Retrieve using ChromaDB semantic search."""
+    def retrieve_with_budget(self, query: str, token_limit: int = _CONTEXT_TOKEN_LIMIT) -> list[str]:
+        """Retrieve passages up to *token_limit* tokens, using keyword-boosted reranking.
+
+        Fetches a large candidate set, reranks by keyword overlap, and
+        accumulates passages until the token budget is exhausted.
+        """
+        if self._collection is not None:
+            return self._retrieve_chromadb_reranked(query, token_limit)
+        # Fallback: use basic TF-IDF retrieval
+        if self._fallback_vectorizer is not None:
+            return self._retrieve_tfidf(query, k=10)
+        return []
+
+    def answer(self, query: str) -> str:
+        """Retrieve relevant passages and synthesise a direct answer via LLM.
+
+        Uses keyword-boosted reranking to select context, then calls the
+        configured LLM to produce a concise answer grounded in the passages.
+        Returns the synthesised answer string, or a fallback message.
+        """
+        passages = self.retrieve_with_budget(query)
+        if not passages:
+            return "No relevant documentation found for that query."
+
+        context = "\n\n---\n\n".join(passages)
+        prompt = (
+            "You are CrystalPilot Assistant. Answer the QUESTION using ONLY "
+            "the CONTEXT below. Be concise, accurate, and use Markdown.\n\n"
+            f"QUESTION:\n{query}\n\n"
+            f"CONTEXT:\n{context}\n\n"
+            "ANSWER:"
+        )
+
         try:
-            results = self._collection.query(query_texts=[query], n_results=k)
+            from .llm import get_configured_chat_model
+            llm = get_configured_chat_model()
+            result = llm.invoke(prompt)
+            return result.content.strip() if hasattr(result, "content") else str(result).strip()
+        except Exception as exc:
+            logger.warning("RAG: synthesis LLM call failed (%s) — returning raw passages", exc)
+            return context
+
+    def _retrieve_chromadb(self, query: str, k: int) -> list[str]:
+        """Retrieve using ChromaDB with keyword-boosted reranking."""
+        try:
+            # Fetch a large candidate set for reranking
+            fetch_k = max(k, _RERANK_K)
+            results = self._collection.query(query_texts=[query], n_results=fetch_k)
             docs = results.get("documents", [[]])[0]
-            return [d for d in docs if d]
+            if not docs:
+                return []
+
+            # Rerank by keyword overlap score
+            scored = sorted(
+                ((d, _keyword_score(query, d)) for d in docs if d),
+                key=lambda t: t[1],
+                reverse=True,
+            )
+            return [doc for doc, _score in scored[:k]]
         except Exception as exc:
             logger.warning("RAG: ChromaDB query failed (%s)", exc)
+            return []
+
+    def _retrieve_chromadb_reranked(self, query: str, token_limit: int) -> list[str]:
+        """Fetch candidates from ChromaDB, rerank, and accumulate to token budget."""
+        try:
+            results = self._collection.query(query_texts=[query], n_results=_RERANK_K)
+            docs = results.get("documents", [[]])[0]
+            if not docs:
+                return []
+
+            # Score and sort by keyword overlap
+            scored = sorted(
+                ((d, _keyword_score(query, d)) for d in docs if d),
+                key=lambda t: t[1],
+                reverse=True,
+            )
+
+            # Accumulate passages up to token budget
+            passages: list[str] = []
+            total_tokens = 0
+            for doc, _score in scored:
+                doc_tokens = _estimate_tokens(doc)
+                if total_tokens + doc_tokens > token_limit:
+                    break
+                passages.append(doc)
+                total_tokens += doc_tokens
+
+            return passages
+        except Exception as exc:
+            logger.warning("RAG: ChromaDB reranked query failed (%s)", exc)
             return []
 
     def _retrieve_tfidf(self, query: str, k: int) -> list[str]:
