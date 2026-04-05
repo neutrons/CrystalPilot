@@ -19,7 +19,7 @@ from typing import Any, Dict
 from nova.mvvm.interface import BindingInterface
 
 from ...agent.agent import Agent
-from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models
+from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models, write_single_field
 from ...agent.handlers import run_handlers
 from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
@@ -82,6 +82,12 @@ class ChatViewModel:
             schema_props = enrich_schema_with_options(schema_props, live_snapshot)
             # snapshot_fn lets the get_parameter / list_parameters tools read live UI state
             snapshot_fn = partial(snapshot_models, self.main_model)
+            # Write-through callback: lets the agent push individual field
+            # changes to the live model immediately during its turn, so
+            # subsequent tool calls (e.g. refresh_schema) see fresh state.
+            def _write_through(field_name: str, value):
+                return write_single_field(field_name, value, self.main_model, self.main_bindings)
+
             # Collect MCP tools if any servers are configured
             mcp_tools = self._mcp_service.get_all_tools() if self._mcp_service.is_available() else []
             self._agent = Agent(
@@ -90,6 +96,7 @@ class ChatViewModel:
                 nav_fn=self._nav_fn,
                 mcp_tools=mcp_tools or None,
                 phase_manager=self._phase_manager,
+                write_through_fn=_write_through,
             )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 

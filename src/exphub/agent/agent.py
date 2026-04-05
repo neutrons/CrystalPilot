@@ -65,12 +65,18 @@ class Agent:
         nav_fn=None,
         mcp_tools: list | None = None,
         phase_manager=None,
+        write_through_fn=None,
     ) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
         self._config_state: dict[str, Any] = {}
         self._in_config_mode = False
         self._phase_manager = phase_manager
+        # Callable(field_name, value) → (ok, error_msg) that writes a
+        # single field to the live Pydantic model and pushes to the
+        # Trame view immediately.  Set by ChatViewModel so the agent's
+        # writes are visible to subsequent tool calls within the same turn.
+        self._write_through_fn = write_through_fn
 
         try:
             self._rag = BeamlineKnowledgeBase()
@@ -330,6 +336,11 @@ class Agent:
         for key, value in validated.items():
             state["config_state"][key] = value
             self._answered.add(key)
+            # Write-through to live model
+            if self._write_through_fn:
+                ok, wt_err = self._write_through_fn(key, value)
+                if not ok:
+                    errors[key] = f"write-through failed: {wt_err}"
 
         parts: list[str] = []
         if preset_name:
@@ -420,6 +431,14 @@ class Agent:
             self._answered.add(key)
             label = pretty_name(key, self.schema_properties)
             reply = f"Set **{label}** = `{value}`."
+
+            # Write-through: push to the live Pydantic model immediately
+            # so subsequent tool calls (e.g. refresh_schema, get_parameter)
+            # see the updated value within the same turn.
+            if self._write_through_fn:
+                ok, wt_err = self._write_through_fn(key, value)
+                if not ok:
+                    reply += f" (Warning: write-through failed: {wt_err})"
 
             # Reset dependent fields when upstream changes
             resets = dependent_fields_to_reset(key)

@@ -129,3 +129,39 @@ def apply_agent_config(
                 logger.warning("bridge: failed to push %s to view: %s", attr_name, exc)
 
     return updated, errors
+
+
+def write_single_field(
+    field_name: str,
+    value: Any,
+    main_model: BaseModel,
+    bindings: Dict[str, Any],
+) -> tuple[bool, str]:
+    """Write a single field to the live Pydantic model and push to view.
+
+    Returns ``(True, "")`` on success, ``(False, error_message)`` on failure.
+    Used as the ``write_through_fn`` callback so the agent's writes are
+    immediately visible to subsequent tool calls within the same turn.
+    """
+    for attr_name in BRIDGED_SUBMODELS:
+        sub = getattr(main_model, attr_name, None)
+        if sub is None:
+            continue
+        if field_name not in type(sub).model_fields:
+            continue
+        try:
+            new_val = _coerce_list_field(type(sub), field_name, value)
+            setattr(sub, field_name, new_val)
+        except Exception as exc:
+            return False, str(exc)
+
+        bind = bindings.get(attr_name)
+        if bind is not None:
+            try:
+                bind.update_in_view(sub)
+            except Exception as exc:
+                logger.warning("write_single_field: push failed for %s: %s", attr_name, exc)
+        return True, ""
+
+    # Field not found in any bridged sub-model
+    return True, ""
