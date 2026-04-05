@@ -14,3 +14,4 @@ class AgentState(TypedDict):
     in_config_mode: bool
     next_to_ask: str
     nudge_count: int
+    tool_rounds: int

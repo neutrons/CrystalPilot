@@ -86,7 +86,17 @@ class Agent:
 
     # ------------------------------------------------------------------ graph
 
+    # Maximum number of tool-call rounds before forcing a final reply.
+    MAX_TOOL_ROUNDS = 6
+
     def _build_graph(self):
+        """Build a ReAct-style loop: agent → tools → validator → agent.
+
+        The loop continues as long as the LLM emits tool calls, up to
+        ``MAX_TOOL_ROUNDS`` iterations.  When the LLM returns a plain
+        text reply (no tool calls) or the round limit is reached, the
+        graph exits.
+        """
         builder = StateGraph(AgentState)
         builder.add_node("agent", self._call_model_node)
         builder.add_node("tools", ToolNode(self._tools))
@@ -99,7 +109,13 @@ class Agent:
             {"tools": "tools", "end": "__end__"},
         )
         builder.add_edge("tools", "validator")
-        builder.add_edge("validator", "__end__")
+        # Loop back to agent so it can inspect tool results and decide
+        # whether to issue more tool calls or produce a final reply.
+        builder.add_conditional_edges(
+            "validator",
+            self._should_loop_back,
+            {"agent": "agent", "end": "__end__"},
+        )
         return builder.compile()
 
     # ------------------------------------------------------------------ nodes
@@ -149,9 +165,19 @@ class Agent:
             "config_state": state.get("config_state", {}),
             "in_config_mode": state.get("in_config_mode", False),
             "nudge_count": state.get("nudge_count", 0),
+            "tool_rounds": state.get("tool_rounds", 0),
         }
 
     def _handle_tool_result_node(self, state: AgentState) -> AgentState:
+        """Validate tool results and update config_state.
+
+        In the ReAct loop the tool results (ToolMessage) are already in
+        the message list.  This node performs side-effects (updating
+        config_state, cross-field validation) and optionally appends a
+        SystemMessage note so the LLM is informed of validation
+        outcomes.  The LLM will then decide whether to issue more tool
+        calls or produce a final text reply.
+        """
         tool_msg = state["messages"][-1]
         if not isinstance(tool_msg, ToolMessage):
             return state
@@ -162,42 +188,58 @@ class Agent:
         except (json.JSONDecodeError, TypeError):
             tool_output = tool_msg.content
 
+        rounds = state.get("tool_rounds", 0) + 1
+
+        # --- Dispatch to handler; each returns (note_text, updated_state_patch) ---
+        note: str | None = None
+
         if tool_msg.name == "explain_parameter":
-            return self._state_with_reply(state, str(tool_output))
+            note = str(tool_output)
 
-        if tool_msg.name == "get_default_value":
-            return self._handle_get_default(state, tool_output)
+        elif tool_msg.name == "get_default_value":
+            note = self._validate_get_default(state, tool_output)
 
-        if tool_msg.name == "refresh_schema":
-            return self._handle_refresh_schema(state, tool_output)
+        elif tool_msg.name == "refresh_schema":
+            note = self._validate_refresh_schema(state, tool_output)
 
-        if tool_msg.name in ("set_multiple_parameters", "apply_preset"):
-            return self._handle_set_multiple(state, tool_output)
+        elif tool_msg.name in ("set_multiple_parameters", "apply_preset"):
+            note = self._validate_set_multiple(state, tool_output)
 
-        if tool_msg.name == "list_presets":
-            return self._state_with_reply(state, str(tool_output))
+        elif tool_msg.name == "list_presets":
+            note = str(tool_output)
 
-        if tool_msg.name in ("set_parameter", "append_run", "edit_run", "delete_run"):
+        elif tool_msg.name in ("set_parameter", "append_run", "edit_run", "delete_run"):
             if isinstance(tool_output, dict) and "error" in tool_output and "parameter_name" not in tool_output:
-                return self._state_with_reply(state, f"Error: {tool_output['error']}")
-            return self._handle_set_parameter(state, tool_output)
+                note = f"Error: {tool_output['error']}"
+            else:
+                note = self._validate_set_parameter(state, tool_output)
 
-        if tool_msg.name == "get_parameter":
-            return self._handle_get_parameter(state, tool_output)
+        elif tool_msg.name == "get_parameter":
+            note = self._validate_get_parameter(state, tool_output)
 
-        if tool_msg.name == "list_parameters":
-            return self._handle_list_parameters(state, tool_output)
+        elif tool_msg.name == "list_parameters":
+            note = self._validate_list_parameters(state, tool_output)
 
-        if tool_msg.name == "get_angle_plan":
-            return self._handle_get_angle_plan(state, tool_output)
+        elif tool_msg.name == "get_angle_plan":
+            note = self._validate_get_angle_plan(state, tool_output)
 
-        if tool_msg.name == "navigate_to_tab":
-            return self._handle_navigate_to_tab(state, tool_output)
+        elif tool_msg.name == "navigate_to_tab":
+            note = self._validate_navigate_to_tab(state, tool_output)
 
-        if tool_msg.name == "retrieve_docs":
-            return self._handle_retrieve_docs(state, tool_msg.content)
+        elif tool_msg.name == "retrieve_docs":
+            note = self._validate_retrieve_docs(state, tool_msg.content)
 
-        return state
+        new_messages = []
+        if note:
+            new_messages.append(SystemMessage(content=f"[TOOL RESULT NOTE] {note}"))
+
+        return {
+            "messages": new_messages,
+            "config_state": state["config_state"],
+            "in_config_mode": state.get("in_config_mode", False),
+            "nudge_count": state.get("nudge_count", 0),
+            "tool_rounds": rounds,
+        }
 
     @staticmethod
     def _should_continue(state: AgentState) -> Literal["tools", "end"]:
@@ -206,14 +248,27 @@ class Agent:
             return "tools"
         return "end"
 
-    # ------------------------------------------------------------------ tool handlers
+    def _should_loop_back(self, state: AgentState) -> Literal["agent", "end"]:
+        """Decide whether to loop back to the agent after tool execution.
 
-    def _handle_retrieve_docs(self, state: AgentState, raw_passages: str) -> AgentState:
+        Loops back so the LLM can see tool results and decide its next
+        action — unless we've hit the round limit.
+        """
+        rounds = state.get("tool_rounds", 0)
+        if rounds >= self.MAX_TOOL_ROUNDS:
+            logger.warning("Hit MAX_TOOL_ROUNDS (%d), forcing exit", self.MAX_TOOL_ROUNDS)
+            return "end"
+        return "agent"
+
+    # ------------------------------------------------------------------ tool validators
+    # Each _validate_* method performs side-effects on config_state and
+    # returns a short note string for the LLM to see in the next turn.
+
+    def _validate_retrieve_docs(self, state: AgentState, raw_passages: str) -> str:
         """Synthesise an answer from retrieved passages using the RAG LLM."""
         if not self._rag or raw_passages.startswith("No relevant") or raw_passages.startswith("Knowledge base"):
-            return self._state_with_reply(state, raw_passages)
+            return raw_passages
 
-        # Extract the original query from the last tool call
         query = ""
         for msg in reversed(state["messages"]):
             if hasattr(msg, "tool_calls") and msg.tool_calls:
@@ -225,52 +280,48 @@ class Agent:
                     break
 
         if not query:
-            return self._state_with_reply(state, raw_passages)
+            return raw_passages
+        return self._rag.answer(query)
 
-        answer = self._rag.answer(query)
-        return self._state_with_reply(state, answer)
-
-    def _handle_navigate_to_tab(self, state: AgentState, tool_output) -> AgentState:
+    def _validate_navigate_to_tab(self, state: AgentState, tool_output) -> str:
         if isinstance(tool_output, dict) and "error" in tool_output:
-            return self._state_with_reply(state, f"Navigation error: {tool_output['error']}")
+            return f"Navigation error: {tool_output['error']}"
         tab = tool_output.get("tab") if isinstance(tool_output, dict) else None
         name = tool_output.get("name", f"tab {tab}") if isinstance(tool_output, dict) else f"tab {tab}"
-        return self._state_with_reply(state, f"Switched to **{name}** tab.")
+        return f"Switched to **{name}** tab."
 
-    def _handle_get_parameter(self, state: AgentState, tool_output: dict) -> AgentState:
+    def _validate_get_parameter(self, state: AgentState, tool_output: dict) -> str:
         if not isinstance(tool_output, dict):
-            return self._state_with_reply(state, "Could not read parameter value.")
+            return "Could not read parameter value."
         param = tool_output.get("parameter_name", "?")
         err = tool_output.get("error")
         if err:
-            return self._state_with_reply(state, f"Could not read **{param}**: {err}")
+            return f"Could not read **{param}**: {err}"
         value = tool_output.get("value")
         label = pretty_name(param, self.schema_properties)
         reply = f"Current value of **{label}** is `{value}`." if value is not None else f"**{label}** is not set."
         opts = tool_output.get("valid_options")
         if opts:
             reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
-        return self._state_with_reply(state, reply)
+        return reply
 
-    def _handle_refresh_schema(self, state: AgentState, tool_output) -> AgentState:
+    def _validate_refresh_schema(self, state: AgentState, tool_output) -> str:
         if not isinstance(tool_output, dict):
-            return self._state_with_reply(state, str(tool_output))
+            return str(tool_output)
         if "error" in tool_output:
-            return self._state_with_reply(state, f"Schema refresh error: {tool_output['error']}")
+            return f"Schema refresh error: {tool_output['error']}"
         fields = tool_output.get("refreshed_fields", [])
         total = tool_output.get("total_fields", 0)
         if fields:
             names = ", ".join(f"**{pretty_name(f, self.schema_properties)}**" for f in fields)
-            reply = f"Schema refreshed — updated options for: {names}."
-        else:
-            reply = f"Schema refreshed — no option changes detected ({total} fields checked)."
-        return self._state_with_reply(state, reply)
+            return f"Schema refreshed — updated options for: {names}."
+        return f"Schema refreshed — no option changes detected ({total} fields checked)."
 
-    def _handle_set_multiple(self, state: AgentState, tool_output: dict) -> AgentState:
+    def _validate_set_multiple(self, state: AgentState, tool_output: dict) -> str:
         if not isinstance(tool_output, dict):
-            return self._state_with_reply(state, "Invalid tool output for multi-set.")
+            return "Invalid tool output for multi-set."
         if "error" in tool_output and "validated" not in tool_output:
-            return self._state_with_reply(state, f"Error: {tool_output['error']}")
+            return f"Error: {tool_output['error']}"
 
         validated = tool_output.get("validated", {})
         errors = tool_output.get("errors", {})
@@ -293,20 +344,16 @@ class Agent:
             errs = ", ".join(f"**{k}**: {v}" for k, v in errors.items())
             parts.append(f"Could not set: {errs}.")
 
-        return {
-            "messages": [AIMessage(content=" ".join(parts) or "No changes applied.")],
-            "config_state": state["config_state"],
-            "in_config_mode": True,
-            "nudge_count": state.get("nudge_count", 0),
-        }
+        state["in_config_mode"] = True
+        return " ".join(parts) or "No changes applied."
 
-    def _handle_get_angle_plan(self, state: AgentState, tool_output) -> AgentState:
+    def _validate_get_angle_plan(self, state: AgentState, tool_output) -> str:
         if isinstance(tool_output, dict) and "error" in tool_output:
-            return self._state_with_reply(state, f"Error reading angle plan: {tool_output['error']}")
+            return f"Error reading angle plan: {tool_output['error']}"
         if not isinstance(tool_output, list):
-            return self._state_with_reply(state, str(tool_output))
+            return str(tool_output)
         if not tool_output:
-            return self._state_with_reply(state, "The angle plan table is currently empty.")
+            return "The angle plan table is currently empty."
         header = "| # | Title | phi | omega | Wait For | Value | Or Time |"
         sep    = "|---|-------|-----|-------|----------|-------|---------|"
         rows = [
@@ -314,40 +361,35 @@ class Agent:
             f"| {r.get('omega', 0)} | {r.get('wait_for', '')} | {r.get('value', 0)} | {r.get('or_time', 0)} |"
             for i, r in enumerate(tool_output)
         ]
-        reply = "**Current Angle Plan:**\n\n" + header + "\n" + sep + "\n" + "\n".join(rows)
-        return self._state_with_reply(state, reply)
+        return "**Current Angle Plan:**\n\n" + header + "\n" + sep + "\n" + "\n".join(rows)
 
-    def _handle_list_parameters(self, state: AgentState, tool_output) -> AgentState:
+    def _validate_list_parameters(self, state: AgentState, tool_output) -> str:
         if isinstance(tool_output, list):
             lines = [f"- **{p['title']}** (`{p['name']}`)" +
                      (f": {p['description']}" if p.get("description") else "") +
                      (f" — options: {', '.join(p['options'])}" if p.get("options") else "")
                      for p in tool_output]
-            reply = "**Available parameters:**\n" + "\n".join(lines)
-        else:
-            reply = str(tool_output)
-        return self._state_with_reply(state, reply)
+            return "**Available parameters:**\n" + "\n".join(lines)
+        return str(tool_output)
 
-    def _handle_get_default(self, state: AgentState, tool_output: dict) -> AgentState:
+    def _validate_get_default(self, state: AgentState, tool_output: dict) -> str:
         param = tool_output["parameter_name"]
         default = tool_output["default"]
         label = pretty_name(param, self.schema_properties)
         if default is not None:
-            reply = f"The default value for **{label}** is `{default}`."
-        else:
-            reply = f"There is no default defined for **{label}**."
-        return self._state_with_reply(state, reply)
+            return f"The default value for **{label}** is `{default}`."
+        return f"There is no default defined for **{label}**."
 
-    def _handle_set_parameter(self, state: AgentState, tool_output: dict) -> AgentState:
+    def _validate_set_parameter(self, state: AgentState, tool_output: dict) -> str:
         if not isinstance(tool_output, dict):
-            return self._state_with_reply(state, "Invalid tool output format.")
+            return "Invalid tool output format."
 
         key = tool_output["parameter_name"]
         raw_value = tool_output["parameter_value"]
 
         key, info = resolve_param_name(key, self.schema_properties)
         if not info:
-            return self._state_with_reply(state, f"Unknown parameter '{key}'. Please check the name.")
+            return f"Unknown parameter '{key}'. Please check the name."
 
         try:
             value = coerce_type(raw_value, info)
@@ -357,7 +399,7 @@ class Agent:
                 match = next((c for c in info["enum"] if str(c).lower() == lc), None)
                 if match is None:
                     opts = ", ".join(str(c) for c in info["enum"])
-                    return self._state_with_reply(state, f"Invalid value '{value}'. Choose from: {opts}")
+                    return f"Invalid value '{value}'. Choose from: {opts}"
                 value = match
 
             # --- Cross-field validation (crystal system cascade) ---
@@ -366,12 +408,12 @@ class Agent:
             if key == "point_group":
                 err = validate_point_group(value, cfg.get("crystalsystem"))
                 if err:
-                    return self._state_with_reply(state, err)
+                    return err
 
             if key == "centering":
                 err = validate_centering(value, cfg.get("point_group"))
                 if err:
-                    return self._state_with_reply(state, err)
+                    return err
 
             # Record the value
             cfg[key] = value
@@ -397,25 +439,11 @@ class Agent:
                 if is_error:
                     reply += f"\n\n{msg}"
 
+            state["in_config_mode"] = True
+            return reply
+
         except (ValidationError, ValueError, TypeError) as err:
-            reply = f"Invalid value for **{key}**: {err}"
-
-        return {
-            "messages": [AIMessage(content=reply)],
-            "config_state": state["config_state"],
-            "in_config_mode": True,
-            "nudge_count": state.get("nudge_count", 0),
-        }
-
-    # ------------------------------------------------------------------ helpers
-
-    @staticmethod
-    def _state_with_reply(state: AgentState, reply: str) -> AgentState:
-        return {
-            "messages": [AIMessage(content=reply)],
-            "config_state": state["config_state"],
-            "in_config_mode": state["in_config_mode"],
-        }
+            return f"Invalid value for **{key}**: {err}"
 
     # ------------------------------------------------------------------ public API
 
@@ -459,6 +487,7 @@ class Agent:
             "in_config_mode": self._in_config_mode,
             "next_to_ask": "",
             "nudge_count": 0,
+            "tool_rounds": 0,
         }
 
         result = self.graph.invoke(initial_state)
