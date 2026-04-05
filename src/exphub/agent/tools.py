@@ -373,6 +373,11 @@ def make_tools(
     def delete_run(row_index: int) -> dict:
         """Delete a run from the angle plan by its 0-based index.
 
+        **IMPORTANT:** This is a destructive operation.  Before calling this
+        tool, you MUST confirm with the user that they want to delete the
+        run.  Show them which run will be deleted (title, phi, omega) and
+        ask for explicit confirmation.
+
         Use ``get_angle_plan`` first to find the correct ``_index`` value.
         Returns the updated table (or an error dict if the index is out of range).
         """
@@ -526,6 +531,10 @@ def make_tools(
     @tool
     def stop_current_run() -> dict:
         """Stop the currently executing EIC scan/run.
+
+        **IMPORTANT:** This is a destructive operation that aborts a
+        running scan.  Before calling this tool, confirm with the user
+        that they want to stop the current run.
 
         Sends an abort signal to the EIC for the active scan.
         Use this when the user wants to stop data collection early

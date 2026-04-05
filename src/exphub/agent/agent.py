@@ -162,7 +162,7 @@ class Agent:
             cfg = state.get("config_state", {})
             msgs.append(SystemMessage(content=f"CONTEXT: Current config values: {json.dumps(cfg, default=str)}"))
 
-        msgs.extend(state["messages"][-6:])
+        msgs.extend(state["messages"][-20:])
 
         print("[Agent] Calling LLM…")
         llm = get_configured_chat_model().bind_tools(self._tools)

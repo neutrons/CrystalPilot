@@ -167,13 +167,19 @@ class ChatViewModel:
             )
 
             print(f"[CrystalPilot Agent] Reply: {reply[:120]}")
-            # Show which keys in config_state differ from the snapshot
-            diff_keys = {k for k in new_config if new_config[k] != current_state.get(k)}
-            print(f"[CrystalPilot Agent] Config diff keys: {diff_keys or '(none)'}")
+            # Compare-and-swap: only write fields that the agent actually
+            # changed relative to the snapshot taken at the start of the
+            # turn. This prevents overwriting user edits made in the UI
+            # while the agent was processing.
+            diff_config = {
+                k: v for k, v in new_config.items()
+                if v != current_state.get(k)
+            }
+            print(f"[CrystalPilot Agent] Config diff keys: {set(diff_config) or '(none)'}")
             self.chat_model.agent_status = "Applying configuration…"
             self._push_chat()
 
-            changed, errors = apply_agent_config(new_config, self.main_model, self.main_bindings)
+            changed, errors = apply_agent_config(diff_config, self.main_model, self.main_bindings)
             if changed:
                 print(f"[CrystalPilot Agent] Updated fields: {changed}")
                 logger.info("Agent updated fields: %s", changed)
