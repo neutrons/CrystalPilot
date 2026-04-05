@@ -22,6 +22,14 @@ logger = logging.getLogger(__name__)
 # re-listing the names by hand.
 BRIDGED_SUBMODELS: tuple[str, ...] = ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
 
+# Explicit ownership for fields that appear in multiple sub-models.
+# The listed sub-model is the *authoritative* source; others are ignored
+# during snapshot and receive writes second (if at all).
+FIELD_OWNER: dict[str, str] = {
+    "point_group": "experimentinfo",
+    "instrument": "experimentinfo",
+}
+
 
 def _coerce_list_field(model_cls: type, field_name: str, value: Any) -> Any:
     """Coerce *value* to ``List[T]`` if the field annotation requires it.
@@ -49,8 +57,16 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
     """Return a flat dict of all bridged fields from the current model state.
 
     Field names are kept as-is (e.g. ``ipts_number``, ``crystalsystem``).
+
+    When a field name appears in multiple sub-models, ``FIELD_OWNER``
+    determines which sub-model is authoritative.  For any other
+    collision the first sub-model in ``BRIDGED_SUBMODELS`` wins and a
+    warning is logged.
     """
     flat: Dict[str, Any] = {}
+    # Track which sub-model contributed each field (for collision detection)
+    _source: Dict[str, str] = {}
+
     for attr_name in BRIDGED_SUBMODELS:
         sub = getattr(main_model, attr_name, None)
         if sub is None:
@@ -64,7 +80,28 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
                     for opt_field in type(val).model_fields:
                         flat[opt_field] = getattr(val, opt_field, None)
                 continue
-            flat[field_name] = val
+
+            if field_name in flat:
+                # Collision: field already set by an earlier sub-model.
+                owner = FIELD_OWNER.get(field_name)
+                if owner and owner == attr_name:
+                    # This sub-model is the explicit owner — overwrite.
+                    flat[field_name] = val
+                    _source[field_name] = attr_name
+                elif owner:
+                    # Another sub-model is the explicit owner — skip.
+                    pass
+                else:
+                    # No explicit owner — first-write wins; log warning.
+                    logger.debug(
+                        "snapshot: field %r exists in both %s and %s — "
+                        "keeping value from %s",
+                        field_name, _source[field_name], attr_name,
+                        _source[field_name],
+                    )
+            else:
+                flat[field_name] = val
+                _source[field_name] = attr_name
     return flat
 
 
@@ -142,8 +179,17 @@ def write_single_field(
     Returns ``(True, "")`` on success, ``(False, error_message)`` on failure.
     Used as the ``write_through_fn`` callback so the agent's writes are
     immediately visible to subsequent tool calls within the same turn.
+
+    Respects ``FIELD_OWNER``: if the field has an explicit owner, only
+    that sub-model is written to.
     """
-    for attr_name in BRIDGED_SUBMODELS:
+    owner = FIELD_OWNER.get(field_name)
+    search_order = BRIDGED_SUBMODELS
+    if owner:
+        # Put the owner first so it gets written to preferentially
+        search_order = (owner,) + tuple(n for n in BRIDGED_SUBMODELS if n != owner)
+
+    for attr_name in search_order:
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue
