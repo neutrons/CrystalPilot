@@ -182,8 +182,14 @@ class ChatViewModel:
                 self.chat_model.last_update_summary = "Updated: " + ", ".join(pretty_fields)
                 self.chat_model.update_snackbar_visible = True
             if errors:
-                logger.warning("Bridge errors (will be surfaced next turn): %s", errors)
-                self._pending_bridge_errors = errors
+                # Surface bridge errors immediately in the reply instead
+                # of deferring them to the next turn.
+                logger.warning("Bridge validation errors: %s", errors)
+                err_lines = "\n".join(f"- **{k}**: {v}" for k, v in errors.items())
+                reply += (
+                    f"\n\n**Note:** Some values were rejected by the UI:\n{err_lines}\n"
+                    "Please check and correct these fields."
+                )
 
             self.chat_model.messages.append(
                 {"role": "assistant", "content": reply, "html": md_to_html(reply)}
