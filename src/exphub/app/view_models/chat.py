@@ -42,6 +42,7 @@ class ChatViewModel:
         binding: BindingInterface,
         main_bindings: Dict[str, Any],
         nav_fn=None,
+        main_vm=None,
     ) -> None:
         self.chat_model = chat_model
         self.main_model = main_model
@@ -53,6 +54,8 @@ class ChatViewModel:
         self._agent: Agent | None = None
         self._agent_lock = threading.Lock()
         self._nav_fn = nav_fn
+        # Reference to MainViewModel for action tool callbacks
+        self._main_vm = main_vm
 
         # MCP service for external tool integration (optional)
         self._mcp_service = MCPService()
@@ -88,6 +91,11 @@ class ChatViewModel:
             def _write_through(field_name: str, value):
                 return write_single_field(field_name, value, self.main_model, self.main_bindings)
 
+            # Action callbacks for UI-button tools.  These wrap
+            # MainViewModel methods so the agent can programmatically
+            # trigger actions like "Submit through EIC" or "Authenticate".
+            action_fns = self._build_action_fns()
+
             # Collect MCP tools if any servers are configured
             mcp_tools = self._mcp_service.get_all_tools() if self._mcp_service.is_available() else []
             self._agent = Agent(
@@ -97,6 +105,7 @@ class ChatViewModel:
                 mcp_tools=mcp_tools or None,
                 phase_manager=self._phase_manager,
                 write_through_fn=_write_through,
+                action_fns=action_fns,
             )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
@@ -194,6 +203,27 @@ class ChatViewModel:
         self._push_chat()
 
     # ------------------------------------------------------------------ helpers
+
+    def _build_action_fns(self) -> dict:
+        """Build the dict of action callbacks for agent UI-action tools.
+
+        Each callback wraps a MainViewModel method.  We resolve the
+        MainViewModel from the binding dict (it's the same instance
+        that created the bindings in mvvm_factory).
+        """
+        # The main_bindings dict has binding objects keyed by sub-model
+        # name.  We need the MainViewModel instance to call its methods.
+        # It's not stored directly, but we can walk up from the binding.
+        # Simpler: store a reference at init time.
+        fns: dict = {}
+        vm = self._main_vm
+        if vm is not None:
+            fns["submit_angle_plan"] = vm.submit_angle_plan
+            fns["authenticate_eic"] = vm.call_load_token
+            fns["initialize_strategy"] = vm.reset_run
+            fns["upload_strategy"] = vm.upload_strategy
+            fns["stop_run"] = vm.stoprun
+        return fns
 
     def toggle_drawer(self) -> None:
         self.chat_model.drawer_open = not self.chat_model.drawer_open

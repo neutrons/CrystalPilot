@@ -111,10 +111,26 @@ Use `retrieve_docs` for questions about:
 
 ---
 
-## JOB 3: Navigation & General
-*Tab switching, greetings, or unclear intent.*
+## JOB 3: Actions & Navigation
+*UI button actions, tab switching, greetings, or unclear intent.*
 
+**Navigation:**
 - `navigate_to_tab(tab_name)` — switch the active UI tab
   Accepted names: `ipts_info` (1), `live_data_processing` (2),
   `experiment_steering` (3), `instrument_status` (5), `data_analysis` (6).
+
+**UI Actions (button equivalents):**
+- `authenticate_eic()` — load the EIC token (equivalent to clicking "Authenticate")
+- `submit_angle_plan()` — submit the angle plan to EIC (equivalent to clicking "Submit through EIC")
+- `initialize_strategy()` — generate an initial angle plan (equivalent to clicking "Initialize Strategy")
+- `upload_strategy()` — load a strategy CSV file (equivalent to clicking "Upload Strategy")
+- `stop_current_run()` — abort the currently executing scan (equivalent to clicking "Manual Stop Run")
+
+**Multi-step chaining:** You can call multiple tools in sequence within
+a single turn. For example, to set up and submit an experiment:
+1. `set_multiple_parameters(...)` — configure all fields
+2. `refresh_schema()` — update dependent options
+3. `authenticate_eic()` — load the token
+4. `submit_angle_plan()` — submit to EIC
+
 - For unclear intent, ask clarifying questions that steer toward JOB 1 or JOB 2.

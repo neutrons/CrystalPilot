@@ -43,7 +43,13 @@ def resolve_param_name(name: str, schema_props: dict[str, dict]) -> tuple[str, d
     return name, None
 
 
-def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag=None) -> list:
+def make_tools(
+    schema_props: dict[str, dict],
+    snapshot_fn=None,
+    nav_fn=None,
+    rag=None,
+    action_fns: dict | None = None,
+) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
     Parameters
@@ -54,7 +60,12 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag
         Optional zero-argument callable that returns the current flat config dict
         (i.e. ``bridge.snapshot_models`` partially applied with the live model).
         Required for the ``get_parameter`` tool to work at runtime.
+    action_fns:
+        Optional dict of ``{name: callable}`` for UI-action tools like
+        ``submit_angle_plan``, ``authenticate_eic``, ``initialize_strategy``,
+        ``stop_run``, ``upload_strategy``.
     """
+    _actions = action_fns or {}
 
     @tool
     def set_parameter(parameter_name: str, parameter_value: Any) -> dict:
@@ -431,10 +442,114 @@ def make_tools(schema_props: dict[str, dict], snapshot_fn=None, nav_fn=None, rag
             return "No relevant documentation found for that query."
         return "\n\n---\n\n".join(passages)
 
-    return [
+    # ------------------------------------------------------------------ UI action tools
+
+    @tool
+    def submit_angle_plan() -> dict:
+        """Submit the current angle plan to the EIC for execution.
+
+        This authenticates (if not already done) and sends all runs in
+        the angle plan to the beamline EIC system.  Check that the angle
+        plan is complete and the EIC settings (token, simulation mode,
+        beamline) are correct before calling this tool.
+
+        Returns ``{"status": "submitted"}`` on success, or
+        ``{"error": ...}`` if the action is unavailable.
+        """
+        fn = _actions.get("submit_angle_plan")
+        if fn is None:
+            return {"error": "submit_angle_plan action is not available in this session."}
+        try:
+            fn()
+            return {"status": "submitted", "message": "Angle plan submitted to EIC."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @tool
+    def authenticate_eic() -> dict:
+        """Load the EIC authentication token from the configured token file.
+
+        Must be called before submitting angle plans.  The token file path
+        is set in the EIC Control section.
+
+        Returns ``{"status": "authenticated"}`` on success, or
+        ``{"error": ...}`` on failure.
+        """
+        fn = _actions.get("authenticate_eic")
+        if fn is None:
+            return {"error": "authenticate_eic action is not available in this session."}
+        try:
+            fn()
+            return {"status": "authenticated", "message": "EIC token loaded successfully."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @tool
+    def initialize_strategy() -> dict:
+        """Initialize (reset) the experiment strategy / angle plan.
+
+        Runs the angle plan optimizer to generate an initial set of
+        goniometer orientations (phi/omega angles) based on the current
+        experiment parameters (crystal system, UB matrix, instrument).
+
+        Returns ``{"status": "initialized"}`` on success, or
+        ``{"error": ...}`` on failure.
+        """
+        fn = _actions.get("initialize_strategy")
+        if fn is None:
+            return {"error": "initialize_strategy action is not available in this session."}
+        try:
+            fn()
+            return {"status": "initialized", "message": "Strategy initialized with optimized angles."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @tool
+    def upload_strategy() -> dict:
+        """Upload an angle plan strategy from the configured CSV file.
+
+        Reads the strategy file (set via ``plan_file`` parameter) and
+        populates the angle plan table.
+
+        Returns ``{"status": "uploaded"}`` on success, or
+        ``{"error": ...}`` on failure.
+        """
+        fn = _actions.get("upload_strategy")
+        if fn is None:
+            return {"error": "upload_strategy action is not available in this session."}
+        try:
+            fn()
+            return {"status": "uploaded", "message": "Strategy file uploaded and loaded."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @tool
+    def stop_current_run() -> dict:
+        """Stop the currently executing EIC scan/run.
+
+        Sends an abort signal to the EIC for the active scan.
+        Use this when the user wants to stop data collection early
+        (e.g., sufficient statistics reached).
+
+        Returns ``{"status": "stopped"}`` on success, or
+        ``{"error": ...}`` on failure.
+        """
+        fn = _actions.get("stop_run")
+        if fn is None:
+            return {"error": "stop_run action is not available in this session."}
+        try:
+            fn()
+            return {"status": "stopped", "message": "Current run stopped."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    all_tools = [
         set_parameter, get_default_value, explain_parameter,
         get_parameter, list_parameters, refresh_schema,
         set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, edit_run, delete_run,
         navigate_to_tab, retrieve_docs,
+        submit_angle_plan, authenticate_eic, initialize_strategy,
+        upload_strategy, stop_current_run,
     ]
+    return all_tools

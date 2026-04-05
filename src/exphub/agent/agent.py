@@ -66,6 +66,7 @@ class Agent:
         mcp_tools: list | None = None,
         phase_manager=None,
         write_through_fn=None,
+        action_fns: dict | None = None,
     ) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
@@ -84,7 +85,13 @@ class Agent:
             logger.warning("RAG init failed (%s) — retrieve_docs will be unavailable", exc)
             self._rag = None
 
-        self._tools = make_tools(schema_properties, snapshot_fn=snapshot_fn, nav_fn=nav_fn, rag=self._rag)
+        self._tools = make_tools(
+            schema_properties,
+            snapshot_fn=snapshot_fn,
+            nav_fn=nav_fn,
+            rag=self._rag,
+            action_fns=action_fns,
+        )
         if mcp_tools:
             self._tools.extend(mcp_tools)
             logger.info("Added %d MCP tools to agent", len(mcp_tools))
@@ -234,6 +241,19 @@ class Agent:
 
         elif tool_msg.name == "retrieve_docs":
             note = self._validate_retrieve_docs(state, tool_msg.content)
+
+        elif tool_msg.name in (
+            "submit_angle_plan", "authenticate_eic",
+            "initialize_strategy", "upload_strategy", "stop_current_run",
+        ):
+            # Action tools return {"status": ...} or {"error": ...}
+            if isinstance(tool_output, dict):
+                if "error" in tool_output:
+                    note = f"Action error: {tool_output['error']}"
+                else:
+                    note = tool_output.get("message", f"Action {tool_msg.name} completed.")
+            else:
+                note = str(tool_output)
 
         new_messages = []
         if note:
