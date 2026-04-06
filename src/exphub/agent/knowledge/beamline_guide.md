@@ -505,7 +505,7 @@ For quantitative intensity analysis during live monitoring:
 CrystalPilot drives the following Mantid algorithms for live and offline
 data reduction:
 
-- **LoadLiveData / StartLiveData / StopLiveData**: stream live neutron events
+- **LoadLiveData / StartLiveData / MonitorLiveData**: stream live neutron events
   from the instrument as they arrive
 - **ConvertToMD**: convert event workspace to MD (multi-dimensional) workspace
   in Q-space for peak finding

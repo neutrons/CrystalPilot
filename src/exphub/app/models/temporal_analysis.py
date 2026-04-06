@@ -138,7 +138,10 @@ class MantidWorkflow:
     def stop(self) -> None:
         """Stop the Mantid MonitorLiveData thread."""
         try:
-            mtdapi.StopLiveData(InputWorkspace="live_event_ws")
+            from mantid.api import AlgorithmManager
+
+            for alg in AlgorithmManager.runningInstancesOf("MonitorLiveData"):
+                alg.cancel()
         except Exception as e:
             print(f"StopLiveData warning: {e}")
 
@@ -1225,6 +1228,9 @@ class TemporalAnalysisModel(BaseModel):
             self._mtd_workflow.stop()
 
     def start_reading_live_mtd_data(self) -> None:
+        # Stop any lingering MonitorLiveData thread before starting a new session
+        if self._mtd_workflow is not None:
+            self._mtd_workflow.stop()
         self._mtd_workflow = MantidWorkflow()
         models = self.get_models()
         if models is not None:

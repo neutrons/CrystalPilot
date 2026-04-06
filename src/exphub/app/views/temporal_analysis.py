@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import plotly.graph_objects as go
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import GridLayout, VBoxLayout
+from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import plotly
 from trame.widgets import vuetify3 as vuetify
 
@@ -35,6 +35,8 @@ class TemporalAnalysisView:
         self.view_model.temporalanalysis_bind.connect("model_temporalanalysis")
         self.view_model.temporalanalysis_updatefigure_intensity_bind.connect(self.update_figure_intensity)
         self.view_model.temporalanalysis_updatefigure_uncertainty_bind.connect(self.update_figure_uncertainty)
+        # Allow the view model to push placeholder figures immediately on start
+        self.view_model._temporal_view = self
         self.create_ui()
 
     def create_ui(self) -> None:
@@ -116,17 +118,48 @@ class TemporalAnalysisView:
             self.figure_uncertainty = plotly.Figure()
             self.figure_uncertainty.update(fig_u)
 
-        with VBoxLayout(halign="center"):
+        with HBoxLayout(halign="left"):
             vuetify.VBtn(
-                "Auto Update",
+                "Start Live Data Monitoring",
                 click=self.view_model.create_auto_update_temporalanalysis_figure,
                 disabled=("controls.is_live_update_running",),
+                size="small",
             )
             vuetify.VBtn(
-                "Stop",
+                "Stop Live Data Monitoring",
                 click=self.view_model.stop_live_update,
                 disabled=("!controls.is_live_update_running",),
+                size="small",
             )
+
+    @staticmethod
+    def _make_placeholder(title: str) -> go.Figure:
+        """Return an empty figure with a centered 'Collecting live data...' annotation."""
+        fig = go.Figure()
+        fig.update_layout(
+            title={"text": title, "x": 0.5, "xanchor": "center"},
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            paper_bgcolor="rgba(10,10,10,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            annotations=[
+                {
+                    "text": "Collecting live data\u2026",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "x": 0.5,
+                    "y": 0.5,
+                    "showarrow": False,
+                    "font": {"size": 24, "color": "gray"},
+                }
+            ],
+        )
+        return fig
+
+    def show_placeholders(self) -> None:
+        """Push placeholder figures to both chart widgets."""
+        self.update_figure_intensity(self._make_placeholder("Prediction of Signal Noise Ratio"))
+        self.update_figure_uncertainty(self._make_placeholder("Prediction of Uncertainty"))
 
     def update_figure_intensity(self, figure_intensity: go.Figure) -> None:
         # debounce / re-entrancy guard

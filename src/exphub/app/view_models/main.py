@@ -38,6 +38,8 @@ class MainViewModel:
         self._temporalanalysis_min_interval: float = 1.0
         # Task reference for the live-update loop; None means not running
         self._live_update_task: asyncio.Task | None = None
+        # Back-reference to the TemporalAnalysisView (set by the view on init)
+        self._temporal_view: Any = None
         # Set parent link for temporalanalysis model so it can access sibling models
         try:
             if hasattr(self.model, "temporalanalysis") and hasattr(self.model.temporalanalysis, "set_parent"):
@@ -247,6 +249,9 @@ class MainViewModel:
     async def _start_and_run_live_update(self) -> None:
         """Start live data collection in a thread, then run the reduction loop."""
         loop = asyncio.get_event_loop()
+        # Show placeholder figures immediately while Mantid starts up
+        if self._temporal_view is not None:
+            self._temporal_view.show_placeholders()
         try:
             await loop.run_in_executor(None, self.model.temporalanalysis.start_reading_live_mtd_data)
         except RuntimeError as e:
