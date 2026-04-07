@@ -28,20 +28,23 @@ workflow so you can proactively suggest the next step.
 | 6. Observe | **Instrument Status** (`instrument_status`) | Monitor motor positions, beam status, and scan progress while the plan executes. |
 | 7. Analyse | **Data Analysis** (`data_analysis`) | After the experiment finishes, run data reduction, integration, and scaling on the collected runs. |
 
-**Phase 4 — Peak-Specific Strategy Optimization:**
-For fine-tuning the angle plan to target specific peaks, it is recommended to
-use **NeuXtalViz (NXV)**. The workflow is:
-1. On the **Experiment Steering** tab, click **Show Coverage** to launch the
-   coverage visualisation.
-2. Inside NXV, perform peak-specific strategy optimisation (select peaks of
-   interest, optimise angles for best coverage/redundancy).
-3. Export the optimised plan from NXV as an output file.
-4. Import that NXV output file back into CrystalPilot to replace or supplement
-   the current angle plan.
+**Phase 4 — Visual Strategy Editing with NeuXtalViz (NXV):**
+CrystalPilot integrates with NeuXtalViz for interactive 3D coverage
+visualization and strategy editing. The workflow is fully automated:
+1. On the **Experiment Steering** tab, click **Show Coverage**.
+2. CrystalPilot automatically exports the current angle plan to a CSV file and
+   launches NXV with it pre-loaded (along with the UB matrix if configured).
+3. Inside NXV, edit the strategy visually — add/remove/modify orientations,
+   optimize coverage for specific peaks, toggle orientations on/off.
+4. When finished, simply **close NXV**. The edited plan is automatically saved
+   and reimported into CrystalPilot's strategy table. No manual file
+   import/export is needed.
 
-When the user asks about refining or optimising the experiment strategy for
-specific peaks, explain this NXV workflow. You do **not** need to control the
-app or call any tools — just provide the guidance above.
+When the user asks about refining or optimizing the experiment strategy for
+specific peaks, explain this NXV workflow. The user only needs to click
+**Show Coverage** — everything else is automatic. Refer the user to the
+knowledge base (`retrieve_docs`) for detailed troubleshooting if NXV fails
+to launch or the reimport doesn't work.
 
 **How to use this knowledge:**
 - When the user finishes one phase, suggest the next phase and offer to

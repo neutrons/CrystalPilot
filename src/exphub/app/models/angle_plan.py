@@ -267,6 +267,91 @@ class AnglePlanModel(BaseModel):
     #        else:
     #            return False
 
+    def export_to_nxv_csv(self, file_path: str) -> str:
+        """Export angle_list to a CSV file in NeuXtalViz-compatible format.
+
+        Columns match NXV's official save_plan() output:
+        BL12:SMS:RunInfo:RunTitle, BL12:Mot:goniokm:omega,
+        BL12:Mot:goniokm:chi, BL12:Mot:goniokm:phi, Comment, Wait For, Value
+        Returns the file path written.
+        """
+        fieldnames = [
+            "BL12:SMS:RunInfo:RunTitle",
+            "BL12:Mot:goniokm:omega",
+            "BL12:Mot:goniokm:chi",
+            "BL12:Mot:goniokm:phi",
+            "Comment",
+            "Wait For",
+            "Value",
+        ]
+        with open(file_path, mode="w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for angle in self.angle_list:
+                wait_for = angle.get("wait_for", "PCharge")
+                # Map internal wait_for to EIC PV name
+                if wait_for == "PCharge":
+                    wait_for_pv = "BL12:Det:PCharge:C"
+                else:
+                    wait_for_pv = wait_for
+                writer.writerow(
+                    {
+                        "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                        "BL12:Mot:goniokm:omega": angle.get("omega", 0),
+                        "BL12:Mot:goniokm:chi": angle.get("chi", 0),
+                        "BL12:Mot:goniokm:phi": angle.get("phi", 0),
+                        "Comment": angle.get("comment", ""),
+                        "Wait For": wait_for_pv,
+                        "Value": angle.get("value", 10),
+                    }
+                )
+        print(f"Exported {len(self.angle_list)} rows to {file_path}")
+        return file_path
+
+    def import_from_nxv_csv(self, file_path: str) -> None:
+        """Import a CSV file written by NeuXtalViz back into angle_list.
+
+        Expects columns matching NXV's save_plan() format.
+        Dynamically detects angle column names (everything except the first
+        title column and the fixed Comment/Wait For/Value columns).
+        """
+        with open(file_path, mode="r") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        if not rows:
+            print(f"import_from_nxv_csv: empty CSV at {file_path}")
+            return
+        all_cols = list(rows[0].keys())
+        fixed = {"Comment", "Wait For", "Value", "Use"}
+        # First column is title/scan-log PV
+        title_col = all_cols[0]
+        # Angle columns are between title and fixed columns
+        angle_cols = [c for c in all_cols[1:] if c not in fixed]
+
+        new_angle_list = []
+        for i, row in enumerate(rows):
+            wait_for = row.get("Wait For", "")
+            # Map EIC PV names back to internal short names
+            if "PCharge" in wait_for:
+                wait_for = "PCharge"
+            elif "seconds" in wait_for.lower():
+                wait_for = "seconds"
+            new_angle_list.append(
+                {
+                    "id": i + 1,
+                    "title": row.get(title_col, ""),
+                    "comment": row.get("Comment", ""),
+                    "chi": float(row.get("BL12:Mot:goniokm:chi", 0)),
+                    "phi": float(row.get("BL12:Mot:goniokm:phi", 0)),
+                    "omega": float(row.get("BL12:Mot:goniokm:omega", 0)),
+                    "wait_for": wait_for if wait_for else "PCharge",
+                    "value": float(row.get("Value", 10)),
+                    "or_time": "",
+                }
+            )
+        self.angle_list = new_angle_list
+        print(f"Imported {len(new_angle_list)} rows from {file_path}")
+
     def submit_to_eic(self) -> None:
         # Implement the submit logic here
         pass

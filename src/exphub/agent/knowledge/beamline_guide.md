@@ -424,14 +424,97 @@ space coverage. Key considerations:
 - Check coverage statistics after each run; add supplementary orientations
   to fill gaps.
 
-### NeuXtalViz Integration
+### NeuXtalViz (NXV) Integration — Detailed Workflow
 
-For fine-tuning the angle plan to target specific peaks, use NeuXtalViz (NXV):
-1. On the Experiment Steering tab, click Show Coverage to launch the
-   coverage visualisation.
-2. Inside NXV, perform peak-specific strategy optimisation.
-3. Export the optimised plan from NXV as an output file.
-4. Import that NXV output file back into CrystalPilot.
+CrystalPilot integrates with NeuXtalViz (NXV) for interactive 3D reciprocal-
+space coverage visualization and strategy editing. The integration uses a
+file-based CSV exchange: CrystalPilot exports the current angle plan, NXV
+opens it for visual editing, and when NXV closes the edited plan is
+automatically reimported.
+
+#### Step-by-step workflow
+
+1. **(Optional) Initialize Strategy**
+   Click **Initialize Strategy** on the Experiment Steering tab. This runs
+   the built-in angle plan optimizer which populates the strategy table with
+   an initial set of goniometer orientations based on the sample symmetry
+   and instrument geometry. You can skip this if you want to build a plan
+   from scratch inside NXV.
+
+2. **Launch NXV via "Show Coverage"**
+   Click **Show Coverage**. CrystalPilot will:
+   - Export the current angle plan table to a temporary CSV file
+     (`/tmp/crystalpilot_nxv_plan.csv`) in NXV-compatible format with
+     columns: `BL12:Mot:goniokm:omega`, `BL12:Mot:goniokm:chi`,
+     `BL12:Mot:goniokm:phi`, `comment`
+   - Launch NeuXtalViz as an external process, passing:
+     - `--initialize-planner <UB.mat>` (if a UB matrix file is configured
+       in the IPTS Info tab) — loads the UB and runs initial coverage
+       optimization
+     - `--open-plan <csv>` — loads the exported strategy into NXV's planner
+       table
+   - The CrystalPilot UI remains responsive while NXV is open.
+
+3. **Edit strategy visually inside NXV**
+   Inside NXV's Experiment Planner:
+   - View the 3D reciprocal-space coverage for the current orientations
+   - Add, remove, or modify orientations
+   - Use NXV's built-in optimizer to improve coverage for specific peaks
+   - Toggle orientations on/off using the "Use" checkbox
+   - When finished, simply **close the NXV window** — the edited plan is
+     automatically saved back to the same CSV file.
+
+4. **Automatic reimport**
+   When NXV closes, CrystalPilot detects the process exit and automatically:
+   - Reads the updated CSV file
+   - Replaces the angle plan table with the edited orientations
+   - Fills in default EIC parameters (Wait For = "PCharge", Value = 10)
+   - Refreshes the UI
+   No manual file import is needed.
+
+5. **(Optional) Further manual edits**
+   After reimport, you can still edit individual runs in the CrystalPilot
+   table: click the pencil icon to modify angles, or use "Add a Run" to
+   append additional orientations.
+
+6. **Submit through EIC**
+   When the strategy is finalized, authenticate with the EIC token and click
+   **Submit through EIC** to send the plan to the instrument control system.
+
+7. **Auto-steering (during data collection)**
+   While runs execute, CrystalPilot's live data monitoring can automatically
+   stop a run when the data quality threshold is reached:
+   - **By Uncertainty**: stops when Poisson uncertainty drops below the
+     configured threshold
+   - **By SNR**: stops when signal-to-noise ratio exceeds the threshold
+   - **No Auto Stop**: manual stop only via "Manual Stop Run" button
+   The auto-stop strategy and threshold are configured at the bottom of the
+   Experiment Steering tab.
+
+#### CSV format reference
+
+The exchange CSV uses NXV's native motor column names:
+
+```csv
+BL12:Mot:goniokm:omega,BL12:Mot:goniokm:chi,BL12:Mot:goniokm:phi,comment
+0.0,135.0,0.0,orientation_1
+10.0,135.0,45.0,orientation_2
+```
+
+- The `comment` column maps to CrystalPilot's `title` field
+- EIC-specific columns (Wait For, Value, Or Time) are not in the CSV; they
+  are filled with defaults on reimport and can be edited in the table
+
+#### Troubleshooting
+
+- **NXV does not launch**: Check that the conda environment `nxvnew` exists
+  and that `~/.miniforge/bin/activate` is the correct activate script path.
+- **Plan not reimported**: Verify that NXV was closed normally (not killed).
+  The auto-save runs in the window close event handler.
+- **Empty table after reimport**: The CSV may be empty. Check
+  `/tmp/crystalpilot_nxv_plan.csv` contents.
+- **UB not loaded in NXV**: Ensure the UB file path in IPTS Info tab points
+  to a valid `.mat` file.
 
 ---
 
