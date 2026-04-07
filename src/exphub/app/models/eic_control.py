@@ -1,5 +1,8 @@
 """Model for EIC Control."""
 
+import csv
+import os
+from datetime import datetime
 from typing import Dict, List
 
 from pydantic import BaseModel, Field
@@ -40,6 +43,7 @@ class EICControlModel(BaseModel):
     eic_submission_message: List[str] = Field(default=["No message"], title="EIC Submission Message")
     eic_submission_scan_id: int = Field(default=-1, title="EIC Submission Scan ID")
     eic_submission_status: str = Field(default="No status", title="EIC Submission Status")
+    eic_status: str = Field(default="not authenticated", title="EIC Status")
 
     eic_auto_stop_strategy: str = Field(default="By Uncertainty", title="Auto Steering Strategy")
     eic_auto_stop_strategy_options: List[str] = Field(
@@ -59,7 +63,68 @@ class EICControlModel(BaseModel):
             self.token = tokenfile.read()
             print(self.token)
 
+    def _copy_strategy_to_eic(self, angleplan: List[Dict]) -> str:
+        """Copy the experiment strategy CSV to the EIC submission location.
+
+        Returns the destination file path.
+        """
+        # Create timestamp in format: YYYY-MM-DD-HHMMSS
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+        filename = f"CrystalPilot-experiment-plan-{timestamp}.csv"
+
+        # Build destination path: /SNS/groups/topaz/bl_12/IPTS-xxxxx/
+        destination_dir = f"/SNS/groups/topaz/bl_12/IPTS-{self.ipts_number}"
+        destination_path = os.path.join(destination_dir, filename)
+
+        # Create directory if it doesn't exist
+        try:
+            os.makedirs(destination_dir, exist_ok=True)
+            print(f"Ensured directory exists: {destination_dir}")
+        except OSError as e:
+            print(f"Failed to create directory {destination_dir}: {e}")
+            raise
+
+        # Write CSV file at destination
+        fieldnames = [
+            "BL12:SMS:RunInfo:RunTitle",
+            "BL12:Mot:goniokm:omega",
+            "BL12:Mot:goniokm:chi",
+            "BL12:Mot:goniokm:phi",
+            "Comment",
+            "Wait For",
+            "Value",
+        ]
+        with open(destination_path, mode="w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for angle in angleplan:
+                wait_for = angle.get("wait_for", "PCharge")
+                # Map internal wait_for to EIC PV name
+                if wait_for == "PCharge":
+                    wait_for_pv = "BL12:Det:PCharge:C"
+                else:
+                    wait_for_pv = wait_for
+                writer.writerow(
+                    {
+                        "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                        "BL12:Mot:goniokm:omega": angle.get("omega", 0),
+                        "BL12:Mot:goniokm:chi": angle.get("chi", 0),
+                        "BL12:Mot:goniokm:phi": angle.get("phi", 0),
+                        "Comment": angle.get("comment", ""),
+                        "Wait For": wait_for_pv,
+                        "Value": angle.get("value", 10),
+                    }
+                )
+        print(f"Copied experiment strategy to {destination_path}")
+        return destination_path
+
     def submit_eic(self, angleplan: List[Dict]) -> None:
+        # Copy strategy to EIC submission location first
+        try:
+            self._copy_strategy_to_eic(angleplan)
+        except Exception as e:
+            print(f"Warning: failed to copy strategy to EIC location: {e}")
+
         # Implement the submit logic here
         self.beamline = self.beamline_database[self.instrument_name]
         eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.ipts_number)

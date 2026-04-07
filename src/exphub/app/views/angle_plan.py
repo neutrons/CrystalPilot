@@ -253,10 +253,15 @@ class AnglePlanView:
             # vuetify.VBtn("Update Strategy", click=self.view_model.update_view, style="align-self: center;")
             # html.Div(style="height: 20px;")
             vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan)
-            html.P(
-                "Submission Successful.",
-                v_if="model_eiccontrol.eic_submission_success",
-                # text="Submission Successful. Scan ID: {{model_eiccontrol.eic_submission_scan_id}}, Message: {{model_eiccontrol.eic_submission_message}}",#noqa
+            vuetify.VChip(
+                "{{ model_eiccontrol.eic_status }}",
+                color="model_eiccontrol.eic_status === 'authenticated successfully' ? 'blue'"
+                " : model_eiccontrol.eic_status === 'jobs submitted' ? 'green'"
+                " : model_eiccontrol.eic_status === 'job submission simulated' ? 'orange'"
+                " : model_eiccontrol.eic_status.startsWith('submission failed') || model_eiccontrol.eic_status.startsWith('authentication failed') ? 'red'"  # noqa: E501
+                " : 'grey'",
+                variant="flat",
+                style="font-weight: bold;",
             )
 
         with vuetify.VDialog(

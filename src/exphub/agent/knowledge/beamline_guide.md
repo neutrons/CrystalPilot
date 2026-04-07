@@ -460,7 +460,15 @@ automatically reimported.
    - View the 3D reciprocal-space coverage for the current orientations
    - Add, remove, or modify orientations
    - Use NXV's built-in optimizer to improve coverage for specific peaks
+    - Recommended way to optimize the coverage:
+      - Select the goniometer
+      - Start from a low-q Bragg peak, (1,0,0) for example
+      - Find the coverage, show the d-spacing distribution on the detector panels
+      - Select an angle choice with low d-spacing while not too close to detector edge
+      - Add this angle to experiment plan and optimize
+      - Iterate till all desired peaks are selected, or a desirable coverage is acheived. 
    - Toggle orientations on/off using the "Use" checkbox
+  
    - When finished, simply **close the NXV window** — the edited plan is
      automatically saved back to the same CSV file.
 

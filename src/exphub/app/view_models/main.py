@@ -149,11 +149,22 @@ class MainViewModel:
 
     def submit_angle_plan(self) -> None:
         # print("submit_angle_plan")
-        self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list)
+        try:
+            self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list)
+            if self.model.eiccontrol.is_simulation:
+                self.model.eiccontrol.eic_status = "job submission simulated"
+            else:
+                self.model.eiccontrol.eic_status = "jobs submitted"
+        except Exception as e:
+            self.model.eiccontrol.eic_status = f"submission failed: {e}"
         self.update_view()
 
     def call_load_token(self) -> None:
-        self.model.eiccontrol.load_token(self.model.eiccontrol.token_file)
+        try:
+            self.model.eiccontrol.load_token(self.model.eiccontrol.token_file)
+            self.model.eiccontrol.eic_status = "authenticated successfully"
+        except Exception as e:
+            self.model.eiccontrol.eic_status = f"authentication failed: {e}"
         self.update_view()
 
     #
@@ -431,7 +442,7 @@ class MainViewModel:
         nxv_python = os.path.join(
             os.path.dirname(_project_root), "NeuXtalViz-tools", "src", "NeuXtalViz.py"
         )
-        nxv_conda_env = "nxvnew"
+        nxv_conda_env = "nxv"
         nxv_activate = os.path.expanduser("~/.miniforge/bin/activate")
 
         cmd_parts = [
