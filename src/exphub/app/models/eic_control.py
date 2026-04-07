@@ -28,7 +28,7 @@ class EICControlModel(BaseModel):
     token: str = Field(default="test_password", title="IPTS token")
     # token_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/token.txt", title="IPTS token")
     # token_file: str = Field(default="/path/token.txt", title="IPTS token")
-    token_file: str = Field(default="/SNS/TOPAZ/IPTS-34069/shared/token.txt", title="IPTS token")
+    token_file: str = Field(default="", title="IPTS token")
     # token_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/token.txt", title="IPTS token")
 
     is_simulation: bool = Field(default=True, title="Simulation")
