@@ -62,7 +62,7 @@ class ExperimentInfoModel(BaseModel):
         description="Will be used to create a directory in the shared folder under the IPTS directory.",
     )
     cal_filename: str = Field(
-        default="/SNS/TOPAZ/shared/calibrations/2025B/TOPAZ_2025B_AG_2-3BN_AG.DetCal",
+        default="/SNS/TOPAZ/shared/calibration/2026A_CG/calibration.DetCal",
         title="Calibration File",
         description="Calibration file for the current cycle.",
     )
@@ -74,7 +74,7 @@ class ExperimentInfoModel(BaseModel):
     )
     read_ub: Optional[bool] = Field(default=False, title="Read UB Matrix")
     UBFileName: Optional[str] = Field(
-        default="/home/zx5/1-todo/4-integrate/nxv/nxv-git-zhongcanxiao/src/TOPAZ_44752_Tetragonal.mat",
+        default="",
         title="UB File",
         description="Optional UB matrix file.",
     )

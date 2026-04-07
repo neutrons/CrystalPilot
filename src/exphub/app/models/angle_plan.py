@@ -135,7 +135,7 @@ class AnglePlanModel(BaseModel):
     plan_name: str = Field(default="CrystalPilot Plan", title="Strategy Name", description="Name of the plan")
 
     plan_file: str = Field(
-        default="/SNS/TOPAZ/IPTS-34069/shared/strategy.csv",
+        default="",
         title="Strategy File",
         description="File path to the plan file",
     )
