@@ -37,7 +37,6 @@ class AnglePlanModel(BaseModel):
             {"title": "omega", "value": "omega", "sortable": True, "align": "center"},
             {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
             {"title": "Value", "value": "value", "sortable": True, "align": "center"},
-            {"title": "Or Time", "value": "or_time", "sortable": True, "align": "center"},
             {"title": "Action", "value": "actions", "sortable": False, "align": "center"},
         ]
     )

@@ -180,12 +180,6 @@ class AnglePlanView:
                         type="number",
                         update_modelValue="flushState('model_angleplan')",
                     )
-                    vuetify.VTextField(
-                        v_model="model_angleplan.run_record.or_time",
-                        label="Or Time",
-                        type="number",
-                        update_modelValue="flushState('model_angleplan')",
-                    )
                 with vuetify.VCardActions():
                     vuetify.VBtn("Cancel", click=self.view_model.close_runedit_dialog, style="align-self: center;")
                     # #TODO: this one not working at this git version

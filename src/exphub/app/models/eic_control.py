@@ -139,9 +139,8 @@ class EICControlModel(BaseModel):
                 "BL12:Mot:goniokm:omega",
                 "Wait For",
                 "Value",
-                "Or Time",
             ]
-            angle_keys = ["title", "comment", "phi", "omega", "wait_for", "value", "or_time"]
+            angle_keys = ["title", "comment", "phi", "omega", "wait_for", "value"]
         else:
             self.supported_beamline = False
 
