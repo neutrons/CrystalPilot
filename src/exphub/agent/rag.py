@@ -281,8 +281,10 @@ class BeamlineKnowledgeBase:
         """
         passages = self.retrieve_with_budget(query)
         if not passages:
+            logger.info("RAG: no passages found for query: %s", query)
             return "No relevant documentation found for that query."
 
+        logger.info("RAG: found %d passages for query: %s", len(passages), query)
         context = "\n\n---\n\n".join(passages)
         prompt = (
             "You are CrystalPilot Assistant. Answer the QUESTION using ONLY "
@@ -295,8 +297,11 @@ class BeamlineKnowledgeBase:
         try:
             from .llm import get_configured_chat_model
             llm = get_configured_chat_model()
+            logger.info("RAG: calling synthesis LLM…")
             result = llm.invoke(prompt)
-            return result.content.strip() if hasattr(result, "content") else str(result).strip()
+            answer = result.content.strip() if hasattr(result, "content") else str(result).strip()
+            logger.info("RAG: synthesis answer (first 120 chars): %s", answer[:120])
+            return answer
         except Exception as exc:
             logger.warning("RAG: synthesis LLM call failed (%s) — returning raw passages", exc)
             return context

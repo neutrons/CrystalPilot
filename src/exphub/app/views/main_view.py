@@ -50,7 +50,7 @@ class MainApp(ThemedApp):
                     icon="mdi-robot-outline",
                     click=self.view_models["chat"].toggle_drawer,
                     variant="text",
-                    size="small",
+                    size="large",
                     title="Toggle Agent Pane",
                 )
 

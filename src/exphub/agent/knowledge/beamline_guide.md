@@ -122,6 +122,32 @@ TOPAZ is a time-of-flight (TOF) single-crystal Laue diffractometer at the
 Spallation Neutron Source. It uses the full white-beam polychromatic neutron
 spectrum and a large array of flat panel detectors.
 
+**Instrument Specifications:**
+-Moderator: Decoupled poisoned supercritical hydrogen
+-Source to sample distance: 18 m
+-Sample to detector distance, evacuated: 39 – 46 cm
+-Detector coverage: 3.2 sr, 25 detectors
+-Detector size: 15 x 15 cm2 with 256 by 256 pixels
+-Detector angular range: 20 –160º 2θ; +/- 32° out-of-plane
+-Wavelength bandwidth: 3.1 Å
+-Frame 1: 0.4 – 3.5 Å
+-Resolution: > 0.4% Δd/d
+-Sample size: > 0.05 mm3 in volume and > 0.1 mm on an edge
+-d spacing range: 0.25 Å  - 14  Å
+-Q range: 0.45 - 25 Å-1
+-Neutron beam sizes: 2.0 – 5.0 mm diameter
+-Neutron beam divergence on sample: 15 mrad  - 25 mrad
+-Sample Environment:
+  -Ambient goniometer with c fixed at 135°
+    -ω: 0°–360°
+    -Φ: 0–360°
+    -Oxford Cryosystems Cobra 800 open-flow N2 gas stream: 90 – 450 K
+  
+  -Cryogenic goniometer with precision motor controls for sample centering
+    -ω: 0°–360°
+    -Cryogen-free pulse-tube cryocooler with a helium compressor (Cryomech PT415-RM):  5 K – 300 K
+
+
 **Typical operating parameters:**
 - Wavelength range: 0.4 -- 3.45 A
 - Maximum Q: ~17 inverse Angstroms (atomic resolution, small unit cells)

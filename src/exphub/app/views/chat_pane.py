@@ -16,6 +16,30 @@ from ..view_models.chat import ChatViewModel
 
 
 # ── CSS for chat bubbles (injected via trame client.Style) ─────────────
+_CHAT_RESIZE_JS = """
+window._chatResizeStart = function(event) {
+    event.preventDefault();
+    var pane = event.currentTarget.parentElement;
+    var startX = event.clientX;
+    var startWidth = pane.offsetWidth;
+    function onMove(e) {
+        var newWidth = startWidth - (e.clientX - startX);
+        newWidth = Math.max(250, Math.min(900, newWidth));
+        pane.style.flex = '0 0 ' + newWidth + 'px';
+    }
+    function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+    }
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+};
+"""
+
 _CHAT_CSS = """
 .chat-bubble {
     max-width: 90%;
@@ -42,6 +66,7 @@ _CHAT_CSS = """
     border-bottom-left-radius: 4px;
     overflow-x: auto;
     max-height: 400px;
+    min-height: 100px;
     overflow-y: auto;
 }
 /* Markdown elements inside assistant bubbles */
@@ -84,6 +109,24 @@ _CHAT_CSS = """
 .chat-bubble-assistant strong {
     font-weight: 600;
 }
+.chat-bubble-assistant table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.8rem;
+    margin: 6px 0;
+}
+.chat-bubble-assistant th,
+.chat-bubble-assistant td {
+    border: 1px solid #c8c8c8;
+    padding: 4px 8px;
+}
+.chat-bubble-assistant th {
+    background: #d7ecd9;
+    font-weight: 600;
+}
+.chat-bubble-assistant tr:nth-child(even) {
+    background: #f5faf5;
+}
 .chat-messages-container {
     display: flex;
     flex-direction: column;
@@ -104,6 +147,20 @@ _CHAT_CSS = """
     color: #757575;
     font-style: italic;
     min-height: 20px;
+}
+.chat-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s;
+}
+.chat-resize-handle:hover {
+    background: rgba(0, 0, 0, 0.12);
 }
 """
 
@@ -130,6 +187,7 @@ class ChatPaneView:
     def create_ui(self) -> None:
         # Inject CSS via trame's client.Style (safe, doesn't use v-html)
         client.Style(_CHAT_CSS)
+        client.Script(_CHAT_RESIZE_JS)
 
         # Inline right panel — shown/hidden via v-show so it squeezes the
         # sibling tab-content div rather than overlaying it.
@@ -138,9 +196,14 @@ class ChatPaneView:
             style=(
                 "flex: 0 0 400px; display: flex; flex-direction: column; "
                 "border-left: 1px solid rgba(0,0,0,0.12); background: white; "
-                "overflow: hidden;"
+                "overflow: hidden; position: relative;"
             ),
         ):
+            # ── Resize handle (drag left edge to resize) ──
+            html.Div(
+                classes="chat-resize-handle",
+                mousedown="window._chatResizeStart($event)",
+            )
             # ── Header ──
             with vuetify.VToolbar(density="compact", color="primary"):
                 vuetify.VToolbarTitle("NeuDiff Agent", style="font-size: 0.95rem;")

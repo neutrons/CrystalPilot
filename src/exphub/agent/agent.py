@@ -131,6 +131,34 @@ class Agent:
         )
         return builder.compile()
 
+    # ------------------------------------------------------------------ helpers
+
+    _QUESTION_WORDS = frozenset({
+        "what", "why", "how", "when", "where", "which", "who",
+        "explain", "describe", "tell", "define", "clarify",
+        "can", "could", "does", "do", "is", "are", "should", "would",
+    })
+
+    @staticmethod
+    def _looks_like_question(text: str) -> bool:
+        """Heuristic: return True if *text* looks like a knowledge question.
+
+        Checks for question marks and common question-starting words.
+        Excludes short set-value statements like "set X to Y".
+        """
+        text_lower = text.lower().strip()
+        # Ends with question mark
+        if text.rstrip().endswith("?"):
+            return True
+        # Starts with a question word
+        first_word = text_lower.split()[0] if text_lower else ""
+        if first_word in Agent._QUESTION_WORDS:
+            # Exclude imperative commands like "set ...", "apply ..."
+            if first_word in ("can", "could", "does", "do", "is", "are", "should", "would"):
+                return True
+            return True
+        return False
+
     # ------------------------------------------------------------------ nodes
 
     def _call_model_node(self, state: AgentState) -> AgentState:
@@ -161,6 +189,22 @@ class Agent:
         if state.get("in_config_mode"):
             cfg = state.get("config_state", {})
             msgs.append(SystemMessage(content=f"CONTEXT: Current config values: {json.dumps(cfg, default=str)}"))
+
+        # Nudge the LLM to use retrieve_docs for question-like messages.
+        # This compensates for LLMs that skip tool calls for "simple" questions.
+        last_user = ""
+        for m in reversed(state["messages"]):
+            if isinstance(m, HumanMessage):
+                last_user = m.content.strip()
+                break
+        if last_user and self._looks_like_question(last_user) and state.get("tool_rounds", 0) == 0:
+            msgs.append(SystemMessage(
+                content=(
+                    "HINT: The user appears to be asking a knowledge question. "
+                    "You MUST call `retrieve_docs` to search the knowledge base "
+                    "before answering. Do NOT answer from memory alone."
+                )
+            ))
 
         msgs.extend(state["messages"][-20:])
 
@@ -290,24 +334,14 @@ class Agent:
     # Each _validate_* method performs side-effects on config_state and
     # returns a short note string for the LLM to see in the next turn.
 
-    def _validate_retrieve_docs(self, state: AgentState, raw_passages: str) -> str:
-        """Synthesise an answer from retrieved passages using the RAG LLM."""
-        if not self._rag or raw_passages.startswith("No relevant") or raw_passages.startswith("Knowledge base"):
-            return raw_passages
-
-        query = ""
-        for msg in reversed(state["messages"]):
-            if hasattr(msg, "tool_calls") and msg.tool_calls:
-                for tc in msg.tool_calls:
-                    if tc.get("name") == "retrieve_docs":
-                        query = tc.get("args", {}).get("query", "")
-                        break
-                if query:
-                    break
-
-        if not query:
-            return raw_passages
-        return self._rag.answer(query)
+    def _validate_retrieve_docs(self, state: AgentState, raw_content: str) -> str:
+        """Pass through the RAG answer with a directive to relay it."""
+        if raw_content.startswith("No relevant") or raw_content.startswith("Knowledge base"):
+            return raw_content
+        return (
+            "KNOWLEDGE BASE ANSWER (present this to the user — do NOT ignore it "
+            "or replace it with a generic reply):\n\n" + raw_content
+        )
 
     def _validate_navigate_to_tab(self, state: AgentState, tool_output) -> str:
         if isinstance(tool_output, dict) and "error" in tool_output:

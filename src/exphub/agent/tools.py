@@ -425,27 +425,24 @@ def make_tools(
 
     @tool
     def retrieve_docs(query: str) -> str:
-        """Search the CrystalPilot knowledge base for documentation relevant to *query*.
+        """Answer a general knowledge question from the CrystalPilot knowledge base.
 
-        Use this to answer questions about:
-        - Crystal systems, centering types, point groups, space groups
-        - Instrument specifics for TOPAZ, CORELLI, MANDI (wavelength ranges,
-          Q limits, typical parameter values)
-        - Data reduction parameter meanings (max_q, tolerance, peak_radius, etc.)
-        - Angle plan concepts (phi, omega, PCharge, wait_for)
-        - IPTS numbers, experiment workflow, EIC Control
-        - Mantid algorithms used during reduction
-        - Troubleshooting common diffraction issues
+        Call this tool whenever the user asks a question that is NOT about
+        setting or reading a configuration parameter.  This includes questions
+        about crystallography, neutron diffraction, beamline instruments,
+        data reduction concepts, experiment workflow, troubleshooting, or
+        any other scientific / procedural topic.
 
-        Returns up to 3 relevant passages from the knowledge base, or a
-        message if nothing is found.
+        When in doubt whether a question needs the knowledge base, call this
+        tool — it is better to search and find nothing than to guess.
+
+        Returns a synthesized answer from the knowledge base, or a message
+        if nothing is found.
         """
         if rag is None:
             return "Knowledge base is not available in this session."
-        passages = rag.retrieve(query)
-        if not passages:
-            return "No relevant documentation found for that query."
-        return "\n\n---\n\n".join(passages)
+        answer = rag.answer(query)
+        return answer
 
     # ------------------------------------------------------------------ UI action tools
 
