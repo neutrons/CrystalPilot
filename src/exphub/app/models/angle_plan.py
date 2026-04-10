@@ -204,8 +204,8 @@ class AnglePlanModel(BaseModel):
         # print(self.angle_list)
 
     def convert_plan_format(self, source_type: str, angle_list: List[Dict]) -> None:
+        new_angle_list = []
         if source_type == "Crystal Plan":
-            new_angle_list = []
             for angle in angle_list:
                 print(angle.keys())
                 new_angle = {}
@@ -216,7 +216,8 @@ class AnglePlanModel(BaseModel):
                 wait_for_key = next((key for key in angle.keys() if key.startswith("Wait For")), None)
                 if wait_for_key:
                     new_angle["Wait For"] = angle[wait_for_key]
-                # new_angle["Wait For"] = angle["Wait For/n"]
+                else:
+                    new_angle["Wait For"] = "PCharge"
                 if "PCharge" in new_angle["Wait For"]:
                     new_angle["Wait For"] = "PCharge"
                 new_angle["Value"] = angle["Value"]
@@ -225,34 +226,33 @@ class AnglePlanModel(BaseModel):
 
         elif source_type == "NeuXstalViz":
             for angle in angle_list:
-                angle["Title"] = angle["Title"].replace("_", " ")
-                angle["Comment"] = angle["Comment"].replace("_", " ")
-                angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
-                angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
-                angle["Wait For"] = angle["Wait For"].replace("_", " ")
-                angle["Value"] = angle["Value"]
-                angle["Or Time"] = angle["Or Time"].replace("_", " ")
+                new_angle = {}
+                new_angle["Title"] = angle["Title"].replace("_", " ")
+                new_angle["Comment"] = angle["Comment"].replace("_", " ")
+                new_angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
+                new_angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
+                new_angle["Wait For"] = angle["Wait For"].replace("_", " ")
+                new_angle["Value"] = angle["Value"]
+                new_angle["Or Time"] = angle["Or Time"].replace("_", " ")
+                new_angle_list.append(new_angle)
         self.angle_list_read = new_angle_list
-        pass
 
     def convert_angle_list_read_to_angle_list(self) -> None:
-        if self.plan_type == "Crystal Plan":
-            new_angle_list = []
-            for i in range(len(self.angle_list_read)):
-                angle = self.angle_list_read[i]
-                new_angle = {}
-                new_angle["id"] = i + 1
-                new_angle["title"] = angle["Title"]
-                new_angle["comment"] = angle["Comment"]
-                new_angle["chi"] = 0
-                new_angle["phi"] = angle["BL12:Mot:goniokm:phi"]
-                new_angle["omega"] = angle["BL12:Mot:goniokm:omega"]
-                new_angle["wait_for"] = angle["Wait For"]
-                new_angle["value"] = angle["Value"]
-                new_angle["or_time"] = angle["Or Time"]
-                new_angle_list.append(new_angle)
+        new_angle_list = []
+        for i in range(len(self.angle_list_read)):
+            angle = self.angle_list_read[i]
+            new_angle = {}
+            new_angle["id"] = i + 1
+            new_angle["title"] = angle["Title"]
+            new_angle["comment"] = angle["Comment"]
+            new_angle["chi"] = 0
+            new_angle["phi"] = angle["BL12:Mot:goniokm:phi"]
+            new_angle["omega"] = angle["BL12:Mot:goniokm:omega"]
+            new_angle["wait_for"] = angle["Wait For"]
+            new_angle["value"] = angle["Value"]
+            new_angle["or_time"] = angle.get("Or Time", "")
+            new_angle_list.append(new_angle)
         self.angle_list = new_angle_list
-        pass
 
     #    @model_validator(mode="after")
     #    def validate_angle_list(self) -> bool:

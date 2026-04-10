@@ -10,6 +10,19 @@ from pydantic import BaseModel, Field
 from .eic_client import EICClient
 
 
+class SubmittedJob(BaseModel):
+    """A single submitted EIC job."""
+
+    index: int = 0
+    title: str = ""
+    scan_id: int = -1
+    phi: float = 0.0
+    omega: float = 0.0
+    status: str = "pending"
+    is_done: bool = False
+    message: str = ""
+
+
 class EICControlModel(BaseModel):
     """Model for EIC Control."""
 
@@ -32,8 +45,6 @@ class EICControlModel(BaseModel):
     # token_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/token.txt", title="IPTS token")
 
     is_simulation: bool = Field(default=True, title="Simulation")
-    ipts_number: str = Field(default="35036", title="IPTS number")
-    instrument_name: str = Field(default="TOPAZ", title="Instrument name", description="Name of the instrument")
     beamline: str = Field(default="bl12", title="Beamline", description="Name of the beamline")
     # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
     # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
@@ -58,12 +69,27 @@ class EICControlModel(BaseModel):
     correct_run_format: bool = Field(default=True, title="Correct Run Format")
     supported_beamline: bool = Field(default=True, title="Supported Beamline")
 
+    submitted_jobs: List[Dict] = Field(default=[], title="Submitted Jobs")
+    submitted_jobs_headers: List[Dict] = Field(
+        default=[
+            {"title": "#", "key": "index", "sortable": False, "width": "50px"},
+            {"title": "Title", "key": "title", "sortable": False},
+            {"title": "Scan ID", "key": "scan_id", "sortable": False},
+            {"title": "Phi", "key": "phi", "sortable": False},
+            {"title": "Omega", "key": "omega", "sortable": False},
+            {"title": "Status", "key": "status", "sortable": False},
+            {"title": "Message", "key": "message", "sortable": False},
+            {"title": "Actions", "key": "actions", "sortable": False},
+        ],
+        title="Submitted Jobs Headers",
+    )
+
     def load_token(self, file_path: str) -> None:
         with open(file_path, mode="r") as tokenfile:
             self.token = tokenfile.read()
             print(self.token)
 
-    def _copy_strategy_to_eic(self, angleplan: List[Dict]) -> str:
+    def _copy_strategy_to_eic(self, angleplan: List[Dict], ipts_number: str) -> str:
         """Copy the experiment strategy CSV to the EIC submission location.
 
         Returns the destination file path.
@@ -73,7 +99,7 @@ class EICControlModel(BaseModel):
         filename = f"CrystalPilot-experiment-plan-{timestamp}.csv"
 
         # Build destination path: /SNS/groups/topaz/bl_12/IPTS-xxxxx/
-        destination_dir = f"/SNS/groups/topaz/bl_12/IPTS-{self.ipts_number}"
+        destination_dir = f"/SNS/groups/topaz/bl_12/IPTS-{ipts_number}"
         destination_path = os.path.join(destination_dir, filename)
 
         # Create directory if it doesn't exist
@@ -118,16 +144,16 @@ class EICControlModel(BaseModel):
         print(f"Copied experiment strategy to {destination_path}")
         return destination_path
 
-    def submit_eic(self, angleplan: List[Dict]) -> None:
+    def submit_eic(self, angleplan: List[Dict], ipts_number: str, instrument_name: str) -> None:
         # Copy strategy to EIC submission location first
         try:
-            self._copy_strategy_to_eic(angleplan)
+            self._copy_strategy_to_eic(angleplan, ipts_number)
         except Exception as e:
             print(f"Warning: failed to copy strategy to EIC location: {e}")
 
         # Implement the submit logic here
-        self.beamline = self.beamline_database[self.instrument_name]
-        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.ipts_number)
+        self.beamline = self.beamline_database[instrument_name]
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
         eic_client.is_eic_enabled(print_results=True)
 
         desc = "CrystalPilot Submission"
@@ -149,7 +175,8 @@ class EICControlModel(BaseModel):
         self.eic_submission_success = []
         self.eic_submission_message = []
         self.eic_submission_scan_id_list = []
-        for row in rows:
+        self.submitted_jobs = []
+        for idx, row in enumerate(rows):
             print(row)
             desc_sub = desc + " " + row[0]
             success, scan_id, response_data = eic_client.submit_table_scan(
@@ -163,16 +190,29 @@ class EICControlModel(BaseModel):
             self.eic_submission_success.append(success)
             self.eic_submission_message.append(response_data["eic_response_message"])
             self.eic_submission_scan_id_list.append(scan_id)
+
+            angle = angleplan[idx]
+            job = SubmittedJob(
+                index=idx + 1,
+                title=angle.get("title", ""),
+                scan_id=scan_id if scan_id is not None else -1,
+                phi=angle.get("phi", 0.0),
+                omega=angle.get("omega", 0.0),
+                status="submitted" if success else "failed",
+                is_done=False,
+                message=response_data.get("eic_response_message", ""),
+            )
+            self.submitted_jobs.append(job.model_dump())
         self.current_scan_idx = 0
         self.eic_submission_scan_id = self.eic_submission_scan_id_list[self.current_scan_idx]
 
         # self.eic_submission_status=eic_client.get_scan_status(scan_id=scan_id)
         # print(self.eic_submission_status)
 
-    def stop_run(self) -> None:
+    def stop_run(self, ipts_number: str, instrument_name: str) -> None:
         # Implement the stop logic here
-        self.beamline = self.beamline_database[self.instrument_name]
-        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=self.ipts_number)
+        self.beamline = self.beamline_database[instrument_name]
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
         eic_client.is_eic_enabled(print_results=True)
         # if self.scan_id
         print(self.eic_submission_scan_id)
@@ -182,4 +222,42 @@ class EICControlModel(BaseModel):
         # self.current_scan_idx+=1
         # self.eic_submission_scan_id=self.eic_submission_scan_id_list[self.current_scan_idx]
 
-        pass
+    def poll_job_statuses(self, ipts_number: str, instrument_name: str) -> None:
+        """Poll EIC for the current status of all submitted jobs."""
+        if not self.submitted_jobs:
+            return
+        self.beamline = self.beamline_database[instrument_name]
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
+        terminal_states = {"done", "aborted", "failed", "stopped"}
+        for job in self.submitted_jobs:
+            if job["status"] in terminal_states:
+                continue
+            scan_id = job["scan_id"]
+            if scan_id < 0:
+                continue
+            try:
+                success, is_done, state, response_data = eic_client.get_scan_status(scan_id=scan_id)
+                if success and state is not None:
+                    job["status"] = str(state).lower()
+                    job["is_done"] = bool(is_done)
+                elif not success:
+                    job["status"] = "error"
+                    job["message"] = response_data.get("eic_response_message", "status check failed")
+            except Exception as e:
+                job["status"] = "error"
+                job["message"] = str(e)
+
+    def abort_job(self, scan_id: int, ipts_number: str, instrument_name: str) -> None:
+        """Abort a single job by scan_id."""
+        self.beamline = self.beamline_database[instrument_name]
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
+        try:
+            eic_client.abort_scan(scan_id=scan_id)
+            for job in self.submitted_jobs:
+                if job["scan_id"] == scan_id:
+                    job["status"] = "aborted"
+                    job["is_done"] = True
+        except Exception as e:
+            for job in self.submitted_jobs:
+                if job["scan_id"] == scan_id:
+                    job["message"] = f"abort failed: {e}"

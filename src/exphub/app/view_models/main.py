@@ -149,8 +149,10 @@ class MainViewModel:
 
     def submit_angle_plan(self) -> None:
         # print("submit_angle_plan")
+        ipts_number = self.model.experimentinfo.ipts_number
+        instrument_name = self.model.experimentinfo.instrument
         try:
-            self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list)
+            self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list, ipts_number, instrument_name)
             if self.model.eiccontrol.is_simulation:
                 self.model.eiccontrol.eic_status = "job submission simulated"
             else:
@@ -334,9 +336,25 @@ class MainViewModel:
         self.newtabtemplate_updatefig_bind.update_in_view(self.model.newtabtemplate.get_figure())
 
     def stoprun(self) -> None:
-        self.model.eiccontrol.stop_run()
+        ipts_number = self.model.experimentinfo.ipts_number
+        instrument_name = self.model.experimentinfo.instrument
+        self.model.eiccontrol.stop_run(ipts_number, instrument_name)
         self.update_view()
-        pass
+
+    def poll_job_statuses(self) -> None:
+        ipts_number = self.model.experimentinfo.ipts_number
+        instrument_name = self.model.experimentinfo.instrument
+        try:
+            self.model.eiccontrol.poll_job_statuses(ipts_number, instrument_name)
+        except Exception as e:
+            print(f"Error polling job statuses: {e}")
+        self.update_view()
+
+    def abort_job(self, scan_id: int) -> None:
+        ipts_number = self.model.experimentinfo.ipts_number
+        instrument_name = self.model.experimentinfo.instrument
+        self.model.eiccontrol.abort_job(scan_id, ipts_number, instrument_name)
+        self.update_view()
 
     ##########################################################################################################################
     #  edit angle plans
@@ -380,7 +398,8 @@ class MainViewModel:
                     self.model.angleplan.angle_list[i] = self.model.angleplan.run_record.copy()
                     break
         else:
-            self.model.angleplan.run_record["id"] = len(self.model.angleplan.angle_list) + 1
+            max_id = max((r["id"] for r in self.model.angleplan.angle_list), default=0)
+            self.model.angleplan.run_record["id"] = max_id + 1
             self.model.angleplan.angle_list.append(self.model.angleplan.run_record.copy())
         self.model.angleplan.runedit_dialog = False
         self.update_view()

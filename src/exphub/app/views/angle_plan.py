@@ -149,35 +149,41 @@ class AnglePlanView:
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record['title']",
                         label="Title",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.comment",
                         label="Comment",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.phi",
                         label="phi",
                         type="number",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.omega",
                         label="omega",
                         type="number",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                     vuetify.VSelect(
                         v_model="model_angleplan.run_record.wait_for",
                         items=("model_angleplan.wait_for_list", []),
                         label="Wait For",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.value",
                         label="Value",
                         type="number",
+                        variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
                 with vuetify.VCardActions():
@@ -339,6 +345,46 @@ class AnglePlanView:
             InputField(v_model="model_eiccontrol.eic_auto_stop_uncertainty_threshold")
             InputField(v_model="model_eiccontrol.eic_submission_scan_id", label="Scan ID")
             vuetify.VBtn("Manual Stop Run", click=self.view_model.stoprun, style="align-self: center;")
+
+        vuetify.VCardTitle("Submitted Jobs")
+        with HBoxLayout(gap="0.5em", halign="center"):
+            vuetify.VBtn(
+                "Refresh Status",
+                prepend_icon="mdi-refresh",
+                click=self.view_model.poll_job_statuses,
+            )
+
+        @trame_server.controller.trigger("abort_job")
+        def abort_job(scan_id: int) -> None:
+            print("abort_job scan_id", scan_id)
+            self.view_model.abort_job(scan_id)
+
+        with VBoxLayout(classes="border-lg border-primary mb-1", stretch=True):
+            with vuetify.VDataTable(
+                classes="flex-1-1",
+                headers=("model_eiccontrol.submitted_jobs_headers", []),
+                items=("model_eiccontrol.submitted_jobs", []),
+            ):
+                with vuetify.Template(raw_attrs=['v-slot:item.status="{ item }"']):
+                    vuetify.VChip(
+                        "{{ item.status }}",
+                        color="item.status === 'done' ? 'green'"
+                        " : item.status === 'running' ? 'blue'"
+                        " : item.status === 'submitted' ? 'orange'"
+                        " : item.status === 'aborted' ? 'grey'"
+                        " : item.status === 'failed' || item.status === 'error' ? 'red'"
+                        " : 'default'",
+                        variant="flat",
+                        size="small",
+                    )
+                with vuetify.Template(raw_attrs=['v-slot:item.actions="{ item }"']):
+                    with vuetify.VBtn(
+                        icon=True,
+                        size="small",
+                        click="trigger('abort_job', [item.scan_id])",
+                        disabled="item.status === 'done' || item.status === 'aborted' || item.status === 'failed'",
+                    ):
+                        vuetify.VIcon("mdi-stop-circle-outline")
 
     def update_figure_coverage(self, fig: go.Figure) -> None:
         self.figure_coverage.update(fig)
