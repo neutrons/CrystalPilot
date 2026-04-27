@@ -49,6 +49,7 @@ _CHAT_CSS = """
     word-wrap: break-word;
     font-size: 0.85rem;
     line-height: 1.5;
+    flex-shrink: 0;
 }
 .chat-bubble-user {
     background-color: #e0e0e0;
@@ -65,8 +66,7 @@ _CHAT_CSS = """
     margin-right: 40px;
     border-bottom-left-radius: 4px;
     overflow-x: auto;
-    max-height: 400px;
-    min-height: 100px;
+    max-height: 500px;
     overflow-y: auto;
 }
 /* Markdown elements inside assistant bubbles */
@@ -131,7 +131,8 @@ _CHAT_CSS = """
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    min-height: 0;
     padding: 12px;
     gap: 6px;
 }

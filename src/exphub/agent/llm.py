@@ -77,7 +77,7 @@ def get_configured_chat_model():
     if provider in ("local", "ollama"):
         if ChatOllama is None:
             raise ImportError("langchain-ollama is required for Ollama support")
-        model = os.getenv("OLLAMA_MODEL_NAME", "llama3:8b")
+        model = os.getenv("OLLAMA_MODEL_NAME", "gpt-oss:120b")
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         return ChatOllama(model=model, base_url=base_url, temperature=0.2)
 
