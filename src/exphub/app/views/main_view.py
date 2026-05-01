@@ -7,7 +7,7 @@ from nova.epics.trame import get_epics_instance
 from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
 from trame.app import get_server
-from trame.widgets import vuetify3 as vuetify
+from trame.widgets import client, vuetify3 as vuetify
 from trame_client.widgets import html
 
 from ..mvvm_factory import create_viewmodels
@@ -18,6 +18,31 @@ from .tabs_panel import TabsPanel
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Extra PVs needed by the BL12 User Info panel on the Instrument Status tab.
+# These are not present in BL12_ADnED_2D_4x4.bob, so they must be subscribed
+# separately. Sourced from BL12_User.bob on webopi.sns.gov.
+_USER_PANEL_PVS = (
+    "BL12:CS:IPTS",
+    "BL12:CS:IPTS:Title",
+    "BL12:CS:ITEMS",
+    "BL12:CS:ITEMS:Name",
+    "BL12:SMS:RunInfo:RunTitle",
+    "BL12:AR:Sequence:Name",
+    "BL12:CS:RunControl:LastRunNumber",
+    "BL12:CS:RunControl:StateEnum",
+    "BL12:CS:RunControl:RunTimer",
+    "BL12:CS:RunControl:Pause",
+    "BL12:CS:Scan:Active",
+    "BL12:CS:Scan:Status",
+    "BL12:CS:Scan:Progress",
+    "BL12:CS:Scan:Finish",
+    "BL12:CS:Scan:State",
+    "BL12:CS:Scan:Alarm",
+    "BL12:Det:TH:BL:Lambda",
+    "BL12:Det:TH:BL:Frequency",
+    "PPS_BMLN:BL12:ShtrOpen",
+)
 
 
 class MainApp(ThemedApp):
@@ -78,4 +103,40 @@ class MainApp(ThemedApp):
             ):
                 self.epics.connect(xml_file.read(), macros_file.read(), 6)
 
+            self._subscribe_extra_pvs(_USER_PANEL_PVS)
+
             return layout
+
+    def _subscribe_extra_pvs(self, pv_names) -> None:
+        """Subscribe to PVs not present in the main .bob file.
+
+        Mirrors the per-PV ``client.Script`` template that
+        ``nova.epics.trame.TrameEPICS.connect`` injects internally — the
+        connect() entry point only walks PVs from a single XML, so any
+        extra PVs (e.g. for the BL12 User Info panel) must be wired up
+        separately via the same WebSocket runtime.
+        """
+        for pv in pv_names:
+            client.Script(f"""
+                window.dbwr.pv_infos["{pv}"] = new PVInfo("{pv}");
+                window.dbwr.pv_infos["{pv}"].subscriptions.push({{
+                    "callback": (data) => {{
+                        if (data.vtype === "VEnum") {{
+                            if (data.labels.length == 2) {{
+                                data.value = Boolean(data.value);
+                            }} else {{
+                                data.value = data.text;
+                            }}
+                        }} else if (data.vtype === "VDouble" && data.precision !== undefined) {{
+                            data.value = parseFloat(data.value).toFixed(data.precision);
+                        }}
+                        window.trame.state.state.epics.pv_data["{pv}"] = data.value;
+                        window.trame.state.dirty("epics");
+                        window.trame.state.flush();
+                    }}
+                }});
+
+                setTimeout(() => {{
+                    window.dbwr.pvws.subscribe("{pv}");
+                }}, 1000);
+            """)

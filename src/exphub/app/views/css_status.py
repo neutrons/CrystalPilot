@@ -145,21 +145,43 @@ class CSSStatusView:
                         )
 
             with VBoxLayout(stretch=True):
-                with VBoxLayout(classes="border-md pa-1", stretch=True):
-                    PVPlot("BL12:Det:Cursor4x4:Info")
-                    vuetify.VBtn(
-                        "Cursor Detail",
-                        href="https://status.sns.ornl.gov/dbwr/view.jsp?display=https%3A//webopi.sns.gov/bl12/files/bl12/opi/../../share/opi/ADnEDv3/ADnED_TOFArray.bob&macros=%7B%26quot%3BDET2%26quot%3B%3A%26quot%3BMain%20d-Space%26quot%3B%2C%26quot%3BDET1%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BBL%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BIOCSTATS%26quot%3B%3A%26quot%3BBL12%3ACS%3AADnED%3A%26quot%3B%2C%26quot%3BP%26quot%3B%3A%26quot%3BBL12%3ADet%3A%26quot%3B%2C%26quot%3BR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BS%26quot%3B%3A%26quot%3BBL12%26quot%3B%2C%26quot%3BTAB%26quot%3B%3A%26quot%3BMain%20Detector%26quot%3B%2C%26quot%3BTOPR%26quot%3B%3A%26quot%3BN1%3A%26quot%3B%2C%26quot%3BDET5%26quot%3B%3A%26quot%3BMain%20ROI%20q-Space%26quot%3B%2C%26quot%3BDID%26quot%3B%3A%26quot%3BDID154%26quot%3B%2C%26quot%3BDET4%26quot%3B%3A%26quot%3BMain%204x4%20and%20ROI%20d-Space%26quot%3B%2C%26quot%3BDET3%26quot%3B%3A%26quot%3BMain%20q-Space%26quot%3B%2C%26quot%3BAXIS_TITLE%26quot%3B%3A%26quot%3Bq-Space%26quot%3B%2C%26quot%3BDET%26quot%3B%3A%26quot%3B5%26quot%3B%2C%26quot%3BDETNAME%26quot%3B%3A%26quot%3BROI%20q-Space%26quot%3B%2C%26quot%3BNAME%26quot%3B%3A%26quot%3BROI%20q-Space%20(filtered%20based%20on%202D%20ROI)%26quot%3B%7D",
-                        raw_attrs=['target="_blank"'],
-                    )
+                # ── BL12 User Info — mirrors webopi.sns.gov/bl12/.../BL12_User.bob ──
+                with VBoxLayout(classes="border-md pa-1"):
+                    vuetify.VLabel("Proposal", style="font-weight: 600; padding-left: 4px;")
+                    with GridLayout(columns=2, gap="0.25em"):
+                        PVInput("BL12:CS:IPTS", label="IPTS")
+                        PVInput("BL12:CS:RunControl:LastRunNumber", label="Run")
+                        PVInput("BL12:CS:RunControl:StateEnum", label="State")
+                        PVInput("BL12:CS:ITEMS", label="Sample ID")
+                        PVInput("BL12:CS:IPTS:Title", label="Proposal Title")
+                        PVInput("BL12:CS:ITEMS:Name", label="Sample")
+                        PVInput("BL12:SMS:RunInfo:RunTitle", label="Run Title")
+                        PVInput("BL12:AR:Sequence:Name", label="Notes")
 
-                with GridLayout(classes="border-md pa-1", columns=2):
-                    PVInput("BL12:Det:N1:DetectorState_RBV", label="Data Collection State")
-                    InputField(
-                        model_value=("epics.pv_data['BL12:Det:N1:Pause'] ? 'Paused' : 'Not Paused'",),
-                        label="Pause",
-                    )
-                    PVInput("BL12:Det:Neutrons", label="Total Counts")
-                    PVInput("BL12:Det:N1:Det1:EventRate_RBV", append="e/s", label="Counts/sec")
-                    PVInput("BL12:Det:PCharge:C", append="C", label="Proton Charge")
-                    PVInput("BL12:Det:rtdl:BeamPowerAvg", append="MW", label="Beam Power")
+                with VBoxLayout(classes="border-md pa-1"):
+                    vuetify.VLabel("Neutrons", style="font-weight: 600; padding-left: 4px;")
+                    with GridLayout(columns=2, gap="0.25em"):
+                        PVInput("BL12:Det:Neutrons", label="Total Counts")
+                        PVInput("BL12:Det:N1:Det1:EventRate_RBV", append="e/s", label="Counts/sec")
+                        PVInput("BL12:Det:PCharge:C", append="C", label="Proton Charge")
+                        PVInput("BL12:Det:rtdl:BeamPowerAvg", append="MW", label="Beam Power")
+                        PVInput("BL12:Det:TH:BL:Frequency", append="Hz", label="Frame Rate")
+                        PVInput("BL12:Det:TH:BL:Lambda", append="Å", label="Wavelength")
+                        PVInput("PPS_BMLN:BL12:ShtrOpen", label="Shutters Open")
+
+                with VBoxLayout(classes="border-md pa-1"):
+                    vuetify.VLabel("Experiment Control", style="font-weight: 600; padding-left: 4px;")
+                    with GridLayout(columns=2, gap="0.25em"):
+                        PVInput("BL12:CS:Scan:Active", label="Scan Active")
+                        PVInput("BL12:CS:Scan:Status", label="Scan Status")
+                        PVInput("BL12:CS:Scan:Progress", label="Progress")
+                        PVInput("BL12:CS:Scan:Finish", label="Finish")
+                        PVInput("BL12:CS:Scan:State", label="Scan State")
+                        PVInput("BL12:CS:RunControl:Running", label="Running")
+                        PVInput("BL12:CS:RunControl:RunTimer", label="Run Timer")
+                        PVInput("BL12:Det:N1:DetectorState_RBV", label="Data Collection State")
+                        InputField(
+                            model_value=("epics.pv_data['BL12:CS:RunControl:Pause'] ? 'Paused' : 'Not Paused'",),
+                            label="Pause",
+                        )
+                        PVInput("BL12:CS:Scan:Alarm", label="Scan Alarm")
