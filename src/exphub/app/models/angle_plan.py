@@ -5,7 +5,27 @@ from typing import Any, Dict, List
 
 import numpy as np
 import plotly.graph_objects as go
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+# Headers for the experiment-run-strategy table. The omega column is dropped when
+# the cryogenic goniometer is selected (cryogenic stage cannot drive omega).
+_AMBIENT_HEADERS: List[Dict] = [
+    {"title": "Title", "value": "title", "sortable": True, "align": "center"},
+    {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
+    {"title": "phi", "value": "phi", "sortable": True, "align": "center"},
+    {"title": "omega", "value": "omega", "sortable": True, "align": "center"},
+    {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
+    {"title": "Value", "value": "value", "sortable": True, "align": "center"},
+    {"title": "Action", "value": "actions", "sortable": False, "align": "center"},
+]
+_CRYOGENIC_HEADERS: List[Dict] = [
+    {"title": "Title", "value": "title", "sortable": True, "align": "center"},
+    {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
+    {"title": "phi", "value": "phi", "sortable": True, "align": "center"},
+    {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
+    {"title": "Value", "value": "value", "sortable": True, "align": "center"},
+    {"title": "Action", "value": "actions", "sortable": False, "align": "center"},
+]
 
 
 class RunPlan(BaseModel):
@@ -28,22 +48,40 @@ class AnglePlanModel(BaseModel):
     angle_keys: List[str] = Field(
         default=["id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time"]
     )
-    angle_list_headers: List[Dict] = Field(
-        default=[
-            {"title": "Title", "value": "title", "sortable": True, "align": "center"},
-            {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
-            #        {"title":  "chi"      ,"value":"chi"     ,"sortable":True , "align":"center"},
-            {"title": "phi", "value": "phi", "sortable": True, "align": "center"},
-            {"title": "omega", "value": "omega", "sortable": True, "align": "center"},
-            {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
-            {"title": "Value", "value": "value", "sortable": True, "align": "center"},
-            {"title": "Action", "value": "actions", "sortable": False, "align": "center"},
-        ]
+    angle_list_headers: List[Dict] = Field(default_factory=lambda: list(_AMBIENT_HEADERS))
+    goniometer_type: str = Field(
+        default="Ambient goniometer",
+        title="Goniometer",
+        description="Selects the goniometer in use; cryogenic mode hides the omega column.",
     )
+    goniometer_type_options: List[str] = Field(
+        default_factory=lambda: ["Ambient goniometer", "Cryogenic goniometer"],
+    )
+
+    @model_validator(mode="after")
+    def sync_headers_with_goniometer_type(self) -> "AnglePlanModel":
+        """Keep `angle_list_headers` aligned with the selected goniometer."""
+        target = (
+            list(_CRYOGENIC_HEADERS)
+            if self.goniometer_type == "Cryogenic goniometer"
+            else list(_AMBIENT_HEADERS)
+        )
+        if self.angle_list_headers != target:
+            self.angle_list_headers = target
+        return self
     show_coverage: bool = Field(
         default=False, title="Show Coverage", description="Flag to indicate if coverage is shown"
     )
-    polyhedrons: List = Field(default=[], title="Polyhedrons", description="List of polyhedrons to be displayed")
+    # Compute-only fields below: never read by the Vue view or the agent bridge —
+    # mark exclude=True so they don't ride along on every state push to the
+    # browser. After `optimize_angleplan` runs, these can grow to tens of KB
+    # and would otherwise be re-serialized on every UI interaction.
+    polyhedrons: List = Field(
+        default=[],
+        title="Polyhedrons",
+        description="List of polyhedrons to be displayed",
+        exclude=True,
+    )
 
     # table_test: List[Dict] = Field(default=[{"title":"1","header":"h"}])
     # test: str = Field(default="test", title="Test", description="Test field")
@@ -60,7 +98,8 @@ class AnglePlanModel(BaseModel):
         default=[
             RunPlan(title="test_angleplan_1", comment="", phi=0, omega=0, wait_for="PCharge", value=10, or_time=0),
             RunPlan(title="test_angleplan_2", comment="", phi=10, omega=10, wait_for="PCharge", value=10, or_time=0),
-        ]
+        ],
+        exclude=True,
     )
     ###########################################################################################################################################
 
@@ -103,6 +142,7 @@ class AnglePlanModel(BaseModel):
         ],
         title="Angle Plan",
         description="List of angles to be measured",
+        exclude=True,
     )
     ##############################################################################
     #    angle_list: List[Dict] = Field(default=[{"id":1,
@@ -149,10 +189,17 @@ class AnglePlanModel(BaseModel):
     target_coverage: float = Field(
         default=0.9, title="Target coverage", description="Target coverage for the experiment"
     )
-    qpane_cones: List = Field(default=[], title="Q Pane Cones", description="List of Q pane cones to be displayed")
-    qpoints_all: List = Field(default=[], title="Q Points", description="List of Q points to be displayed")
+    qpane_cones: List = Field(
+        default=[], title="Q Pane Cones", description="List of Q pane cones to be displayed", exclude=True
+    )
+    qpoints_all: List = Field(
+        default=[], title="Q Points", description="List of Q points to be displayed", exclude=True
+    )
     qpoints_covered: List = Field(
-        default=[], title="Q Points Covered", description="List of Q points covered by the experiment"
+        default=[],
+        title="Q Points Covered",
+        description="List of Q points covered by the experiment",
+        exclude=True,
     )
 
     instrument: str = Field(default="TOPAZ", title="Instrument Name", description="Name of the instrument")
@@ -176,7 +223,10 @@ class AnglePlanModel(BaseModel):
         default="P", title="Lattice Centering", description="Lattice centering of the crystal"
     )
     symmetry_operations: List = Field(
-        default=[], title="Symmetry Operations", description="List of symmetry operations to be used for the angle plan"
+        default=[],
+        title="Symmetry Operations",
+        description="List of symmetry operations to be used for the angle plan",
+        exclude=True,
     )
 
     def get_default_run_record(self) -> Dict:

@@ -1,6 +1,7 @@
 """Model for temporal analysis."""
 
 import asyncio
+import os
 import time
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,29 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pydantic import BaseModel, Field
 from sklearn.linear_model import LinearRegression
+
+# Live-monitoring UB save root: per-IPTS directory under TOPAZ shared.
+_LIVE_UB_SUBDIR = "shared/CrystalPilot/live-data-monitoring"
+
+# Verbose tracing for the live-data reduction path. Off by default — the live
+# loop runs a Mantid pipeline every ~40s and used to emit ~50+ multi-line
+# separator prints per cycle, which blocked the asyncio event loop on slow
+# terminals. Flip this on (or set CRYSTALPILOT_DEBUG=1) when tracing issues.
+_DEBUG_LIVE = bool(os.environ.get("CRYSTALPILOT_DEBUG"))
+
+
+def _trace(*args: Any) -> None:
+    if _DEBUG_LIVE:
+        print(*args)
+
+# Plotly layout shared by both temporal figures.
+_TEMPORAL_FIG_MARGIN = {"l": 50, "r": 15, "t": 35, "b": 40}
+_TEMPORAL_GRID_KWARGS = {
+    "showgrid": True,
+    "gridcolor": "rgba(120,120,120,0.35)",
+    "gridwidth": 1,
+    "griddash": "dot",
+}
 
 # import mantid algorithms, numpy and matplotlib
 # matplotlib.use("Qt5Agg")
@@ -98,6 +122,13 @@ class MantidWorkflow:
         # def init_measurement_data():
         #    """Initialize the plot with empty data."""
 
+        # Latest UB + lattice constants captured from the live workspace
+        # (filled in once a UB has been refined).
+        self.latest_ub: Optional[List[List[float]]] = None
+        self.latest_lattice: Optional[Dict[str, float]] = None
+        self.latest_ub_timestamp: str = ""
+        self.latest_ub_saved_path: str = ""
+
         self.proton_charges: list[float] = []
         self.intensity_ratios: list[float] = []
         self.rsigs: list[float] = []
@@ -144,6 +175,65 @@ class MantidWorkflow:
                 alg.cancel()
         except Exception as e:
             print(f"StopLiveData warning: {e}")
+
+    def get_latest_ub(self, workspace_name: str = "live_predict_peaks_ws") -> Optional[List[List[float]]]:
+        """Return the latest UB matrix from the named peaks workspace as a 3x3 list, or None."""
+        try:
+            ws = mtdapi.mtd[workspace_name]
+            lattice = ws.sample().getOrientedLattice()
+            ub = lattice.getUB()
+            return [[float(ub[i][j]) for j in range(3)] for i in range(3)]
+        except Exception as e:
+            print(f"get_latest_ub: could not read UB from {workspace_name}: {e}")
+            return None
+
+    def get_latest_lattice(self, workspace_name: str = "live_predict_peaks_ws") -> Optional[Dict[str, float]]:
+        """Return the latest lattice constants (a,b,c in Å, α,β,γ in deg, volume in Å³)."""
+        try:
+            ws = mtdapi.mtd[workspace_name]
+            lat = ws.sample().getOrientedLattice()
+            return {
+                "a": float(lat.a()),
+                "b": float(lat.b()),
+                "c": float(lat.c()),
+                "alpha": float(lat.alpha()),
+                "beta": float(lat.beta()),
+                "gamma": float(lat.gamma()),
+                "volume": float(lat.volume()),
+            }
+        except Exception as e:
+            print(f"get_latest_lattice: could not read lattice from {workspace_name}: {e}")
+            return None
+
+    def save_latest_ub(self, workspace_name: str = "live_predict_peaks_ws") -> Optional[str]:
+        """Save the UB matrix to the per-IPTS live-monitoring directory with a timestamp.
+
+        Uses Mantid's SaveIsawUB. Returns the path written, or None on failure.
+        """
+        try:
+            ws = mtdapi.mtd[workspace_name]
+            ws.sample().getOrientedLattice()
+        except Exception as e:
+            print(f"save_latest_ub: workspace '{workspace_name}' has no UB yet: {e}")
+            return None
+
+        save_dir = f"/SNS/TOPAZ/IPTS-{self.ipts}/{_LIVE_UB_SUBDIR}/"
+        try:
+            os.makedirs(save_dir, exist_ok=True)
+        except Exception as e:
+            print(f"save_latest_ub: could not create {save_dir}: {e}")
+            return None
+
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename = f"live_topaz-ipts-{self.ipts}_run-{getattr(self, 'current_run', 'na')}_{timestamp}.mat"
+        path = os.path.join(save_dir, filename)
+        try:
+            mtdapi.SaveIsawUB(InputWorkspace=workspace_name, Filename=path)
+            print(f"save_latest_ub: wrote {path}")
+            return path
+        except Exception as e:
+            print(f"save_latest_ub: SaveIsawUB failed for {path}: {e}")
+            return None
 
     def update_experiment_info(self, _models: Any) -> None:
         from .main_model import MainModel
@@ -248,10 +338,8 @@ class MantidWorkflow:
             current_run = mtdapi.mtd["live_event_ws"].getRunNumber()
 
             # Get the first event list
-            print(
-                "===================================================================================================="
-            )
-            print("Getting the first event list")
+            _trace("=" * 60)
+            _trace("Getting the first event list")
             # evList = mtdapi.mtd['live_event_ws'].getSpectrum(0)
 
             # Add an offset to the pulsetime (wall-clock time) of each event in the list.
@@ -296,29 +384,21 @@ class MantidWorkflow:
             #''' Load the calibration file and monitor data, and integrate the peaks'''
             #############################################################################################################################################################
             # mtdapi.CloneWorkspace(InputWorkspace='live_event_ws', OutputWorkspace='live_event_ws')
-            print(
-                "===================================================================================================="
-            )
-            print("Loading the calibration file and monitor data, and integrating the peaks")
-            print("first filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("=" * 60)
+            _trace("Loading the calibration file and monitor data, and integrating the peaks")
+            _trace("first filterbytime")
+            _trace("=" * 60)
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
             mtdapi.LoadIsawDetCal(InputWorkspace="live_event_ws", Filename=self.calib_fname)
-            print("load isaw detcal", self.calib_fname)
+            _trace("load isaw detcal", self.calib_fname)
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("second filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("second filterbytime")
+            _trace("=" * 60)
             monitor_ws = mtdapi.mtd["live_event_ws"].getMonitorWorkspace()
-            print("monitorws")
-            print(
-                "===================================================================================================="
-            )
+            _trace("monitorws")
+            _trace("=" * 60)
             integrated_monitor_ws = mtdapi.Integration(
                 InputWorkspace=monitor_ws,
                 RangeLower=self.min_monitor_tof,
@@ -326,25 +406,19 @@ class MantidWorkflow:
                 StartWorkspaceIndex=0,
                 EndWorkspaceIndex=0,
             )
-            print("int filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("int filterbytime")
+            _trace("=" * 60)
             monitor_count = integrated_monitor_ws.dataY(0)[0]
             print("\n", self.current_run, " has integrated monitor count", monitor_count, "\n")
 
             #
             mtdapi.SetGoniometer(Workspace="live_event_ws", Goniometers="Universal")
-            print("getgonio filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("getgonio filterbytime")
+            _trace("=" * 60)
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("3rd filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("3rd filterbytime")
+            _trace("=" * 60)
 
         def refine_ub_of_current_run() -> None:
             #############################################################################################################################################################
@@ -376,10 +450,8 @@ class MantidWorkflow:
             #    OutputWorkspace='live_event_md_Qsample', MinValues='-12,-12,-12', MaxValues='12,12,12')
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("4 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("4 filterbytime")
+            _trace("=" * 60)
 
             mtdapi.FindPeaksMD(
                 InputWorkspace="live_event_md_Qsample",
@@ -391,10 +463,8 @@ class MantidWorkflow:
             )
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("5 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("5 filterbytime")
+            _trace("=" * 60)
 
             try:
                 mtdapi.FindUBUsingFFT(
@@ -417,10 +487,8 @@ class MantidWorkflow:
             # continue
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("6 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("6 filterbytime")
+            _trace("=" * 60)
 
         def integrate_peaks_of_current_run() -> None:
             #############################################################################################################################################################
@@ -430,15 +498,13 @@ class MantidWorkflow:
 
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            # print("7 filterbytime")
+            # _trace("7 filterbytime")
             # print("====================================================================================================")#noqa
 
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("7.0 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("7.0 filterbytime")
+            _trace("=" * 60)
 
             ## cause error in filter by time
             mtdapi.IndexPeaks(
@@ -451,10 +517,8 @@ class MantidWorkflow:
 
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("7.1 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("7.1 filterbytime")
+            _trace("=" * 60)
 
             mtdapi.IntegrateEllipsoids(
                 InputWorkspace="live_event_ws_peak",
@@ -472,10 +536,8 @@ class MantidWorkflow:
             )
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("7.2 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("7.2 filterbytime")
+            _trace("=" * 60)
 
             mtdapi.PredictPeaks(
                 InputWorkspace="live_peaks_ws",
@@ -488,10 +550,8 @@ class MantidWorkflow:
             )
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("7 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("7 filterbytime")
+            _trace("=" * 60)
 
             # TODO: local variables to be taken out
             peak_radius = 0.08
@@ -519,10 +579,8 @@ class MantidWorkflow:
             self.measure_time = self.current_run_end_time - self.current_run_start_time
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("8 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("8 filterbytime")
+            _trace("=" * 60)
 
             mtdapi.IntegrateEllipsoids(
                 InputWorkspace="live_event_ws_peak",
@@ -557,10 +615,8 @@ class MantidWorkflow:
 
             # mtdapi.FilterByTime(InputWorkspace='live_event_ws', OutputWorkspace='timestep_event_ws',
             #                    StartTime=0, StopTime=1)
-            print("9 filterbytime")
-            print(
-                "===================================================================================================="
-            )
+            _trace("9 filterbytime")
+            _trace("=" * 60)
 
         def check_peaks_of_current_run() -> None:
             live_predict_peaks_ws = mtdapi.mtd["live_predict_peaks_ws"]
@@ -635,6 +691,12 @@ class MantidWorkflow:
                 Inputworkspace="live_predict_peaks_ws", Filename=self.output_path + self.live_peaks_ub_fname
             )
 
+            # Capture and persist the latest UB + lattice for the live-monitoring view/table.
+            self.latest_ub = self.get_latest_ub("live_predict_peaks_ws")
+            self.latest_lattice = self.get_latest_lattice("live_predict_peaks_ws")
+            self.latest_ub_timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            self.latest_ub_saved_path = self.save_latest_ub("live_predict_peaks_ws") or ""
+
             # Check the overall peak intensity in live_peaks_ws
             # data_selection_options: List[str] = ["All Peaks", "Bragg Peaks","Max Peak","Satellite Peaks","Diffuse scattering"]#noqa
 
@@ -676,7 +738,7 @@ class MantidWorkflow:
             )
 
         print("============================================================================================")
-        print("live data reduction started")
+        _trace("live data reduction started")
         print("============================================================================================")
         get_and_update_run_info_of_current_run()
         load_config_of_current_run()
@@ -893,10 +955,52 @@ class TemporalAnalysisModel(BaseModel):
     all_time: List[float] = Field(default=[0.0, 10000], title="All Time")
     # mtd_workflow: MantidWorkflow = Field(default=MantidWorkflow(), title="Mantid Workflow")
     time_interval: float = Field(default=40, title="Time Interval")
+    # Latest UB matrix inferred from live data, plus bookkeeping for the side table.
+    latest_ub: List[List[float]] = Field(
+        default_factory=lambda: [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        title="Latest UB",
+        description="Most recent UB matrix inferred from live data (rows are UB rows).",
+    )
+    latest_ub_timestamp: str = Field(default="", title="Latest UB timestamp")
+    latest_ub_saved_path: str = Field(default="", title="Latest UB saved path")
+    latest_lattice: Dict[str, float] = Field(
+        default_factory=lambda: {
+            "a": 0.0, "b": 0.0, "c": 0.0,
+            "alpha": 0.0, "beta": 0.0, "gamma": 0.0, "volume": 0.0,
+        },
+        title="Latest lattice constants (Å / deg / Å³)",
+    )
+    latest_lattice_summary: str = Field(
+        default="",
+        title="Latest lattice summary",
+        description="Pretty one-line a,b,c,α,β,γ,V derived from latest_lattice.",
+    )
+    latest_ub_rows: List[Dict[str, Any]] = Field(
+        default_factory=lambda: [
+            {"row": "row 1", "c1": 0.0, "c2": 0.0, "c3": 0.0},
+            {"row": "row 2", "c1": 0.0, "c2": 0.0, "c3": 0.0},
+            {"row": "row 3", "c1": 0.0, "c2": 0.0, "c3": 0.0},
+        ],
+        title="Latest UB (table rows)",
+    )
+    latest_ub_headers: List[Dict[str, Any]] = Field(
+        default_factory=lambda: [
+            {"title": "", "value": "row", "sortable": False, "align": "center"},
+            {"title": "col 1", "value": "c1", "sortable": False, "align": "center"},
+            {"title": "col 2", "value": "c2", "sortable": False, "align": "center"},
+            {"title": "col 3", "value": "c3", "sortable": False, "align": "center"},
+        ],
+    )
     # Lazy instance; created in start_reading_live_mtd_data() once Mantid is ready.
     _mtd_workflow: Optional[MantidWorkflow] = None
     # Optional back-reference to MainModel. Set by MainViewModel when wiring.
     _parent: Any = None
+    # Memoization for the two figure builders. Both are called once per
+    # update_temporalanalysis_figure() (1Hz min interval) and used to refit
+    # LinearRegression from scratch on the full series each time. Cache by
+    # (model_type, series length) so unchanged series skip the rebuild + fit.
+    _intensity_fig_cache: Optional[tuple[Any, go.Figure]] = None
+    _uncertainty_fig_cache: Optional[tuple[Any, go.Figure]] = None
 
     @property
     def mtd_workflow(self) -> Optional[MantidWorkflow]:
@@ -931,7 +1035,67 @@ class TemporalAnalysisModel(BaseModel):
             return None
         return None
 
+    def sync_latest_ub_from_workflow(self) -> None:
+        """Copy latest_ub / timestamp / saved-path from MantidWorkflow into pydantic fields.
+
+        The workflow holds Python attributes; the table needs Pydantic fields the binding
+        can serialize. Called after each live-data reduction iteration.
+        """
+        if self._mtd_workflow is None:
+            return
+        ub = getattr(self._mtd_workflow, "latest_ub", None)
+        if ub is None:
+            return
+        try:
+            self.latest_ub = [[float(v) for v in row] for row in ub]
+            self.latest_ub_timestamp = getattr(self._mtd_workflow, "latest_ub_timestamp", "") or ""
+            self.latest_ub_saved_path = getattr(self._mtd_workflow, "latest_ub_saved_path", "") or ""
+            self.latest_ub_rows = [
+                {
+                    "row": f"row {i + 1}",
+                    "c1": round(self.latest_ub[i][0], 6),
+                    "c2": round(self.latest_ub[i][1], 6),
+                    "c3": round(self.latest_ub[i][2], 6),
+                }
+                for i in range(3)
+            ]
+            lat = getattr(self._mtd_workflow, "latest_lattice", None)
+            if lat:
+                self.latest_lattice = {k: float(v) for k, v in lat.items()}
+                self.latest_lattice_summary = (
+                    f"a = {lat['a']:.4f} Å    b = {lat['b']:.4f} Å    c = {lat['c']:.4f} Å    "
+                    f"α = {lat['alpha']:.3f}°    β = {lat['beta']:.3f}°    γ = {lat['gamma']:.3f}°    "
+                    f"V = {lat['volume']:.2f} Å³"
+                )
+        except Exception as e:
+            print(f"sync_latest_ub_from_workflow: {e}")
+
+    def _intensity_cache_key(self) -> Any:
+        if self._mtd_workflow is None:
+            return ("none",)
+        wf = self._mtd_workflow
+        if self.prediction_model_type == "Poisson Model":
+            ts, ints = wf.measure_times, wf.intensity_ratios
+        else:
+            ts, ints = wf.timeseries_plt, wf.timeseries_data_plt
+        n = len(ts)
+        return (
+            self.prediction_model_type,
+            n,
+            ts[-1] if n else None,
+            ints[-1] if n and len(ints) else None,
+        )
+
     def get_figure_intensity(self) -> go.Figure:
+        cache_key = self._intensity_cache_key()
+        cached = self._intensity_fig_cache
+        if cached is not None and cached[0] == cache_key:
+            return cached[1]
+        fig = self._build_figure_intensity()
+        self._intensity_fig_cache = (cache_key, fig)
+        return fig
+
+    def _build_figure_intensity(self) -> go.Figure:
         # self.timestamp = time.time()
         fig = go.Figure()
         if self._mtd_workflow is None:
@@ -969,10 +1133,10 @@ class TemporalAnalysisModel(BaseModel):
         # if False:
         if len(time_steps) > 0:
             print("============================================================================================")
-            print("time_steps = self.mtd_workflow.measure_times")
-            print(time_steps, self.mtd_workflow.measure_times)
-            print("intensity_data = self.mtd_workflow.intensity_ratios")
-            print(intensity_data, self.mtd_workflow.intensity_ratios)
+            _trace("time_steps = self.mtd_workflow.measure_times")
+            _trace(time_steps, self.mtd_workflow.measure_times)
+            _trace("intensity_data = self.mtd_workflow.intensity_ratios")
+            _trace(intensity_data, self.mtd_workflow.intensity_ratios)
             print("============================================================================================")
             # self.intensity_data = self.mtd_workflow.intensity_ratios
             # Reshape the data for sklearn
@@ -988,7 +1152,7 @@ class TemporalAnalysisModel(BaseModel):
             slope = model.coef_[0]
             intercept = model.intercept_
 
-            print(f"Slope: {slope}, Intercept: {intercept}")
+            _trace(f"Slope: {slope}, Intercept: {intercept}")
 
             #    ax_intensity.plot(measure_times, intensity_ratios, '-o', label='Peak I/σ(I)')
             #    ax_rsig.plot(measure_times, rsigs, '-o', label='Rsig')
@@ -1016,18 +1180,14 @@ class TemporalAnalysisModel(BaseModel):
                 yaxis_title=intensity_figure_yaxis,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                margin=_TEMPORAL_FIG_MARGIN,
             )
             fig.update_xaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             fig.update_yaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             # fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')#noqa
             # fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')#noqa
@@ -1039,18 +1199,14 @@ class TemporalAnalysisModel(BaseModel):
                 yaxis_title=intensity_figure_yaxis,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                margin=_TEMPORAL_FIG_MARGIN,
             )
             fig.update_xaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             fig.update_yaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
 
             fig.add_annotation(
@@ -1064,7 +1220,32 @@ class TemporalAnalysisModel(BaseModel):
             )
         return fig
 
+    def _uncertainty_cache_key(self) -> Any:
+        if self._mtd_workflow is None:
+            return ("none",)
+        wf = self._mtd_workflow
+        if self.prediction_model_type == "Poisson Model":
+            ts, vals = wf.measure_times, wf.rsigs
+        else:
+            ts, vals = wf.timeseries_plt, wf.temporal_poisson_uncertainty
+        n = len(ts)
+        return (
+            self.prediction_model_type,
+            n,
+            ts[-1] if n else None,
+            vals[-1] if n and len(vals) else None,
+        )
+
     def get_figure_uncertainty(self) -> go.Figure:
+        cache_key = self._uncertainty_cache_key()
+        cached = self._uncertainty_fig_cache
+        if cached is not None and cached[0] == cache_key:
+            return cached[1]
+        fig = self._build_figure_uncertainty()
+        self._uncertainty_fig_cache = (cache_key, fig)
+        return fig
+
+    def _build_figure_uncertainty(self) -> go.Figure:
         # self.timestamp = time.time()
         fig = go.Figure()
         if self._mtd_workflow is None:
@@ -1099,10 +1280,10 @@ class TemporalAnalysisModel(BaseModel):
             # Transform X to 1/X
             x_transformed = 1 / x**0.5
 
-            print("X_transformed")
-            print(x_transformed)
-            print("y")
-            print(y)
+            _trace("X_transformed")
+            _trace(x_transformed)
+            _trace("y")
+            _trace(y)
             # Create and fit the model
             model = LinearRegression()
             model.fit(x_transformed, y)
@@ -1111,7 +1292,7 @@ class TemporalAnalysisModel(BaseModel):
             slope = model.coef_[0]
             intercept = model.intercept_
 
-            print(f"Slope: {slope}, Intercept: {intercept}")
+            _trace(f"Slope: {slope}, Intercept: {intercept}")
 
             # Add a dashed line with the slope and intercept
             x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
@@ -1127,10 +1308,10 @@ class TemporalAnalysisModel(BaseModel):
             # Transform X to 1/X
             x_transformed = x**0.5
 
-            print("X_transformed")
-            print(x_transformed)
-            print("y")
-            print(y)
+            _trace("X_transformed")
+            _trace(x_transformed)
+            _trace("y")
+            _trace(y)
             # Create and fit the model
             model = LinearRegression()
             model.fit(x_transformed, y)
@@ -1139,7 +1320,7 @@ class TemporalAnalysisModel(BaseModel):
             slope = model.coef_[0]
             intercept = model.intercept_
 
-            print(f"Slope: {slope}, Intercept: {intercept}")
+            _trace(f"Slope: {slope}, Intercept: {intercept}")
 
             # Add a dashed line with the slope and intercept
             x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
@@ -1151,10 +1332,10 @@ class TemporalAnalysisModel(BaseModel):
 
             fig.add_trace(go.Scatter(x=x_range, y=y_range, mode="lines", name="Fitted Line", line={"dash": "dash"}))
             print("============================================================================================")
-            print("time_steps = self.mtd_workflow.measure_times")
-            print(time_steps, self.mtd_workflow.measure_times)
-            print("uncertainty_data = self.mtd_workflow.rsigs")
-            print(uncertainty_data, self.mtd_workflow.rsigs)
+            _trace("time_steps = self.mtd_workflow.measure_times")
+            _trace(time_steps, self.mtd_workflow.measure_times)
+            _trace("uncertainty_data = self.mtd_workflow.rsigs")
+            _trace(uncertainty_data, self.mtd_workflow.rsigs)
             print("============================================================================================")
             fig.add_trace(go.Scatter(x=time_steps, y=uncertainty_data, mode="lines+markers", name="Uncertainty Data"))
             # fig.add_trace(go.Scatter(x=self.time_steps, y=self.uncertainty_data, mode='lines+markers', name='Uncertainty Data'))#noqa
@@ -1164,18 +1345,14 @@ class TemporalAnalysisModel(BaseModel):
                 yaxis_title=uncertainty_figure_yaxis,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                margin=_TEMPORAL_FIG_MARGIN,
             )
             fig.update_xaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             fig.update_yaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             # fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')#noqa
             # fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True, gridcolor='black', gridwidth=1, griddash='dash')#noqa
@@ -1188,18 +1365,14 @@ class TemporalAnalysisModel(BaseModel):
                 yaxis_title=uncertainty_figure_yaxis,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                margin=_TEMPORAL_FIG_MARGIN,
             )
             fig.update_xaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
             fig.update_yaxes(
-                showline=True,
-                linewidth=2,
-                linecolor="black",
-                mirror=True,
+                showline=True, linewidth=2, linecolor="black", mirror=True, **_TEMPORAL_GRID_KWARGS
             )
 
             fig.add_annotation(
@@ -1243,5 +1416,5 @@ class TemporalAnalysisModel(BaseModel):
             models = self.get_models()
             self.mtd_workflow.update_experiment_info(models)
             self.mtd_workflow.live_data_reduction()
-            print("live data reduction")
+            _trace("live data reduction")
             await asyncio.sleep(10)

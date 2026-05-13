@@ -7,6 +7,17 @@ import tempfile
 import time
 from typing import Any, Dict
 
+# Verbose tracing for ViewModel actions; off by default. Used to gate the
+# (~100) print statements scattered across this module which previously
+# spammed stdout on every UI interaction and per-second on the live-update
+# loop. Set CRYSTALPILOT_DEBUG=1 to re-enable.
+_DEBUG = bool(os.environ.get("CRYSTALPILOT_DEBUG"))
+
+
+def _trace(*args: Any) -> None:
+    if _DEBUG:
+        print(*args)
+
 # from ..models.css_status import CSSStatusModel
 # from ..models.temporal_analysis import TemporalAnalysisModel
 import plotly.graph_objects as go
@@ -63,7 +74,9 @@ class MainViewModel:
         self.experimentinfo_bind = binding.new_bind(
             self.model.experimentinfo, callback_after_update=self.update_experimentinfo_options
         )
-        self.angleplan_bind = binding.new_bind(self.model.angleplan, callback_after_update=self.change_callback)
+        self.angleplan_bind = binding.new_bind(
+            self.model.angleplan, callback_after_update=self.update_angleplan_after_change
+        )
         self.eiccontrol_bind = binding.new_bind(self.model.eiccontrol, callback_after_update=self.change_callback)
         # Create temporalanalysis bind WITHOUT a callback to avoid feedback loops
         self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis)
@@ -107,19 +120,26 @@ class MainViewModel:
     def update_experimentinfo_options(self, results: Dict[str, Any]) -> None:
         self.model.experimentinfo.update_option_lists()
         self.experimentinfo_bind.update_in_view(self.model.experimentinfo)
-        print("update_experimentinfo_options")
-        print(self.model.experimentinfo.options)
+        _trace("update_experimentinfo_options")
+        
         if results["error"]:
             print(f"error in fields {results['errored']}, model not changed")
         else:
-            print(f"model fields updated: {results['updated']}")
+            _trace("model fields updated:", results['updated'])
         # time.sleep(7)
 
     def change_callback(self, results: Dict[str, Any]) -> None:
         if results["error"]:
             print(f"error in fields {results['errored']}, model not changed")
         else:
-            print(f"model fields updated: {results['updated']}")
+            _trace("model fields updated:", results['updated'])
+
+    def update_angleplan_after_change(self, results: Dict[str, Any]) -> None:
+        """Angleplan post-validators (goniometer_type → angle_list_headers) mutate fields
+        the user did not edit directly. Re-push the model so the view re-renders.
+        """
+        self.change_callback(results)
+        self.angleplan_bind.update_in_view(self.model.angleplan)
 
     def navigate_to_tab(self, tab_number: int) -> None:
         """Switch the active tab by number and push the change to the view.
@@ -132,14 +152,29 @@ class MainViewModel:
 
     def upload_strategy(self) -> None:
         self.model.angleplan.load_ap(self.model.angleplan.plan_file)
-        self.update_view()
+        self._push_angleplan()
 
     def update_view(self) -> None:
-        # self.model_bind.update_in_view(self.model)
+        # Generic catch-all: pushes every sub-model. Prefer the targeted
+        # _push_* helpers below for handlers that only mutate one domain —
+        # 5x less serialization over the websocket per click.
         self.view_state_bind.update_in_view(self.view_state)
         self.angleplan_bind.update_in_view(self.model.angleplan)
         self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
         self.cssstatus_bind.update_in_view(self.model.cssstatus)
+        self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
+
+    # ------- targeted view-state pushes (cheap, one bind each) ------------
+    def _push_angleplan(self) -> None:
+        self.angleplan_bind.update_in_view(self.model.angleplan)
+
+    def _push_eiccontrol(self) -> None:
+        self.eiccontrol_bind.update_in_view(self.model.eiccontrol)
+
+    def _push_view_state(self) -> None:
+        self.view_state_bind.update_in_view(self.view_state)
+
+    def _push_temporal(self) -> None:
         self.temporalanalysis_bind.update_in_view(self.model.temporalanalysis)
 
     ######################################################################################################################################################
@@ -159,7 +194,7 @@ class MainViewModel:
                 self.model.eiccontrol.eic_status = "jobs submitted"
         except Exception as e:
             self.model.eiccontrol.eic_status = f"submission failed: {e}"
-        self.update_view()
+        self._push_eiccontrol()
 
     def call_load_token(self) -> None:
         try:
@@ -167,7 +202,7 @@ class MainViewModel:
             self.model.eiccontrol.eic_status = "authenticated successfully"
         except Exception as e:
             self.model.eiccontrol.eic_status = f"authentication failed: {e}"
-        self.update_view()
+        self._push_eiccontrol()
 
     #
     #
@@ -291,7 +326,7 @@ class MainViewModel:
         loop = asyncio.get_event_loop()
         while True:
             print("============================================================================================")
-            print("get_live_mtd_data")
+            _trace("get_live_mtd_data")
             try:
                 # update_experiment_info only sets Python attrs — safe on event loop thread
                 models = self.model.temporalanalysis.get_models()
@@ -301,12 +336,15 @@ class MainViewModel:
                 await loop.run_in_executor(
                     None, self.model.temporalanalysis.mtd_workflow.live_data_reduction
                 )
-                print("get_live_mtd_data done")
+                _trace("get_live_mtd_data done")
                 print("============================================================================================")
+                # Pull the latest UB out of the workflow so the side-table in the view refreshes.
+                try:
+                    self.model.temporalanalysis.sync_latest_ub_from_workflow()
+                except Exception as e:
+                    print(f"sync_latest_ub_from_workflow failed: {e}")
                 await self._update_figures_async(loop)
-                print(
-                    "=====================update temporal done========================================================="
-                )
+                _trace("=== update temporal done ===")
                 if (
                     self.model.eiccontrol.eic_auto_stop_strategy == "By Uncertainty"
                     and len(self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty) > 0
@@ -339,7 +377,7 @@ class MainViewModel:
         ipts_number = self.model.experimentinfo.ipts_number
         instrument_name = self.model.experimentinfo.instrument
         self.model.eiccontrol.stop_run(ipts_number, instrument_name)
-        self.update_view()
+        self._push_eiccontrol()
 
     def poll_job_statuses(self) -> None:
         ipts_number = self.model.experimentinfo.ipts_number
@@ -348,13 +386,13 @@ class MainViewModel:
             self.model.eiccontrol.poll_job_statuses(ipts_number, instrument_name)
         except Exception as e:
             print(f"Error polling job statuses: {e}")
-        self.update_view()
+        self._push_eiccontrol()
 
     def abort_job(self, scan_id: int) -> None:
         ipts_number = self.model.experimentinfo.ipts_number
         instrument_name = self.model.experimentinfo.instrument
         self.model.eiccontrol.abort_job(scan_id, ipts_number, instrument_name)
-        self.update_view()
+        self._push_eiccontrol()
 
     ##########################################################################################################################
     #  edit angle plans
@@ -364,33 +402,32 @@ class MainViewModel:
 
     # @trame_server.controller.trigger('add_run')
     def add_run(self) -> None:
-        print("add_run")
+        _trace("add_run")
         self.model.angleplan.is_editing_run = False
         self.model.angleplan.run_record = self.model.angleplan.get_default_run_record()
         self.model.angleplan.runedit_dialog = True
         #### should be called after change object in python and want to sync with js object
-        self.update_view()
+        self._push_angleplan()
 
     # trigger needed for passing js variable to fucntion call in view
     # @trame_server.controller.trigger('edit_run')
     def edit_run(self, run_id: int) -> None:
-        print("edit_run")
-        print(run_id)
+        _trace("edit_run", run_id)
         self.model.angleplan.is_editing_run = True
         run = next((r for r in self.model.angleplan.angle_list if r["id"] == run_id), None)
         if run:
             self.model.angleplan.run_record = run.copy()
             self.model.angleplan.runedit_dialog = True
-        self.update_view()
+        self._push_angleplan()
 
     def close_runedit_dialog(self) -> None:
-        print("close_runedit_dialog")
+        _trace("close_runedit_dialog")
         self.model.angleplan.runedit_dialog = False
-        self.update_view()
+        self._push_angleplan()
 
     # @trame_server.controller.trigger('save_run')
     def save_run(self) -> None:
-        print("save_run")
+        _trace("save_run")
         print(self.model.angleplan.run_record["id"])
         if self.model.angleplan.is_editing_run:
             for i, run in enumerate(self.model.angleplan.angle_list):
@@ -402,38 +439,36 @@ class MainViewModel:
             self.model.angleplan.run_record["id"] = max_id + 1
             self.model.angleplan.angle_list.append(self.model.angleplan.run_record.copy())
         self.model.angleplan.runedit_dialog = False
-        self.update_view()
+        self._push_angleplan()
 
     # @trame_server.controller.trigger('remove_run')
     def remove_run(self, run_id: int) -> None:
-        print("remove_run")
-        print(run_id)
+        _trace("remove_run", run_id)
         self.model.angleplan.angle_list = [r for r in self.model.angleplan.angle_list if r["id"] != run_id]
-        print(self.model.angleplan.angle_list)
-        self.update_view()
+        self._push_angleplan()
 
     ############################### coverage figure update ###########################################################
     def update_coverage_figure(self, _: Any = None) -> None:
         # self.temporalanalysis_updatefig_bind.update_in_view(self.model.temporalanalysis.get_figure_intensity(),self.model.temporalanalysis.get_figure_uncertainty())#noqa
         self.angleplan_updatefigure_coverage_bind.update_in_view(self.model.angleplan.get_figure_coverage())
-        self.update_view()
+        self._push_angleplan()
 
     def update_coverage_figure_with_symmetry(self, _: Any = None) -> None:
         self.angleplan_updatefigure_coverage_bind.update_in_view(
             self.model.angleplan.get_coverage_figure_with_symmetry()
         )
-        self.update_view()
+        self._push_angleplan()
 
     def get_coverage_figure_with_symmetry(self) -> None:
-        print("get_coverage_figure_with_symmetry")
+        _trace("get_coverage_figure_with_symmetry")
         fig = self.model.angleplan.get_coverage_figure_with_symmetry()
-        self.update_view()
+        self._push_angleplan()
         return fig
 
     def get_figure_coverage(self) -> go.Figure:
-        print("get_figure_coverage")
+        _trace("get_figure_coverage")
         fig = self.model.angleplan.get_figure_coverage()
-        self.update_view()
+        self._push_angleplan()
         return fig
 
     def show_coverage(self) -> None:
@@ -496,43 +531,41 @@ class MainViewModel:
         plan_csv = self._nxv_plan_csv
         if os.path.isfile(plan_csv):
             self.model.angleplan.import_from_nxv_csv(plan_csv)
-            self.update_view()
+            self._push_angleplan()
             print(f"show_cov: reimported {len(self.model.angleplan.angle_list)} rows from {plan_csv}")
         else:
             print(f"show_cov: CSV not found at {plan_csv}, skipping reimport")
 
     def close_coverage(self) -> None:
-        print("hide_cov")
+        _trace("hide_cov")
         self.model.angleplan.is_showing_coverage = False
-        self.update_view()
+        self._push_angleplan()
 
     ############################### coverage figure update ###########################################################
     def reset_run(self) -> None:
         # if self.model.experimentinfo.c
         self.optimize_angleplan()
-        print("reset_run")
-        print(self.model.angleplan.angle_list)
-        print(self.model.angleplan.qpane_cones)
+        _trace("reset_run")
 
-        self.update_view()
-        print("reset_run after update view")
+        self._push_angleplan()
+        _trace("reset_run after update view")
 
         pass
 
     def show_under_development_dialog(self) -> None:
-        print("show_underdev")
+        _trace("show_underdev")
         # self.model.angleplan.is_under_development = True
-        self.update_view()
+        self._push_view_state()
 
     def close_under_development_dialog(self) -> None:
-        print("hide_underdev")
+        _trace("hide_underdev")
         self.view_state.is_under_development = False
-        self.update_view()
+        self._push_view_state()
 
     def optimize_angleplan(self) -> None:
         from .angle_plan import angleplan_optimize
 
-        print("optimize_angleplan")
+        _trace("optimize_angleplan")
         ##self.is_uninterruptable = True
         ##self.update_view()
         final_angle_list = angleplan_optimize(self)

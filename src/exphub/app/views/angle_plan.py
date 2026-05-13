@@ -119,7 +119,17 @@ class AnglePlanView:
 
         # vuetify.VCardTitle("CrystalPlan Table")
 
-        vuetify.VCardTitle("Experiment Run Strategy")
+        with HBoxLayout(gap="0.5em", valign="center"):
+            vuetify.VCardTitle("Experiment Run Strategy")
+            InputField(
+                v_model="model_angleplan.goniometer_type",
+                items="model_angleplan.goniometer_type_options",
+                type="select",
+                label="Goniometer",
+                density="compact",
+                hide_details=True,
+                style="max-width: 240px;",
+            )
         with VBoxLayout(classes="border-lg border-primary mb-1", stretch=True):
             with vuetify.VDataTable(
                 classes="flex-1-1",

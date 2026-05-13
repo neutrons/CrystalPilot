@@ -4,12 +4,22 @@ import time
 from typing import List, Tuple
 
 import plotly.graph_objects as go
+from nova.epics.trame import PVInput
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import plotly
 from trame.widgets import vuetify3 as vuetify
 
 from ..view_models.main import MainViewModel
+
+# Plotly layout shared across the live-data plots in this view.
+_FIG_MARGIN = {"l": 50, "r": 15, "t": 35, "b": 40}
+_GRID_KWARGS = {
+    "showgrid": True,
+    "gridcolor": "rgba(120,120,120,0.35)",
+    "gridwidth": 1,
+    "griddash": "dot",
+}
 
 
 def temporal_data_analysis() -> Tuple[List[int], List[int]]:
@@ -77,6 +87,8 @@ class TemporalAnalysisView:
             yaxis={"range": [0, 100]},
             paper_bgcolor="rgba(10,10,10,0)",
             plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            margin=_FIG_MARGIN,
         )
 
         fig_u = go.Figure()
@@ -88,20 +100,14 @@ class TemporalAnalysisView:
             yaxis_title="",
             xaxis={"range": [0, 2000]},
             yaxis={"range": [0, 100]},
+            showlegend=False,
+            margin=_FIG_MARGIN,
         )
-        fig_u.update_xaxes(
-            showline=True, linewidth=2, linecolor="black", mirror=True, gridcolor="black", gridwidth=1, griddash="dash"
-        )
-        fig_u.update_yaxes(
-            showline=True, linewidth=2, linecolor="black", mirror=True, gridcolor="black", gridwidth=1, griddash="dash"
-        )
+        fig_u.update_xaxes(showline=True, linewidth=2, linecolor="black", mirror=True, **_GRID_KWARGS)
+        fig_u.update_yaxes(showline=True, linewidth=2, linecolor="black", mirror=True, **_GRID_KWARGS)
 
-        fig_i.update_xaxes(
-            showline=True, linewidth=2, linecolor="black", mirror=True, gridcolor="black", gridwidth=1, griddash="dash"
-        )
-        fig_i.update_yaxes(
-            showline=True, linewidth=2, linecolor="black", mirror=True, gridcolor="black", gridwidth=1, griddash="dash"
-        )
+        fig_i.update_xaxes(showline=True, linewidth=2, linecolor="black", mirror=True, **_GRID_KWARGS)
+        fig_i.update_yaxes(showline=True, linewidth=2, linecolor="black", mirror=True, **_GRID_KWARGS)
 
         # with HBoxLayout(halign="left",  height="50vh"):
         #    self.figure_intensity
@@ -117,6 +123,103 @@ class TemporalAnalysisView:
 
             self.figure_uncertainty = plotly.Figure()
             self.figure_uncertainty.update(fig_u)
+
+        # Side-table summary outside the figures: latest UB + lattice + live beam readouts.
+        # UB and lattice are rendered as compact 3x3 grids of plain values — no
+        # row/column labels — so the matrix structure reads directly.
+        cell_style = (
+            "font-family: monospace;"
+            "font-size: 0.95em;"
+            "text-align: right;"
+            "padding: 4px 10px;"
+            "border: 1px solid rgba(0,0,0,0.12);"
+            "border-radius: 3px;"
+            "min-width: 90px;"
+        )
+
+        with GridLayout(columns=2, gap="0.5em", stretch=True):
+            with VBoxLayout(classes="border-md pa-2", gap="0.4em"):
+                vuetify.VLabel(
+                    "Latest UB (from live data)",
+                    style="font-weight: 600;",
+                )
+                vuetify.VLabel(
+                    "{{ model_temporalanalysis.latest_ub_timestamp"
+                    " ? 'updated ' + model_temporalanalysis.latest_ub_timestamp"
+                    " : 'no UB inferred yet' }}",
+                    style="font-size: 0.85em; color: rgba(0,0,0,0.6);",
+                )
+
+                # ── UB matrix as a 3x3 grid (no row/col headers) ───────────
+                with GridLayout(columns=3, gap="0.25em"):
+                    for i in range(3):
+                        for j in range(3):
+                            vuetify.VLabel(
+                                "{{ (model_temporalanalysis.latest_ub["
+                                + str(i)
+                                + "] || [])["
+                                + str(j)
+                                + "] != null"
+                                " ? Number(model_temporalanalysis.latest_ub["
+                                + str(i)
+                                + "]["
+                                + str(j)
+                                + "]).toFixed(6) : '—' }}",
+                                style=cell_style,
+                            )
+
+                vuetify.VLabel(
+                    "Lattice constants (a, b, c in Å; α, β, γ in °; V in Å³)",
+                    style="font-weight: 600; padding-top: 6px;",
+                )
+                # ── Lattice as a compact 3x3 grid:
+                #     row 1: a, b, c (Å)
+                #     row 2: α, β, γ (°)
+                #     row 3: V, —, —
+                lattice_cells: list[tuple[str, str, int]] = [
+                    ("a", "Å", 4),
+                    ("b", "Å", 4),
+                    ("c", "Å", 4),
+                    ("alpha", "°", 3),
+                    ("beta", "°", 3),
+                    ("gamma", "°", 3),
+                    ("volume", "Å³", 2),
+                ]
+                with GridLayout(columns=3, gap="0.25em"):
+                    for key, unit, prec in lattice_cells:
+                        vuetify.VLabel(
+                            "{{ (model_temporalanalysis.latest_lattice && "
+                            "model_temporalanalysis.latest_lattice['"
+                            + key
+                            + "'] != null)"
+                            " ? Number(model_temporalanalysis.latest_lattice['"
+                            + key
+                            + "']).toFixed("
+                            + str(prec)
+                            + ") + ' "
+                            + unit
+                            + "' : '—' }}",
+                            style=cell_style,
+                        )
+                    # Pad the third row to keep the 3x3 shape (V sits alone).
+                    vuetify.VLabel("", style=cell_style + "border-color: transparent;")
+                    vuetify.VLabel("", style=cell_style + "border-color: transparent;")
+
+                vuetify.VLabel(
+                    "{{ model_temporalanalysis.latest_ub_saved_path"
+                    " ? 'saved: ' + model_temporalanalysis.latest_ub_saved_path"
+                    " : '' }}",
+                    style="font-size: 0.8em; color: rgba(0,0,0,0.55); word-break: break-all;",
+                )
+
+            with VBoxLayout(classes="border-md pa-2", gap="0.25em"):
+                vuetify.VLabel(
+                    "Beam status (live)",
+                    style="font-weight: 600;",
+                )
+                with GridLayout(columns=2, gap="0.25em"):
+                    PVInput("BL12:Det:PCharge:C", append="C", label="Proton Charge")
+                    PVInput("BL12:Det:rtdl:BeamPowerAvg", append="MW", label="Beam Power")
 
         with HBoxLayout(halign="left"):
             vuetify.VBtn(
@@ -142,6 +245,8 @@ class TemporalAnalysisView:
             yaxis={"visible": False},
             paper_bgcolor="rgba(10,10,10,0)",
             plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            margin=_FIG_MARGIN,
             annotations=[
                 {
                     "text": "Collecting live data\u2026",
