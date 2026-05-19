@@ -44,9 +44,15 @@ BASELINE: dict[str, int] = {
 # Directories where hardcoded TOPAZ/BL12 references are LEGITIMATE
 # (e.g. the topaz beamline plug-in itself, or test fixtures).
 ALLOWED_PREFIXES = (
-    "beamlines/topaz/",
+    "src/exphub/beamlines/",
     "tests/",
 )
+
+# Individual files that legitimately mention beamline ids (docstring examples
+# inside framework code, etc.). One-off exceptions; prefer ALLOWED_PREFIXES.
+ALLOWED_FILES = {
+    "src/exphub/core/beamline/spec.py",
+}
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -63,7 +69,7 @@ def _scan() -> dict[str, int]:
     counts: dict[str, int] = {}
     for py in (REPO_ROOT / "src").rglob("*.py"):
         rel = py.relative_to(REPO_ROOT).as_posix()
-        if rel.startswith(ALLOWED_PREFIXES):
+        if rel.startswith(ALLOWED_PREFIXES) or rel in ALLOWED_FILES:
             continue
         n = _count_matches(py)
         if n:
