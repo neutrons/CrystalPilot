@@ -39,19 +39,25 @@ logger = logging.getLogger(__name__)
 _PROMPT_DIR = Path(__file__).parent / "prompts"
 
 
-def _load_system_prompt() -> str:
-    """Load the system prompt from the external Markdown file."""
-    prompt_file = _PROMPT_DIR / "system_prompt.md"
+def _load_system_prompt(beamline_id: str | None = None, task: str | None = None) -> str:
+    """Assemble the system prompt from (core, beamline, task) fragments.
+
+    Falls back to the legacy single-file ``system_prompt.md`` if the composer
+    can't find any fragments. See :mod:`exphub.agent.prompts.composer`.
+    """
+    from .prompts.composer import compose_system_prompt
     try:
-        return prompt_file.read_text(encoding="utf-8")
-    except OSError:
-        logger.warning("Could not read %s — using fallback prompt", prompt_file)
+        return compose_system_prompt(beamline_id=beamline_id, task=task)
+    except Exception as exc:
+        logger.warning("Prompt composer failed (%s) — using fallback", exc)
         return (
-            "You are CrystalPilot Assistant, an AI helper for single-crystal "
-            "neutron diffraction experiments at ORNL beamlines. Be concise and helpful."
+            "You are an AI helper for single-crystal neutron diffraction "
+            "experiments. Be concise and helpful."
         )
 
 
+# Default at import time; an Agent instance will recompute with the active
+# beamline/task on construction.
 SYSTEM_PROMPT = _load_system_prompt()
 
 
@@ -67,6 +73,8 @@ class Agent:
         phase_manager=None,
         write_through_fn=None,
         action_fns: dict | None = None,
+        beamline_id: str | None = None,
+        task: str | None = None,
     ) -> None:
         self.schema_properties = schema_properties
         self._answered: Set[str] = set()
@@ -78,6 +86,12 @@ class Agent:
         # Trame view immediately.  Set by ChatViewModel so the agent's
         # writes are visible to subsequent tool calls within the same turn.
         self._write_through_fn = write_through_fn
+
+        # Beamline + task identity. Used to compose the system prompt and to
+        # stamp ACTIVE_BEAMLINE / ACTIVE_TASK into per-turn context.
+        self._beamline_id = beamline_id
+        self._task = task or "experiment_steering"
+        self.system_prompt = _load_system_prompt(beamline_id=beamline_id, task=self._task)
 
         try:
             self._rag = BeamlineKnowledgeBase()
@@ -162,7 +176,14 @@ class Agent:
     # ------------------------------------------------------------------ nodes
 
     def _call_model_node(self, state: AgentState) -> AgentState:
-        msgs = [SystemMessage(content=SYSTEM_PROMPT)]
+        msgs = [SystemMessage(content=self.system_prompt)]
+
+        # Stamp current beamline + task so the LLM (and debug logs) always know
+        # which beamline this conversation is steering.
+        from .prompts.composer import describe_active_context
+        msgs.append(SystemMessage(
+            content=describe_active_context(beamline_id=self._beamline_id, task=self._task)
+        ))
 
         # Inject current phase context if a PhaseManager is available
         if self._phase_manager is not None:
