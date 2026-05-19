@@ -10,8 +10,8 @@ installed, so the agent can still work without the heavier dependencies.
 Usage::
 
     kb = BeamlineKnowledgeBase()
-    passages = kb.retrieve("what is the TOPAZ wavelength range")
-    answer  = kb.answer("what is the TOPAZ wavelength range")  # synthesised
+    passages = kb.retrieve("what is the wavelength range")
+    answer  = kb.answer("what is the wavelength range")  # synthesised
 """
 
 from __future__ import annotations

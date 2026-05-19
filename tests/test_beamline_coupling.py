@@ -22,9 +22,9 @@ PATTERN = re.compile(r"TOPAZ|BL12|topaz|bl12")
 # Counts are pattern *occurrences* (re.findall), not lines.
 # Each entry is an upper bound. Lowering is good; raising means a regression.
 BASELINE: dict[str, int] = {
-    "src/exphub/agent/constants.py": 2,
-    "src/exphub/agent/handlers.py": 2,
-    "src/exphub/agent/rag.py": 2,
+    "src/exphub/agent/constants.py": 0,
+    "src/exphub/agent/handlers.py": 0,
+    "src/exphub/agent/rag.py": 0,
     "src/exphub/app/main.py": 0,
     "src/exphub/app/models/angle_plan.py": 0,
     "src/exphub/app/models/data_analysis.py": 0,

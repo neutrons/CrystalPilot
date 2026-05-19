@@ -12,7 +12,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
-from .constants import EXPERIMENT_PRESETS, TAB_MAP, TAB_NAMES
+from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .schema_gen import enrich_schema_with_options
 from .utils import coerce_type
 
@@ -255,9 +255,10 @@ def make_tools(
         Returns ``{"preset_name": ..., "validated": {...}, "errors": {...}}``.
         """
         key = preset_name.strip().lower().replace(" ", "_")
-        preset = EXPERIMENT_PRESETS.get(key)
+        presets = get_experiment_presets()
+        preset = presets.get(key)
         if preset is None:
-            available = ", ".join(EXPERIMENT_PRESETS.keys())
+            available = ", ".join(presets.keys())
             return {"error": f"Unknown preset '{preset_name}'. Available: {available}"}
         validated, errors = _validate_multi(preset)
         return {"preset_name": preset_name, "validated": validated, "errors": errors}
@@ -269,7 +270,7 @@ def make_tools(
         Returns a JSON array of ``{"name": ..., "parameters": {...}}`` objects.
         Use ``apply_preset(name)`` to apply one.
         """
-        result = [{"name": name, "parameters": params} for name, params in EXPERIMENT_PRESETS.items()]
+        result = [{"name": name, "parameters": params} for name, params in get_experiment_presets().items()]
         return json.dumps(result, default=str)
 
     # ------------------------------------------------------------------ angle plan

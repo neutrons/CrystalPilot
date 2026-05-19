@@ -1,56 +1,32 @@
-"""Shared constants for the CrystalPilot agent.
+"""Shared constants for the agent.
 
-Centralises experiment presets, tab mappings, and other values that are
-referenced by multiple modules.  Extend ``EXPERIMENT_PRESETS`` to add new
-instrument presets without touching agent or tool code.
+Tab mappings remain here. Experiment presets used to be hardcoded per
+instrument in this file; they now live on each beamline plug-in's
+``AgentSpec.presets`` and are aggregated at call time by
+:func:`get_experiment_presets`. Adding a new instrument's preset means
+populating the new beamline's spec — no edit to agent code.
 """
 
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Experiment presets — named parameter bundles the agent can apply at once.
-# ---------------------------------------------------------------------------
-EXPERIMENT_PRESETS: dict[str, dict] = {
-    "topaz_standard": {
-        "instrument": "TOPAZ",
-        "max_q": 17.0,
-        "num_peaks_to_find": 500,
-        "tolerance": 0.12,
-        "predict_peaks": True,
-        "peak_radius": 0.11,
-        "bkg_inner_radius": 0.115,
-        "bkg_outer_radius": 0.14,
-        "pred_min_dspacing": 0.499,
-        "pred_max_dspacing": 11.0,
-        "pred_min_wavelength": 0.4,
-        "pred_max_wavelength": 3.45,
-    },
-    "corelli_standard": {
-        "instrument": "CORELLI",
-        "max_q": 14.0,
-        "num_peaks_to_find": 300,
-        "tolerance": 0.15,
-        "predict_peaks": True,
-        "peak_radius": 0.13,
-        "bkg_inner_radius": 0.135,
-        "bkg_outer_radius": 0.16,
-        "pred_min_dspacing": 0.5,
-        "pred_max_dspacing": 10.0,
-        "pred_min_wavelength": 0.7,
-        "pred_max_wavelength": 2.89,
-    },
-    "mandi_standard": {
-        "instrument": "MANDI",
-        "max_q": 10.0,
-        "num_peaks_to_find": 200,
-        "tolerance": 0.10,
-        "predict_peaks": True,
-        "pred_min_dspacing": 0.7,
-        "pred_max_dspacing": 7.0,
-        "pred_min_wavelength": 0.8,
-        "pred_max_wavelength": 4.0,
-    },
-}
+
+def get_experiment_presets() -> dict[str, dict]:
+    """Return every preset declared by every registered beamline.
+
+    Keys collide intentionally if two beamlines declare the same name;
+    later registrations win. In practice each beamline namespaces its
+    presets (e.g. ``<id>_standard``) so collisions are not expected.
+    """
+    from ..core.beamline import get as _get
+    from ..core.beamline import list_ids as _list_ids
+
+    presets: dict[str, dict] = {}
+    for bid in _list_ids():
+        try:
+            presets.update(_get(bid).agent.presets)
+        except Exception:
+            continue
+    return presets
 
 
 # ---------------------------------------------------------------------------

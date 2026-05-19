@@ -13,7 +13,7 @@ import json
 import re
 from typing import Any, Callable
 
-from .constants import EXPERIMENT_PRESETS, TAB_MAP, TAB_NAMES
+from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .workflow import PhaseManager
 
 # Type alias for handler functions
@@ -68,12 +68,16 @@ def handle_list_presets(
     if not any(t in norm for t in ("list preset", "show preset", "what preset",
                                     "available preset")):
         return None
+    presets = get_experiment_presets()
+    if not presets:
+        return "No presets are currently registered."
     lines = []
-    for name, params in EXPERIMENT_PRESETS.items():
+    for name, params in presets.items():
         fields = ", ".join(f"`{k}`=`{v}`" for k, v in params.items())
         lines.append(f"- **{name}**: {fields}")
+    example = next(iter(presets))
     return "**Available Presets:**\n" + "\n".join(lines) + \
-           "\n\nUse `apply_preset` or say e.g. *apply topaz_standard* to apply one."
+           f"\n\nUse `apply_preset` or say e.g. *apply {example}* to apply one."
 
 
 def handle_navigate(
@@ -109,11 +113,20 @@ def handle_help(
     if norm not in ("help", "what can you do", "what can you do?",
                     "commands", "capabilities"):
         return None
+    presets = get_experiment_presets()
+    if presets:
+        preset_names = list(presets.keys())
+        if len(preset_names) == 1:
+            preset_hint = f"say *apply {preset_names[0]}*"
+        else:
+            preset_hint = f"say *apply {preset_names[0]}* (or {', '.join(preset_names[1:])})"
+    else:
+        preset_hint = "no presets currently registered"
     return (
         "**CrystalPilot Assistant** can help you with:\n\n"
         "- **Set parameters**: tell me a value and I'll configure it\n"
         "- **Explain parameters**: ask what any field means\n"
-        "- **Apply presets**: say *apply topaz_standard* (or corelli/mandi)\n"
+        f"- **Apply presets**: {preset_hint}\n"
         "- **Angle plan**: add, edit, or delete runs\n"
         "- **Navigate tabs**: say *go to live data* or *switch to ipts info*\n"
         "- **Show config**: see current settings\n"
