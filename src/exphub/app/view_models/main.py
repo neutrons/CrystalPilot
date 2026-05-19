@@ -39,6 +39,25 @@ from pydantic import BaseModel, Field
 from ..models.main_model import MainModel
 
 
+def _default_beamline_id() -> str:
+    """Pick the active beamline's id at view-state construction time."""
+    try:
+        from ...core.beamline import active as _active_beamline
+        return _active_beamline().id
+    except Exception:
+        return ""
+
+
+def _default_beamline_options() -> list[dict]:
+    """Build the `[{value, title}]` list for the selector."""
+    try:
+        from ...core.beamline import get as _get
+        from ...core.beamline import list_ids as _list_ids
+        return [{"value": bid, "title": _get(bid).display_name} for bid in _list_ids()]
+    except Exception:
+        return []
+
+
 class ViewState(BaseModel):
     """View state for the application."""
 
@@ -46,6 +65,9 @@ class ViewState(BaseModel):
     is_under_development: bool = Field(default=False)
     is_uninterruptable: bool = Field(default=False)
     is_live_update_running: bool = Field(default=False)
+    beamline_id: str = Field(default_factory=_default_beamline_id)
+    beamline_options: list[dict] = Field(default_factory=_default_beamline_options)
+    beamline_switch_notice: str = Field(default="")
 
 
 class MainViewModel:
@@ -158,6 +180,35 @@ class MainViewModel:
         """
         self.view_state.active_tab = tab_number
         self.view_state_bind.update_in_view(self.view_state)
+
+    def switch_beamline(self, beamline_id: str) -> None:
+        """Activate a different beamline plug-in.
+
+        Updates the registry so subsequent reads of ``active().<...>`` and any
+        view that consults the active context on each render (e.g. the Beam
+        Status PV inputs on the Live Data Processing tab) pick up the new
+        beamline's PVs/paths/presets.
+
+        Hard-bound resources — the EPICS .bob screen connected at MainApp
+        construction, the agent's RAG index, the auto-resolved model field
+        defaults already applied to existing instances — won't reload mid-
+        session. A short snackbar surfaces that note.
+        """
+        from ...core.beamline import set_active
+
+        if not beamline_id or beamline_id == self.view_state.beamline_id:
+            return
+        try:
+            spec = set_active(beamline_id)
+        except KeyError as e:
+            print(f"switch_beamline: {e}")
+            return
+        self.view_state.beamline_id = spec.id
+        self.view_state.beamline_switch_notice = (
+            f"Switched to {spec.display_name}. Restart the app for the "
+            "Instrument Status screen and EPICS subscriptions to fully reload."
+        )
+        self._push_view_state()
 
     def upload_strategy(self) -> None:
         self.model.angleplan.load_ap(self.model.angleplan.plan_file)
