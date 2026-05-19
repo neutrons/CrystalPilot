@@ -13,8 +13,10 @@ from plotly.subplots import make_subplots
 from pydantic import BaseModel, Field
 from sklearn.linear_model import LinearRegression
 
-# Live-monitoring UB save root: per-IPTS directory under TOPAZ shared.
-_LIVE_UB_SUBDIR = "shared/CrystalPilot/live-data-monitoring"
+# Path resolution + Mantid instrument lookup go through the active beamline
+# spec; nothing in this module hardcodes the beamline id.
+from ...core.beamline import active as _active_beamline
+from ...core.paths import resolver_for
 
 # Verbose tracing for the live-data reduction path. Off by default — the live
 # loop runs a Mantid pipeline every ~40s and used to emit ~50+ multi-line
@@ -35,11 +37,6 @@ _TEMPORAL_GRID_KWARGS = {
     "gridwidth": 1,
     "griddash": "dot",
 }
-
-# import mantid algorithms, numpy and matplotlib
-# matplotlib.use("Qt5Agg")
-# sys.path.append('/SNS/TOPAZ/shared/PythonPrograms/Python3Library')
-# from SCDTools import recenter_peaks_workspace
 
 
 class MantidWorkflow:
@@ -113,7 +110,7 @@ class MantidWorkflow:
         #    plt.xlabel(xlabel)
         #    #plt.xlim(0,1000)
         #    plt.grid(True)
-        #    plt.suptitle(f"Live Data Reduction - TOPAZ_{current_run}")
+        #    plt.suptitle(f"Live Data Reduction - {instrument}_{current_run}")
         #    plt.legend()
         #    #plt.draw()  # Use draw() instead of show() to update the plot
         #    plt.show()  # Use draw() instead of show() to update the plot
@@ -217,7 +214,8 @@ class MantidWorkflow:
             print(f"save_latest_ub: workspace '{workspace_name}' has no UB yet: {e}")
             return None
 
-        save_dir = f"/SNS/TOPAZ/IPTS-{self.ipts}/{_LIVE_UB_SUBDIR}/"
+        resolver = resolver_for(self.ipts)
+        save_dir = resolver.live_monitor_dir + "/"
         try:
             os.makedirs(save_dir, exist_ok=True)
         except Exception as e:
@@ -225,7 +223,8 @@ class MantidWorkflow:
             return None
 
         timestamp = time.strftime("%Y%m%d-%H%M%S")
-        filename = f"live_topaz-ipts-{self.ipts}_run-{getattr(self, 'current_run', 'na')}_{timestamp}.mat"
+        bl_id = resolver.ctx.id
+        filename = f"live_{bl_id}-ipts-{self.ipts}_run-{getattr(self, 'current_run', 'na')}_{timestamp}.mat"
         path = os.path.join(save_dir, filename)
         try:
             mtdapi.SaveIsawUB(InputWorkspace=workspace_name, Filename=path)
@@ -251,37 +250,39 @@ class MantidWorkflow:
         # print(self.ipts,self.cell_type,self.centering,self.min_d,self.max_d,self.calib_fname)
         if models.experimentinfo.UBFileName:
             self.ub_failsafe = models.experimentinfo.UBFileName
-        self.output_path = "/SNS/TOPAZ/IPTS-{}/shared/autoreduce/live_data/".format(self.ipts)
+        self.output_path = resolver_for(self.ipts).autoreduce_dir + "/live_data/"
 
         self.selection = models.temporalanalysis.data_selection
 
-        # self.ub_failsafe="/SNS/TOPAZ/IPTS-{:d}/shared/CrystalPlan/SCO_295K_auto_Orthorhombic_P.mat".format(self.ipts)
-        # self.output_path = '/SNS/TOPAZ/IPTS-{:d}/shared/autoreduce/live_data/'.format(self.ipts)
-        # self.calib_fname = '/SNS/TOPAZ/IPTS-{:d}/shared/calibration/TOPAZ_2025A_AG_3-3BN.DetCal'.format(self.ipts)
-
     def update_peak_output_filenames(self) -> None:
+        bl_id = _active_beamline().id
         if self.cell_type is not None:
-            self.live_peaks_fname = "live_topaz-ipts-%s_%s_%s_%s.integrate" % (
+            self.live_peaks_fname = "live_%s-ipts-%s_%s_%s_%s.integrate" % (
+                bl_id,
                 str(self.ipts),
                 str(self.current_run),
                 self.cell_type,
                 self.centering,
             )
-            self.live_peaks_ub_fname = "live_topaz-ipts-%s_%s__%s_%s.mat" % (
+            self.live_peaks_ub_fname = "live_%s-ipts-%s_%s__%s_%s.mat" % (
+                bl_id,
                 str(self.ipts),
                 str(self.current_run),
                 self.cell_type,
                 self.centering,
             )
         else:
-            self.live_peaks_fname = "live_topaz-ipts-%s_%s_Niggli.integrate" % (str(self.ipts), str(self.current_run))
-            self.live_peaks_ub_fname = "live_topaz-ipts-%s_%s_Niggli.mat" % (str(self.ipts), str(self.current_run))
+            self.live_peaks_fname = "live_%s-ipts-%s_%s_Niggli.integrate" % (
+                bl_id, str(self.ipts), str(self.current_run))
+            self.live_peaks_ub_fname = "live_%s-ipts-%s_%s_Niggli.mat" % (
+                bl_id, str(self.ipts), str(self.current_run))
 
     def start_live_data_collection_instances(self) -> None:
         """Start live data instances: worksapce mtd['live_event_wc], self.currentrun,self.run."""
+        instrument_name = _active_beamline().mantid.instrument_name
         try:
             mtdapi.StartLiveData(
-                Instrument="TOPAZ",
+                Instrument=instrument_name,
                 Listener="SNSLiveEventDataListener",
                 # UpdateEvery=10,
                 UpdateEvery=self.time_interval,
@@ -296,9 +297,9 @@ class MantidWorkflow:
             if "Another MonitorLiveData thread is running" in str(e):
                 conflict_current_run = mtdapi.mtd["live_event_ws"].getRunNumber()
                 msg = (
-                    "Another MonitorLiveData thread is already running for TOPAZ run %s. "
+                    "Another MonitorLiveData thread is already running for %s run %s. "
                     "Stop the existing live-update session before starting a new one."
-                ) % str(conflict_current_run)
+                ) % (instrument_name, str(conflict_current_run))
                 print("Warning:", msg)
                 raise RuntimeError(msg) from e
             else:
@@ -474,7 +475,7 @@ class MantidWorkflow:
                 print("Warning: FindUBUsingFFT error - Four or more indexed peaks needed to find UB")
                 print("Error message: ", ub_error)
                 # TODO: should use next two commands or not?
-                # mtdapi.LoadIsawUB(InputWorkspace='live_peaks_ws',Filename='/SNS/TOPAZ/IPTS-33641/shared/S5-1_5K/S5-1_5K_Monoclinic_P.mat')#noqa
+                # mtdapi.LoadIsawUB(InputWorkspace='live_peaks_ws',Filename='/SNS/<instrument>/IPTS-<n>/shared/<run>/<symmetry>.mat')  # noqa
                 # mtdapi.IndexPeaks(PeaksWorkspace='live_peaks_ws', Tolerance=0.12, ToleranceForSatellite=0.10000000000000001, RoundHKLs=False, CommonUBForAll=True)#noqa
                 self.current_run_end_time = (
                     mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
@@ -825,7 +826,7 @@ class PoissonModelAnalysis(BaseModel):
             #                Tolerance=tolerance,
             #                ToleranceForSatellite=tolerance_satellite,CommonUBForAll=True)
             #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
-            #OptimizeLatticeForCellType(PeaksWorkspace=peaks_ws, CellType='Hexagonal', Apply=True, Tolerance=0.06, EdgePixels=19, OutputDirectory='/SNS/TOPAZ/shared/test/Integrate_satellite_peaks')
+            #OptimizeLatticeForCellType(PeaksWorkspace=peaks_ws, CellType='Hexagonal', Apply=True, Tolerance=0.06, EdgePixels=19, OutputDirectory='/SNS/<instrument>/shared/test/Integrate_satellite_peaks')
             #IndexPeaks(PeaksWorkspace=peaks_ws, Tolerance=tolerance, ToleranceForSatellite=tolerance_satellite, RoundHKLs=False, CommonUBForAll=True)
 
             mtdapi.CopySample(InputWorkspace=peaks_ws,
@@ -903,7 +904,7 @@ class PoissonModelAnalysis(BaseModel):
 
                 #####  save 3D slices (md nexus files)
                 # print('--- Saving SaveMD for .nxs for step: {}.....'.format(time_stop))
-                # SaveMD(data, output_directory + '/' + 'TOPAZ_{0:d}_peak_{1:d}_step_{2:d}_ORIGINAL.nxs'.format(run, i, n_step))
+                # SaveMD(data, output_directory + '/' + '{instr}_{0:d}_peak_{1:d}_step_{2:d}_ORIGINAL.nxs'.format(run, i, n_step))
 
 
                 peakdir=output_directory+'npy/peak_{0:d}_res_{1:d}/'.format(i, bin_size[0])
