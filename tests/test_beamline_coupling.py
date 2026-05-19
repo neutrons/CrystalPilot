@@ -1,14 +1,15 @@
 """Beamline-coupling regression ratchet.
 
-Counts hardcoded TOPAZ/BL12 references per file and asserts they do not
-exceed the recorded baseline. Each multi-beamline refactor phase should
-*reduce* these numbers; the test fails if a file regresses (or if a new
-file picks up hardcoded references).
+The multi-beamline refactor reduced hardcoded TOPAZ/BL12 references in the
+framework-side code (``src/exphub/app/``, ``src/exphub/agent/``,
+``src/exphub/core/``) to zero. Any TOPAZ/BL12 string that survives must
+live inside a beamline plug-in directory (``src/exphub/beamlines/``) or
+the explicit allow-list below.
 
-When a phase legitimately reduces a file's count, lower the baseline
-here. The eventual goal is zero entries outside ``beamlines/topaz/``.
+This test guards against accidental re-introduction.
 
-See MULTI_BEAMLINE_PLAN.md (section "Phase 0").
+History: started 2026-05-19 with 235 occurrences across 17 files. See
+``MULTI_BEAMLINE_PLAN.md`` for the phase-by-phase shrink.
 """
 
 from __future__ import annotations
@@ -18,37 +19,15 @@ from pathlib import Path
 
 PATTERN = re.compile(r"TOPAZ|BL12|topaz|bl12")
 
-# Recorded 2026-05-19 on branch ``multibeamline`` at Phase 0b.
-# Counts are pattern *occurrences* (re.findall), not lines.
-# Each entry is an upper bound. Lowering is good; raising means a regression.
-BASELINE: dict[str, int] = {
-    "src/exphub/agent/constants.py": 0,
-    "src/exphub/agent/handlers.py": 0,
-    "src/exphub/agent/rag.py": 0,
-    "src/exphub/app/main.py": 0,
-    "src/exphub/app/models/angle_plan.py": 0,
-    "src/exphub/app/models/data_analysis.py": 0,
-    "src/exphub/app/models/eic_control.py": 0,
-    "src/exphub/app/models/experiment_info.py": 0,
-    "src/exphub/app/models/gonio_pvs.py": 0,
-    "src/exphub/app/models/temporal_analysis.py": 0,
-    "src/exphub/app/view_models/angle_plan.py": 0,
-    "src/exphub/app/view_models/main.py": 0,
-    "src/exphub/app/views/data_analysis.py": 0,
-    "src/exphub/app/views/main_view.py": 0,
-    "src/exphub/app/views/temporal_analysis.py": 0,
-}
-
-# Directories where hardcoded TOPAZ/BL12 references are LEGITIMATE
-# (e.g. the topaz beamline plug-in itself, or test fixtures).
+# Directories where hardcoded beamline ids are LEGITIMATE.
 ALLOWED_PREFIXES = (
     "src/exphub/beamlines/",
     "tests/",
 )
 
-# Individual files that legitimately mention beamline ids (docstring examples
-# inside framework code, vendored clients with multi-beamline lookup tables,
-# etc.). One-off exceptions; prefer ALLOWED_PREFIXES.
+# Individual files that legitimately mention beamline ids — docstring
+# examples inside framework code, vendored clients with multi-beamline
+# lookup tables. Prefer ``ALLOWED_PREFIXES``.
 ALLOWED_FILES = {
     "src/exphub/core/beamline/spec.py",
     # Vendored EIC client — owns a name-normalizer table for every SNS beamline.
@@ -78,36 +57,16 @@ def _scan() -> dict[str, int]:
     return counts
 
 
-def test_no_unrecorded_coupling_sites() -> None:
-    """Fail if a new file picks up TOPAZ/BL12 hardcoding outside allowed dirs."""
+def test_no_framework_side_beamline_coupling() -> None:
+    """Fail if framework-side code (outside allow-listed paths) picks up
+    a TOPAZ/BL12 hardcoded reference. Adding such a reference means either:
+      - the code belongs under ``beamlines/<id>/`` (preferred), or
+      - if it's a legitimate generic mention, add the file to ALLOWED_FILES.
+    """
     counts = _scan()
-    new_files = sorted(set(counts) - set(BASELINE))
-    assert not new_files, (
-        f"New file(s) with TOPAZ/BL12 hardcoding: {new_files}. "
-        "Either de-hardcode (use BeamlineContext) or add an entry to BASELINE."
-    )
-
-
-def test_coupling_does_not_regress() -> None:
-    """Fail if any file's TOPAZ/BL12 count exceeds the recorded baseline."""
-    counts = _scan()
-    regressions = {
-        f: (counts[f], BASELINE[f])
-        for f in BASELINE
-        if counts.get(f, 0) > BASELINE[f]
-    }
-    assert not regressions, (
-        f"Coupling regressed in: {regressions} "
-        "(actual, allowed). De-hardcode or update BASELINE if intentional."
-    )
-
-
-def test_total_coupling_count() -> None:
-    """Document total coupling so progress is visible in test output."""
-    counts = _scan()
-    total = sum(counts.values())
-    # Total decreases as phases land. See MULTI_BEAMLINE_PLAN.md.
-    assert total <= sum(BASELINE.values()), (
-        f"Total hardcoded TOPAZ/BL12 references = {total}, "
-        f"baseline = {sum(BASELINE.values())}."
+    assert not counts, (
+        "Hardcoded beamline ids found outside allow-list:\n"
+        + "\n".join(f"  {n:5d}  {f}" for f, n in sorted(counts.items()))
+        + "\n\nMove the constants into beamlines/<id>/ or add an "
+        "ALLOWED_FILES exception."
     )
