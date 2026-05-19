@@ -68,6 +68,7 @@ class ViewState(BaseModel):
     beamline_id: str = Field(default_factory=_default_beamline_id)
     beamline_options: list[dict] = Field(default_factory=_default_beamline_options)
     beamline_switch_notice: str = Field(default="")
+    beamline_switch_visible: bool = Field(default=False)
 
 
 class MainViewModel:
@@ -85,6 +86,9 @@ class MainViewModel:
         self._live_update_task: asyncio.Task | None = None
         # Back-reference to the TemporalAnalysisView (set by the view on init)
         self._temporal_view: Any = None
+        # Track the last-known beamline so the view_state callback only triggers
+        # a switch when the user actually picked a new option in the selector.
+        self._last_beamline_id: str = self.view_state.beamline_id
         # Set parent link for temporalanalysis model so it can access sibling models
         try:
             if hasattr(self.model, "temporalanalysis") and hasattr(self.model.temporalanalysis, "set_parent"):
@@ -99,7 +103,9 @@ class MainViewModel:
         # but one also can provide a callback function if they want to react to those events
         # and/or process errors.
         self.model_bind = binding.new_bind(self.model, callback_after_update=self.change_callback)
-        self.view_state_bind = binding.new_bind(self.view_state)
+        self.view_state_bind = binding.new_bind(
+            self.view_state, callback_after_update=self.on_view_state_change
+        )
 
         # self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)#noqa
         self.experimentinfo_bind = binding.new_bind(
@@ -165,6 +171,16 @@ class MainViewModel:
         else:
             _trace("model fields updated:", results['updated'])
 
+    def on_view_state_change(self, results: Dict[str, Any]) -> None:
+        """Detect user-driven changes to ViewState (currently: beamline selector)."""
+        if results.get("error"):
+            print(f"view_state error in {results.get('errored')}")
+            return
+        if self.view_state.beamline_id != self._last_beamline_id:
+            new_id = self.view_state.beamline_id
+            self._last_beamline_id = new_id
+            self.switch_beamline(new_id)
+
     def update_angleplan_after_change(self, results: Dict[str, Any]) -> None:
         """Angleplan post-validators (goniometer_type → angle_list_headers) mutate fields
         the user did not edit directly. Re-push the model so the view re-renders.
@@ -184,30 +200,33 @@ class MainViewModel:
     def switch_beamline(self, beamline_id: str) -> None:
         """Activate a different beamline plug-in.
 
-        Updates the registry so subsequent reads of ``active().<...>`` and any
-        view that consults the active context on each render (e.g. the Beam
-        Status PV inputs on the Live Data Processing tab) pick up the new
+        Called either directly (e.g. tests) or by ``on_view_state_change``
+        when the user picks a new option in the selector. Updates the
+        registry so subsequent reads of ``active().<...>`` pick up the new
         beamline's PVs/paths/presets.
 
-        Hard-bound resources — the EPICS .bob screen connected at MainApp
-        construction, the agent's RAG index, the auto-resolved model field
-        defaults already applied to existing instances — won't reload mid-
-        session. A short snackbar surfaces that note.
+        Hard-bound resources — the EPICS ``.bob`` screen connected at
+        MainApp construction, the agent's RAG index, and the auto-resolved
+        model-field defaults already applied to existing instances — won't
+        reload mid-session. A snackbar surfaces that note.
         """
         from ...core.beamline import set_active
 
-        if not beamline_id or beamline_id == self.view_state.beamline_id:
+        if not beamline_id:
             return
         try:
             spec = set_active(beamline_id)
         except KeyError as e:
             print(f"switch_beamline: {e}")
             return
+        # Keep our cached id aligned so the next change_callback doesn't loop.
+        self._last_beamline_id = spec.id
         self.view_state.beamline_id = spec.id
         self.view_state.beamline_switch_notice = (
             f"Switched to {spec.display_name}. Restart the app for the "
             "Instrument Status screen and EPICS subscriptions to fully reload."
         )
+        self.view_state.beamline_switch_visible = True
         self._push_view_state()
 
     def upload_strategy(self) -> None:

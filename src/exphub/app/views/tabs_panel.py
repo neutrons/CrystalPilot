@@ -1,18 +1,18 @@
 """Module for the Tab panel."""
 
 from trame.widgets import client
-from trame.widgets import html
 from trame.widgets import vuetify3 as vuetify
+from trame_client.widgets import html
 
 from ..view_models.main import MainViewModel
 
 
 class TabsPanel:
-    """View class to render the tab strip + the beamline selector.
+    """Render the tab strip + a beamline selector inline at the same height.
 
-    The beamline selector sits at the right end of the tab strip (same row,
-    same vertical height as the tab labels) so it is always visible regardless
-    of which tab is active.
+    The selector binds to ``controls.beamline_id``; the MainViewModel's
+    ``on_view_state_change`` callback detects the change and invokes
+    ``switch_beamline`` to activate the new spec in the registry.
     """
 
     def __init__(self, view_model: MainViewModel):
@@ -21,17 +21,10 @@ class TabsPanel:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with client.DeepReactive("controls"):
-            # display:flex row: tabs grow to fill, selector hugs the right edge.
-            with html.Div(
-                style=(
-                    "display: flex;"
-                    "align-items: center;"
-                    "gap: 1rem;"
-                    "padding-right: 1rem;"
-                    "width: 100%;"
-                )
-            ):
+        with html.Div(
+            style="display: flex; align-items: center; gap: 1rem; padding-right: 1rem; width: 100%;"
+        ):
+            with client.DeepReactive("controls"):
                 with vuetify.VTabs(
                     v_model="controls.active_tab",
                     classes="pl-5",
@@ -42,29 +35,21 @@ class TabsPanel:
                     vuetify.VTab("Experiment Steering", value=3)
                     vuetify.VTab("Instrument Status", value=5)
                     vuetify.VTab("Data Analysis", value=6)
-                # Right-aligned compact beamline selector.
-                vuetify.VSelect(
-                    v_model=("controls.beamline_id",),
-                    items=("controls.beamline_options",),
-                    item_title="title",
-                    item_value="value",
-                    label="Beamline",
-                    density="compact",
-                    variant="outlined",
-                    hide_details=True,
-                    style="max-width: 220px; min-width: 160px; flex: 0 0 auto;",
-                    update_modelValue=(
-                        self.view_model.switch_beamline,
-                        "[$event]",
-                    ),
-                )
-            # Snackbar surfacing the post-switch notice (restart hint).
-            vuetify.VSnackbar(
-                v_model=("controls.beamline_switch_notice != ''",),
-                text=("controls.beamline_switch_notice",),
-                timeout=6000,
-                update_modelValue=(
-                    "controls.beamline_switch_notice = ''",
-                    "[$event]",
-                ),
+            vuetify.VSelect(
+                v_model=("controls.beamline_id",),
+                items=("controls.beamline_options", []),
+                item_title="title",
+                item_value="value",
+                label="Beamline",
+                density="compact",
+                variant="outlined",
+                hide_details=True,
+                style="max-width: 220px; min-width: 160px; flex: 0 0 auto;",
             )
+        with vuetify.VSnackbar(
+            v_model="controls.beamline_switch_visible",
+            timeout=6000,
+            color="info",
+            location="bottom",
+        ):
+            html.Span("{{ controls.beamline_switch_notice }}")
