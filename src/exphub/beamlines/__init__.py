@@ -11,6 +11,9 @@ imports its ``spec`` module — the spec module's import-time side effect calls
 from __future__ import annotations
 
 # Importing each beamline package triggers its spec registration.
+# Order matters: the first registered beamline is the default ``active()``,
+# so keep TOPAZ at the top until a launcher / selector overrides at runtime.
 from . import topaz  # noqa: F401
+from . import corelli  # noqa: F401
 
-__all__ = ["topaz"]
+__all__ = ["topaz", "corelli"]

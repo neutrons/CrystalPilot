@@ -69,9 +69,12 @@ def set_active(beamline_id: str) -> BeamlineSpec:
 def active() -> BeamlineSpec:
     """Return the currently active beamline spec.
 
-    Falls back to the first registered beamline (deterministic by id) if
+    Falls back to the *first-registered* beamline (insertion order) if
     :func:`set_active` has not been called. Raises if no beamlines are
     registered at all.
+
+    Beamline plug-ins should arrange their import order so the intended
+    default lands first; see ``src/exphub/beamlines/__init__.py``.
     """
     if _ACTIVE_ID is not None:
         return _REGISTRY[_ACTIVE_ID]
@@ -81,7 +84,7 @@ def active() -> BeamlineSpec:
         raise RuntimeError(
             "No beamlines registered. Import exphub.beamlines first."
         )
-    return _REGISTRY[sorted(_REGISTRY)[0]]
+    return next(iter(_REGISTRY.values()))
 
 
 def _discover() -> None:
