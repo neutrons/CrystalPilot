@@ -10,6 +10,10 @@ from trame.app import get_server
 from trame.widgets import client, vuetify3 as vuetify
 from trame_client.widgets import html
 
+# Importing the beamlines package registers every shipped beamline with the
+# core registry. Must happen before active() is called.
+from ... import beamlines  # noqa: F401
+from ...core.beamline import BeamlineContext, active
 from ..mvvm_factory import create_viewmodels
 from ..view_models.main import MainViewModel
 from .chat_pane import ChatPaneView
@@ -18,31 +22,6 @@ from .tabs_panel import TabsPanel
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Extra PVs needed by the BL12 User Info panel on the Instrument Status tab.
-# These are not present in BL12_ADnED_2D_4x4.bob, so they must be subscribed
-# separately. Sourced from BL12_User.bob on webopi.sns.gov.
-_USER_PANEL_PVS = (
-    "BL12:CS:IPTS",
-    "BL12:CS:IPTS:Title",
-    "BL12:CS:ITEMS",
-    "BL12:CS:ITEMS:Name",
-    "BL12:SMS:RunInfo:RunTitle",
-    "BL12:AR:Sequence:Name",
-    "BL12:CS:RunControl:LastRunNumber",
-    "BL12:CS:RunControl:StateEnum",
-    "BL12:CS:RunControl:RunTimer",
-    "BL12:CS:RunControl:Pause",
-    "BL12:CS:Scan:Active",
-    "BL12:CS:Scan:Status",
-    "BL12:CS:Scan:Progress",
-    "BL12:CS:Scan:Finish",
-    "BL12:CS:Scan:State",
-    "BL12:CS:Scan:Alarm",
-    "BL12:Det:TH:BL:Lambda",
-    "BL12:Det:TH:BL:Frequency",
-    "PPS_BMLN:BL12:ShtrOpen",
-)
 
 
 class MainApp(ThemedApp):
@@ -53,6 +32,7 @@ class MainApp(ThemedApp):
         self.server = get_server(None, client_type="vue3")
         binding = TrameBinding(self.server.state)
         self.server.state.trame__title = "CrystalPilot"
+        self.beamline_ctx = BeamlineContext(active())
         self.view_models = create_viewmodels(binding)
         self.view_model: MainViewModel = self.view_models["main"]
         self.epics = get_epics_instance()
@@ -97,13 +77,19 @@ class MainApp(ThemedApp):
                         )
                     ChatPaneView(self.server, self.view_models["chat"])
 
-            with (
-                open("BL12_ADnED_2D_4x4.bob", mode="r") as xml_file,
-                open("BL12_ADnED_2D_4x4.macros", mode="r") as macros_file,
-            ):
-                self.epics.connect(xml_file.read(), macros_file.read(), 6)
+            bob = self.beamline_ctx.bob_screen
+            macros = self.beamline_ctx.bob_macros
+            if bob is not None and macros is not None:
+                with open(bob, mode="r") as xml_file, open(macros, mode="r") as macros_file:
+                    self.epics.connect(xml_file.read(), macros_file.read(), 6)
+            else:
+                logger.warning(
+                    "Active beamline %r has no .bob screen configured; "
+                    "skipping EPICS connect()",
+                    self.beamline_ctx.id,
+                )
 
-            self._subscribe_extra_pvs(_USER_PANEL_PVS)
+            self._subscribe_extra_pvs(self.beamline_ctx.extra_subscribe_pvs)
 
             return layout
 
@@ -113,8 +99,8 @@ class MainApp(ThemedApp):
         Mirrors the per-PV ``client.Script`` template that
         ``nova.epics.trame.TrameEPICS.connect`` injects internally — the
         connect() entry point only walks PVs from a single XML, so any
-        extra PVs (e.g. for the BL12 User Info panel) must be wired up
-        separately via the same WebSocket runtime.
+        extra PVs (e.g. for a User Info panel not in the .bob screen) must
+        be wired up separately via the same WebSocket runtime.
         """
         for pv in pv_names:
             client.Script(f"""

@@ -37,7 +37,7 @@ BASELINE: dict[str, int] = {
     "src/exphub/app/view_models/main.py": 6,
     "src/exphub/app/views/css_status.py": 115,
     "src/exphub/app/views/data_analysis.py": 1,
-    "src/exphub/app/views/main_view.py": 25,
+    "src/exphub/app/views/main_view.py": 0,
     "src/exphub/app/views/temporal_analysis.py": 2,
 }
 
@@ -105,8 +105,7 @@ def test_total_coupling_count() -> None:
     """Document total coupling so progress is visible in test output."""
     counts = _scan()
     total = sum(counts.values())
-    # Baseline total at Phase 0b: 235 matches across 17 files.
-    # This assertion will need to be lowered as phases land.
+    # Total decreases as phases land. See MULTI_BEAMLINE_PLAN.md.
     assert total <= sum(BASELINE.values()), (
         f"Total hardcoded TOPAZ/BL12 references = {total}, "
         f"baseline = {sum(BASELINE.values())}."
