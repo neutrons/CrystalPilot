@@ -168,12 +168,21 @@ class AnglePlanView:
                         variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
+                    vuetify.VSelect(
+                        v_model="model_angleplan.run_record.step_type",
+                        items=("model_angleplan.step_type_options", []),
+                        label="Step Type",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                    )
+                    # Angle fields: phi only when ambient (cryo stage has no phi motor)
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.phi",
                         label="phi",
                         type="number",
                         variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.goniometer_type === 'Ambient goniometer'",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.omega",
@@ -182,12 +191,14 @@ class AnglePlanView:
                         variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
                     )
+                    # Angle-only termination fields
                     vuetify.VSelect(
                         v_model="model_angleplan.run_record.wait_for",
                         items=("model_angleplan.wait_for_list", []),
                         label="Wait For",
                         variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'angle'",
                     )
                     vuetify.VTextField(
                         v_model="model_angleplan.run_record.value",
@@ -195,6 +206,48 @@ class AnglePlanView:
                         type="number",
                         variant="outlined",
                         update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'angle'",
+                    )
+                    # Ramp-only fields
+                    vuetify.VTextField(
+                        v_model="model_angleplan.run_record.ramp_start",
+                        label="Ramp Start (K)",
+                        type="number",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'ramp'",
+                    )
+                    vuetify.VTextField(
+                        v_model="model_angleplan.run_record.ramp_end",
+                        label="Ramp End (K)",
+                        type="number",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'ramp'",
+                    )
+                    vuetify.VTextField(
+                        v_model="model_angleplan.run_record.ramp_rate",
+                        label="Ramp Rate (K/min)",
+                        type="number",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'ramp'",
+                    )
+                    vuetify.VTextField(
+                        v_model="model_angleplan.run_record.ramp_soak",
+                        label="Soak (s)",
+                        type="number",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'ramp'",
+                    )
+                    vuetify.VTextField(
+                        v_model="model_angleplan.run_record.ramp_run",
+                        label="Run (0/1)",
+                        type="number",
+                        variant="outlined",
+                        update_modelValue="flushState('model_angleplan')",
+                        v_if="model_angleplan.run_record.step_type === 'ramp'",
                     )
                 with vuetify.VCardActions():
                     vuetify.VBtn("Cancel", click=self.view_model.close_runedit_dialog, style="align-self: center;")

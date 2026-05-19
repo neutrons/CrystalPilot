@@ -187,7 +187,12 @@ class MainViewModel:
         ipts_number = self.model.experimentinfo.ipts_number
         instrument_name = self.model.experimentinfo.instrument
         try:
-            self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list, ipts_number, instrument_name)
+            self.model.eiccontrol.submit_eic(
+                self.model.angleplan.angle_list,
+                ipts_number,
+                instrument_name,
+                goniometer_type=self.model.angleplan.goniometer_type,
+            )
             if self.model.eiccontrol.is_simulation:
                 self.model.eiccontrol.eic_status = "job submission simulated"
             else:

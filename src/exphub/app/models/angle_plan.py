@@ -1,14 +1,17 @@
 """Model for angle plan."""
 
 import csv
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, Optional
 
 import numpy as np
 import plotly.graph_objects as go
 from pydantic import BaseModel, Field, model_validator
 
-# Headers for the experiment-run-strategy table. The omega column is dropped when
-# the cryogenic goniometer is selected (cryogenic stage cannot drive omega).
+from . import gonio_pvs
+
+# Headers for the experiment-run-strategy table. The cryogenic stage drives
+# only one rotation (CryoOmega), so its header omits phi; the ambient stage
+# carries both omega and phi.
 _AMBIENT_HEADERS: List[Dict] = [
     {"title": "Title", "value": "title", "sortable": True, "align": "center"},
     {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
@@ -21,7 +24,7 @@ _AMBIENT_HEADERS: List[Dict] = [
 _CRYOGENIC_HEADERS: List[Dict] = [
     {"title": "Title", "value": "title", "sortable": True, "align": "center"},
     {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
-    {"title": "phi", "value": "phi", "sortable": True, "align": "center"},
+    {"title": "omega", "value": "omega", "sortable": True, "align": "center"},
     {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
     {"title": "Value", "value": "value", "sortable": True, "align": "center"},
     {"title": "Action", "value": "actions", "sortable": False, "align": "center"},
@@ -29,7 +32,13 @@ _CRYOGENIC_HEADERS: List[Dict] = [
 
 
 class RunPlan(BaseModel):
-    """Pydantic class for run plan."""
+    """Pydantic class for run plan.
+
+    A row is either an angle step (drive goniometer, wait for PCharge or time)
+    or a ramp step (drive Lakeshore Start->End at Rate K/min, soak).
+    Ramp fields are None on angle rows; angle fields are still meaningful on
+    ramp rows when the user wants to set position during the ramp.
+    """
 
     title: str = Field(default="Untitled")
     comment: str = Field(default="")
@@ -38,6 +47,12 @@ class RunPlan(BaseModel):
     wait_for: str = Field(default="")
     value: float = Field(default=0.0)
     or_time: float = Field(default=0.0)
+    step_type: Literal["angle", "ramp"] = Field(default="angle")
+    ramp_start: Optional[float] = Field(default=None)
+    ramp_end: Optional[float] = Field(default=None)
+    ramp_rate: Optional[float] = Field(default=None)
+    ramp_soak: Optional[float] = Field(default=None)
+    ramp_run: Optional[int] = Field(default=None)
 
 
 class AnglePlanModel(BaseModel):
@@ -46,7 +61,10 @@ class AnglePlanModel(BaseModel):
     # headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
     # headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])#noqa
     angle_keys: List[str] = Field(
-        default=["id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time"]
+        default=[
+            "id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time",
+            "step_type", "ramp_start", "ramp_end", "ramp_rate", "ramp_soak", "ramp_run",
+        ]
     )
     angle_list_headers: List[Dict] = Field(default_factory=lambda: list(_AMBIENT_HEADERS))
     goniometer_type: str = Field(
@@ -120,6 +138,12 @@ class AnglePlanModel(BaseModel):
             "wait_for": "PCharge",
             "value": 0,
             "or_time": "",
+            "step_type": "angle",
+            "ramp_start": None,
+            "ramp_end": None,
+            "ramp_rate": None,
+            "ramp_soak": None,
+            "ramp_run": None,
         },
         title="Run Record",
         description="Record of the run plan",
@@ -185,6 +209,7 @@ class AnglePlanModel(BaseModel):
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
     wait_for_list: List[str] = Field(default=["PCharge", "seconds"])
+    step_type_options: List[str] = Field(default=["angle", "ramp"])
 
     target_coverage: float = Field(
         default=0.9, title="Target coverage", description="Target coverage for the experiment"
@@ -240,6 +265,12 @@ class AnglePlanModel(BaseModel):
             "wait_for": "PCharge",
             "value": 0,
             "or_time": "",
+            "step_type": "angle",
+            "ramp_start": None,
+            "ramp_end": None,
+            "ramp_rate": None,
+            "ramp_soak": None,
+            "ramp_run": None,
         }
 
     # @field_validator("angle_list", mode="before")
@@ -254,53 +285,107 @@ class AnglePlanModel(BaseModel):
         # print(self.angle_list)
 
     def convert_plan_format(self, source_type: str, angle_list: List[Dict]) -> None:
-        new_angle_list = []
-        if source_type == "Crystal Plan":
-            for angle in angle_list:
-                print(angle.keys())
-                new_angle = {}
-                new_angle["Title"] = angle["Notes"]
-                new_angle["Comment"] = ""
-                new_angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
-                new_angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
-                wait_for_key = next((key for key in angle.keys() if key.startswith("Wait For")), None)
-                if wait_for_key:
-                    new_angle["Wait For"] = angle[wait_for_key]
-                else:
-                    new_angle["Wait For"] = "PCharge"
-                if "PCharge" in new_angle["Wait For"]:
-                    new_angle["Wait For"] = "PCharge"
-                new_angle["Value"] = angle["Value"]
-                new_angle["Or Time"] = ""
-                new_angle_list.append(new_angle)
+        if not angle_list:
+            self.angle_list_read = []
+            return
 
-        elif source_type == "NeuXstalViz":
-            for angle in angle_list:
-                new_angle = {}
-                new_angle["Title"] = angle["Title"].replace("_", " ")
-                new_angle["Comment"] = angle["Comment"].replace("_", " ")
-                new_angle["BL12:Mot:goniokm:phi"] = angle["BL12:Mot:goniokm:phi"]
-                new_angle["BL12:Mot:goniokm:omega"] = angle["BL12:Mot:goniokm:omega"]
-                new_angle["Wait For"] = angle["Wait For"].replace("_", " ")
-                new_angle["Value"] = angle["Value"]
-                new_angle["Or Time"] = angle["Or Time"].replace("_", " ")
-                new_angle_list.append(new_angle)
+        # Auto-detect goniometer type from the CSV columns and reconcile with the
+        # current selection: if the file's columns don't match, surface a clear
+        # error rather than silently importing zeros.
+        columns = list(angle_list[0].keys())
+        detected = gonio_pvs.detect_goniometer_type(columns)
+        if detected != self.goniometer_type:
+            raise ValueError(
+                f"CSV columns indicate {detected!r} but goniometer_type is set "
+                f"to {self.goniometer_type!r}. Switch the goniometer selector before importing."
+            )
+
+        new_angle_list: List[Dict] = []
+        for row in angle_list:
+            new_row: Dict = {}
+            if source_type == "Crystal Plan":
+                new_row["Title"] = row.get("Notes", row.get("Title", ""))
+                new_row["Comment"] = row.get("Comment", "")
+            elif source_type == "NeuXstalViz":
+                new_row["Title"] = row.get("Title", "").replace("_", " ")
+                new_row["Comment"] = row.get("Comment", "").replace("_", " ")
+            else:
+                new_row["Title"] = row.get("Title", row.get("Notes", ""))
+                new_row["Comment"] = row.get("Comment", "")
+
+            for col in gonio_pvs.angle_columns(self.goniometer_type):
+                new_row[col] = row.get(col, "")
+
+            if gonio_pvs.is_ramp_row(row):
+                new_row["step_type"] = "ramp"
+                for key, canonical in gonio_pvs.RAMP_PVS.items():
+                    new_row[canonical] = gonio_pvs.ramp_value(row, key)
+                new_row["Wait For"] = ""
+                new_row["Value"] = ""
+                new_row["Or Time"] = ""
+            else:
+                new_row["step_type"] = "angle"
+                wait_for_key = next(
+                    (key for key in row.keys() if key.startswith("Wait For")), None
+                )
+                wait_for = row[wait_for_key] if wait_for_key else "PCharge"
+                if "PCharge" in wait_for:
+                    wait_for = "PCharge"
+                if source_type == "NeuXstalViz":
+                    wait_for = wait_for.replace("_", " ")
+                new_row["Wait For"] = wait_for
+                new_row["Value"] = row.get("Value", "")
+                or_time = row.get("Or Time", "")
+                new_row["Or Time"] = or_time.replace("_", " ") if source_type == "NeuXstalViz" else or_time
+
+            new_angle_list.append(new_row)
+
         self.angle_list_read = new_angle_list
 
     def convert_angle_list_read_to_angle_list(self) -> None:
+        angle_pvs = gonio_pvs.ANGLE_PVS[self.goniometer_type]
+        omega_col = angle_pvs["omega"]
+        phi_col = angle_pvs.get("phi")  # None on cryogenic
+
+        def _to_float(v: Any) -> float:
+            if v in ("", None):
+                return 0.0
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return 0.0
+
+        def _to_opt_float(v: Any) -> Optional[float]:
+            if v in ("", None):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        def _to_opt_int(v: Any) -> Optional[int]:
+            f = _to_opt_float(v)
+            return None if f is None else int(f)
+
         new_angle_list = []
-        for i in range(len(self.angle_list_read)):
-            angle = self.angle_list_read[i]
-            new_angle = {}
-            new_angle["id"] = i + 1
-            new_angle["title"] = angle["Title"]
-            new_angle["comment"] = angle["Comment"]
-            new_angle["chi"] = 0
-            new_angle["phi"] = angle["BL12:Mot:goniokm:phi"]
-            new_angle["omega"] = angle["BL12:Mot:goniokm:omega"]
-            new_angle["wait_for"] = angle["Wait For"]
-            new_angle["value"] = angle["Value"]
-            new_angle["or_time"] = angle.get("Or Time", "")
+        for i, angle in enumerate(self.angle_list_read):
+            new_angle: Dict = {
+                "id": i + 1,
+                "title": angle.get("Title", ""),
+                "comment": angle.get("Comment", ""),
+                "chi": 0,
+                "phi": _to_float(angle.get(phi_col)) if phi_col else 0.0,
+                "omega": _to_float(angle.get(omega_col)),
+                "wait_for": angle.get("Wait For", ""),
+                "value": angle.get("Value", ""),
+                "or_time": angle.get("Or Time", ""),
+                "step_type": angle.get("step_type", "angle"),
+                "ramp_start": _to_opt_float(angle.get(gonio_pvs.RAMP_PVS["start"])),
+                "ramp_end": _to_opt_float(angle.get(gonio_pvs.RAMP_PVS["end"])),
+                "ramp_rate": _to_opt_float(angle.get(gonio_pvs.RAMP_PVS["rate"])),
+                "ramp_soak": _to_opt_float(angle.get(gonio_pvs.RAMP_PVS["soak"])),
+                "ramp_run": _to_opt_int(angle.get(gonio_pvs.RAMP_PVS["run"])),
+            }
             new_angle_list.append(new_angle)
         self.angle_list = new_angle_list
 
@@ -319,16 +404,17 @@ class AnglePlanModel(BaseModel):
     def export_to_nxv_csv(self, file_path: str) -> str:
         """Export angle_list to a CSV file in NeuXtalViz-compatible format.
 
-        Columns match NXV's official save_plan() output:
-        BL12:SMS:RunInfo:RunTitle, BL12:Mot:goniokm:omega,
-        BL12:Mot:goniokm:chi, BL12:Mot:goniokm:phi, Comment, Wait For, Value
+        Column layout depends on goniometer_type:
+        - Ambient:    Title, goniokm:omega, goniokm:phi, ramp PVs, Comment, Wait For, Value
+        - Cryogenic:  Title, CryoOmega, ramp PVs, Comment, Wait For, Value
         Returns the file path written.
         """
+        angle_cols = gonio_pvs.angle_columns(self.goniometer_type)
+        ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [
             "BL12:SMS:RunInfo:RunTitle",
-            "BL12:Mot:goniokm:omega",
-            "BL12:Mot:goniokm:chi",
-            "BL12:Mot:goniokm:phi",
+            *angle_cols,
+            *ramp_cols,
             "Comment",
             "Wait For",
             "Value",
@@ -337,32 +423,41 @@ class AnglePlanModel(BaseModel):
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for angle in self.angle_list:
-                wait_for = angle.get("wait_for", "PCharge")
-                # Map internal wait_for to EIC PV name
-                if wait_for == "PCharge":
-                    wait_for_pv = "BL12:Det:PCharge:C"
+                row: Dict = {
+                    "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                    "Comment": angle.get("comment", ""),
+                }
+                # Angle cells — always emit; useful even on ramp rows when the
+                # user wants to drive to a position during the ramp.
+                pvs = gonio_pvs.ANGLE_PVS[self.goniometer_type]
+                row[pvs["omega"]] = angle.get("omega", 0)
+                if "phi" in pvs:
+                    row[pvs["phi"]] = angle.get("phi", 0)
+
+                if angle.get("step_type") == "ramp":
+                    row[gonio_pvs.RAMP_PVS["start"]] = angle.get("ramp_start", "")
+                    row[gonio_pvs.RAMP_PVS["end"]] = angle.get("ramp_end", "")
+                    row[gonio_pvs.RAMP_PVS["rate"]] = angle.get("ramp_rate", "")
+                    row[gonio_pvs.RAMP_PVS["soak"]] = angle.get("ramp_soak", "")
+                    row[gonio_pvs.RAMP_PVS["run"]] = angle.get("ramp_run", "")
+                    row["Wait For"] = ""
+                    row["Value"] = ""
                 else:
-                    wait_for_pv = wait_for
-                writer.writerow(
-                    {
-                        "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
-                        "BL12:Mot:goniokm:omega": angle.get("omega", 0),
-                        "BL12:Mot:goniokm:chi": angle.get("chi", 0),
-                        "BL12:Mot:goniokm:phi": angle.get("phi", 0),
-                        "Comment": angle.get("comment", ""),
-                        "Wait For": wait_for_pv,
-                        "Value": angle.get("value", 10),
-                    }
-                )
+                    wait_for = angle.get("wait_for", "PCharge")
+                    row["Wait For"] = (
+                        gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
+                    )
+                    row["Value"] = angle.get("value", 10)
+                writer.writerow(row)
         print(f"Exported {len(self.angle_list)} rows to {file_path}")
         return file_path
 
     def import_from_nxv_csv(self, file_path: str) -> None:
         """Import a CSV file written by NeuXtalViz back into angle_list.
 
-        Expects columns matching NXV's save_plan() format.
-        Dynamically detects angle column names (everything except the first
-        title column and the fixed Comment/Wait For/Value columns).
+        Auto-detects goniometer type from the column headers and updates
+        self.goniometer_type to match. Ramp rows are detected by presence
+        of any BL12:SE:Ramp:* (or bare RampStart/...) column with values.
         """
         with open(file_path, mode="r") as f:
             reader = csv.DictReader(f)
@@ -370,32 +465,63 @@ class AnglePlanModel(BaseModel):
         if not rows:
             print(f"import_from_nxv_csv: empty CSV at {file_path}")
             return
+
         all_cols = list(rows[0].keys())
-        fixed = {"Comment", "Wait For", "Value", "Use"}
-        # First column is title/scan-log PV
+        detected = gonio_pvs.detect_goniometer_type(all_cols)
+        if detected != self.goniometer_type:
+            self.goniometer_type = detected
+        angle_pvs = gonio_pvs.ANGLE_PVS[detected]
+        omega_col = angle_pvs["omega"]
+        phi_col = angle_pvs.get("phi")
+
         title_col = all_cols[0]
-        # Angle columns are between title and fixed columns
-        angle_cols = [c for c in all_cols[1:] if c not in fixed]
+
+        def _to_float(v: Any, default: float = 0.0) -> float:
+            if v in ("", None):
+                return default
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return default
+
+        def _to_opt_float(v: Any) -> Optional[float]:
+            if v in ("", None):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        def _to_opt_int(v: Any) -> Optional[int]:
+            f = _to_opt_float(v)
+            return None if f is None else int(f)
 
         new_angle_list = []
         for i, row in enumerate(rows):
+            is_ramp = gonio_pvs.is_ramp_row(row)
             wait_for = row.get("Wait For", "")
-            # Map EIC PV names back to internal short names
             if "PCharge" in wait_for:
                 wait_for = "PCharge"
             elif "seconds" in wait_for.lower():
                 wait_for = "seconds"
+
             new_angle_list.append(
                 {
                     "id": i + 1,
                     "title": row.get(title_col, ""),
                     "comment": row.get("Comment", ""),
-                    "chi": float(row.get("BL12:Mot:goniokm:chi", 0)),
-                    "phi": float(row.get("BL12:Mot:goniokm:phi", 0)),
-                    "omega": float(row.get("BL12:Mot:goniokm:omega", 0)),
-                    "wait_for": wait_for if wait_for else "PCharge",
-                    "value": float(row.get("Value", 10)),
+                    "chi": 0.0,
+                    "phi": _to_float(row.get(phi_col)) if phi_col else 0.0,
+                    "omega": _to_float(row.get(omega_col)),
+                    "wait_for": "" if is_ramp else (wait_for if wait_for else "PCharge"),
+                    "value": "" if is_ramp else _to_float(row.get("Value"), 10.0),
                     "or_time": "",
+                    "step_type": "ramp" if is_ramp else "angle",
+                    "ramp_start": _to_opt_float(gonio_pvs.ramp_value(row, "start")) if is_ramp else None,
+                    "ramp_end": _to_opt_float(gonio_pvs.ramp_value(row, "end")) if is_ramp else None,
+                    "ramp_rate": _to_opt_float(gonio_pvs.ramp_value(row, "rate")) if is_ramp else None,
+                    "ramp_soak": _to_opt_float(gonio_pvs.ramp_value(row, "soak")) if is_ramp else None,
+                    "ramp_run": _to_opt_int(gonio_pvs.ramp_value(row, "run")) if is_ramp else None,
                 }
             )
         self.angle_list = new_angle_list

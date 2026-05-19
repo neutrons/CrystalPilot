@@ -43,7 +43,10 @@ class AnglePlanViewModel:
 
     def submit_angle_plan(self) -> None:
         #print("submit_angle_plan")
-        self.model.eiccontrol.submit_eic(self.model.angleplan.angle_list)
+        self.model.eiccontrol.submit_eic(
+            self.model.angleplan.angle_list,
+            goniometer_type=self.model.angleplan.goniometer_type,
+        )
         self.update_view()
 
     def call_load_token(self) -> None:

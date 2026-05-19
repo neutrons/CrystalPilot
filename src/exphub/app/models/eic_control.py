@@ -7,6 +7,7 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
+from . import gonio_pvs
 from .eic_client import EICClient
 
 
@@ -89,20 +90,22 @@ class EICControlModel(BaseModel):
             self.token = tokenfile.read()
             print(self.token)
 
-    def _copy_strategy_to_eic(self, angleplan: List[Dict], ipts_number: str) -> str:
+    def _copy_strategy_to_eic(
+        self,
+        angleplan: List[Dict],
+        ipts_number: str,
+        goniometer_type: str = gonio_pvs.AMBIENT,
+    ) -> str:
         """Copy the experiment strategy CSV to the EIC submission location.
 
-        Returns the destination file path.
+        Column layout depends on goniometer_type; ramp rows fill the ramp PV
+        columns and leave Wait For/Value blank. Returns the destination path.
         """
-        # Create timestamp in format: YYYY-MM-DD-HHMMSS
         timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         filename = f"CrystalPilot-experiment-plan-{timestamp}.csv"
-
-        # Build destination path: /SNS/groups/topaz/bl_12/IPTS-xxxxx/
         destination_dir = f"/SNS/groups/topaz/bl_12/IPTS-{ipts_number}"
         destination_path = os.path.join(destination_dir, filename)
 
-        # Create directory if it doesn't exist
         try:
             os.makedirs(destination_dir, exist_ok=True)
             print(f"Ensured directory exists: {destination_dir}")
@@ -110,94 +113,120 @@ class EICControlModel(BaseModel):
             print(f"Failed to create directory {destination_dir}: {e}")
             raise
 
-        # Write CSV file at destination
+        angle_cols = gonio_pvs.angle_columns(goniometer_type)
+        ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [
             "BL12:SMS:RunInfo:RunTitle",
-            "BL12:Mot:goniokm:omega",
-            "BL12:Mot:goniokm:chi",
-            "BL12:Mot:goniokm:phi",
+            *angle_cols,
+            *ramp_cols,
             "Comment",
             "Wait For",
             "Value",
         ]
+        pvs = gonio_pvs.ANGLE_PVS[goniometer_type]
         with open(destination_path, mode="w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for angle in angleplan:
-                wait_for = angle.get("wait_for", "PCharge")
-                # Map internal wait_for to EIC PV name
-                if wait_for == "PCharge":
-                    wait_for_pv = "BL12:Det:PCharge:C"
+                row: Dict = {
+                    "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                    "Comment": angle.get("comment", ""),
+                    pvs["omega"]: angle.get("omega", 0),
+                }
+                if "phi" in pvs:
+                    row[pvs["phi"]] = angle.get("phi", 0)
+
+                if angle.get("step_type") == "ramp":
+                    row[gonio_pvs.RAMP_PVS["start"]] = angle.get("ramp_start", "")
+                    row[gonio_pvs.RAMP_PVS["end"]] = angle.get("ramp_end", "")
+                    row[gonio_pvs.RAMP_PVS["rate"]] = angle.get("ramp_rate", "")
+                    row[gonio_pvs.RAMP_PVS["soak"]] = angle.get("ramp_soak", "")
+                    row[gonio_pvs.RAMP_PVS["run"]] = angle.get("ramp_run", "")
+                    row["Wait For"] = ""
+                    row["Value"] = ""
                 else:
-                    wait_for_pv = wait_for
-                writer.writerow(
-                    {
-                        "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
-                        "BL12:Mot:goniokm:omega": angle.get("omega", 0),
-                        "BL12:Mot:goniokm:chi": angle.get("chi", 0),
-                        "BL12:Mot:goniokm:phi": angle.get("phi", 0),
-                        "Comment": angle.get("comment", ""),
-                        "Wait For": wait_for_pv,
-                        "Value": angle.get("value", 10),
-                    }
-                )
+                    wait_for = angle.get("wait_for", "PCharge")
+                    row["Wait For"] = (
+                        gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
+                    )
+                    row["Value"] = angle.get("value", 10)
+                writer.writerow(row)
         print(f"Copied experiment strategy to {destination_path}")
         return destination_path
 
-    def submit_eic(self, angleplan: List[Dict], ipts_number: str, instrument_name: str) -> None:
-        # Copy strategy to EIC submission location first
+    def submit_eic(
+        self,
+        angleplan: List[Dict],
+        ipts_number: str,
+        instrument_name: str,
+        goniometer_type: str = gonio_pvs.AMBIENT,
+    ) -> None:
         try:
-            self._copy_strategy_to_eic(angleplan, ipts_number)
+            self._copy_strategy_to_eic(angleplan, ipts_number, goniometer_type)
         except Exception as e:
             print(f"Warning: failed to copy strategy to EIC location: {e}")
 
-        # Implement the submit logic here
         self.beamline = self.beamline_database[instrument_name]
         eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
         eic_client.is_eic_enabled(print_results=True)
 
-        desc = "CrystalPilot Submission"
-        if self.beamline == "bl12":
-            eic_headers = [
-                "Title",
-                "Comment",
-                "BL12:Mot:goniokm:phi",
-                "BL12:Mot:goniokm:omega",
-                "Wait For",
-                "Value",
-            ]
-            angle_keys = ["title", "comment", "phi", "omega", "wait_for", "value"]
-        else:
+        if self.beamline != "bl12":
             self.supported_beamline = False
+            return
 
-        rows = [[angle[key] for key in angle_keys] for angle in angleplan]
+        desc = "CrystalPilot Submission"
+        pvs = gonio_pvs.ANGLE_PVS[goniometer_type]
+        # Per-step-type headers + key mappings. Each row is submitted on its own,
+        # so angle and ramp rows can carry different column layouts.
+        angle_headers = ["Title", "Comment", pvs["omega"]]
+        angle_keys: List[str] = ["title", "comment", "omega"]
+        if "phi" in pvs:
+            angle_headers.append(pvs["phi"])
+            angle_keys.append("phi")
+        angle_headers.extend(["Wait For", "Value"])
+        angle_keys.extend(["wait_for", "value"])
+
+        ramp_headers = ["Title", "Comment", *gonio_pvs.RAMP_PVS.values()]
+        ramp_keys = ["title", "comment", "ramp_start", "ramp_end", "ramp_rate", "ramp_soak", "ramp_run"]
 
         self.eic_submission_success = []
         self.eic_submission_message = []
         self.eic_submission_scan_id_list = []
         self.submitted_jobs = []
-        for idx, row in enumerate(rows):
+        for idx, angle in enumerate(angleplan):
+            if angle.get("step_type") == "ramp":
+                headers = ramp_headers
+                keys = ramp_keys
+            else:
+                headers = angle_headers
+                keys = angle_keys
+
+            def _cell(k: str) -> object:
+                v = angle.get(k)
+                if k == "wait_for" and v == "PCharge":
+                    return gonio_pvs.WAIT_FOR_PCHARGE_PV
+                return "" if v is None else v
+
+            row = [_cell(k) for k in keys]
             print(row)
-            desc_sub = desc + " " + row[0]
+            desc_sub = desc + " " + str(row[0])
             success, scan_id, response_data = eic_client.submit_table_scan(
-                parms={"run_mode": 0, "headers": eic_headers, "rows": [row]},
+                parms={"run_mode": 0, "headers": headers, "rows": [row]},
                 desc=desc_sub,
                 simulate_only=self.is_simulation,
             )
-            parms = {"run_mode": 0, "headers": eic_headers, "rows": rows}
-            print(parms)
+            print({"run_mode": 0, "headers": headers, "rows": [row]})
             print(success, scan_id, response_data)
             self.eic_submission_success.append(success)
             self.eic_submission_message.append(response_data["eic_response_message"])
             self.eic_submission_scan_id_list.append(scan_id)
 
-            angle = angleplan[idx]
             job = SubmittedJob(
                 index=idx + 1,
                 title=angle.get("title", ""),
                 scan_id=scan_id if scan_id is not None else -1,
-                phi=angle.get("phi", 0.0),
-                omega=angle.get("omega", 0.0),
+                phi=angle.get("phi", 0.0) or 0.0,
+                omega=angle.get("omega", 0.0) or 0.0,
                 status="submitted" if success else "failed",
                 is_done=False,
                 message=response_data.get("eic_response_message", ""),
