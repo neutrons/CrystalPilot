@@ -31,7 +31,7 @@ BASELINE: dict[str, int] = {
     "src/exphub/app/models/eic_client.py": 3,
     "src/exphub/app/models/eic_control.py": 8,
     "src/exphub/app/models/experiment_info.py": 11,
-    "src/exphub/app/models/gonio_pvs.py": 16,
+    "src/exphub/app/models/gonio_pvs.py": 0,
     "src/exphub/app/models/temporal_analysis.py": 19,
     "src/exphub/app/view_models/angle_plan.py": 6,
     "src/exphub/app/view_models/main.py": 6,
