@@ -165,15 +165,6 @@ def angleplan_optimize(view_model: MainViewModel) -> List:
     # print('symmtries:',symmetry)
 
     print("--------------------------euler angle range--------------------------------")
-    # goniometers = beamlines[instrument]['Goniometer']
-    # print('goniometers ',goniometers )
-    ##goniometers  {'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360], 'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135], 'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360]}#noqa
-    # omega0,omega1=goniometers['BL12:Mot:goniokm:omega'][4:6]
-    # chi0,chi1    =goniometers['BL12:Mot:goniokm:chi'][4:6]
-    # phi0,phi1    =goniometers['BL12:Mot:goniokm:phi'][4:6]
-
-    # euler_angle_range=[[omega0,omega1,10],[chi0,chi1,0.5],[phi0,phi1,10]]
-    # print('euler_angle_range ',euler_angle_range )
     print("--------------------------instrument setup--------------------------------")
     mtdapi.LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace="instrument")
 

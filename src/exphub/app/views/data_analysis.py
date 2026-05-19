@@ -4,6 +4,7 @@ from nova.trame.view.components import InputField
 from nova.trame.view.layouts import HBoxLayout, VBoxLayout
 from trame.widgets import vuetify3 as vuetify
 
+from ...core.beamline import active as _active_beamline
 from ..view_models.main import MainViewModel
 
 
@@ -34,12 +35,14 @@ class DataAnalysisView:
             InputField(
                 v_model="model_dataanalysis.output_dir_reduction", type="text", label="Output Directory for Reduction"
             )
-            vuetify.VBtn(
-                "Data Reduction",
-                color="primary",
-                href="https://nova.ornl.gov/launch/nova-neutrons-trame-topaz",
-                raw_attrs=['target="_blank"'],
-            )
+            _reduction_url = _active_beamline().external_links.get("data_reduction", "")
+            if _reduction_url:
+                vuetify.VBtn(
+                    "Data Reduction",
+                    color="primary",
+                    href=_reduction_url,
+                    raw_attrs=['target="_blank"'],
+                )
 
         with HBoxLayout(gap="0.5em", valign="center"):
             InputField(

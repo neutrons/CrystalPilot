@@ -25,20 +25,19 @@ BASELINE: dict[str, int] = {
     "src/exphub/agent/constants.py": 2,
     "src/exphub/agent/handlers.py": 2,
     "src/exphub/agent/rag.py": 2,
-    "src/exphub/app/main.py": 1,
+    "src/exphub/app/main.py": 0,
     "src/exphub/app/models/angle_plan.py": 0,
-    "src/exphub/app/models/data_analysis.py": 7,
-    "src/exphub/app/models/eic_client.py": 3,
+    "src/exphub/app/models/data_analysis.py": 0,
     "src/exphub/app/models/eic_control.py": 0,
     "src/exphub/app/models/experiment_info.py": 0,
     "src/exphub/app/models/gonio_pvs.py": 0,
     "src/exphub/app/models/temporal_analysis.py": 0,
-    "src/exphub/app/view_models/angle_plan.py": 6,
-    "src/exphub/app/view_models/main.py": 6,
+    "src/exphub/app/view_models/angle_plan.py": 0,
+    "src/exphub/app/view_models/main.py": 0,
     "src/exphub/app/views/css_status.py": 115,
-    "src/exphub/app/views/data_analysis.py": 1,
+    "src/exphub/app/views/data_analysis.py": 0,
     "src/exphub/app/views/main_view.py": 0,
-    "src/exphub/app/views/temporal_analysis.py": 2,
+    "src/exphub/app/views/temporal_analysis.py": 0,
 }
 
 # Directories where hardcoded TOPAZ/BL12 references are LEGITIMATE
@@ -49,9 +48,12 @@ ALLOWED_PREFIXES = (
 )
 
 # Individual files that legitimately mention beamline ids (docstring examples
-# inside framework code, etc.). One-off exceptions; prefer ALLOWED_PREFIXES.
+# inside framework code, vendored clients with multi-beamline lookup tables,
+# etc.). One-off exceptions; prefer ALLOWED_PREFIXES.
 ALLOWED_FILES = {
     "src/exphub/core/beamline/spec.py",
+    # Vendored EIC client — owns a name-normalizer table for every SNS beamline.
+    "src/exphub/app/models/eic_client.py",
 }
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

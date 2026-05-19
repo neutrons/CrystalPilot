@@ -10,15 +10,15 @@ IRIS_DATA = iris()
 class DataAnalysisModel(BaseModel):
     """Configuration class for the Plotly example."""
 
-    output_dir: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/", title="Output Directory")
-    data_dir: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/", title="Data Directory")
-    output_dir_nxv: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/nxv/", title="Output Directory for NeuXstalViz")
-    output_dir_olex2: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/olex2/", title="Output Directory for Olex2")
-    output_dir_shelx: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/shelx/", title="Output Directory for ShelX")
-    output_dir_discus: str = Field(default="/SNS/TOPAZ/IPTS-12132/shared/discus/", title="Output Directory for Discus")
-    output_dir_reduction: str = Field(
-        default="/SNS/TOPAZ/IPTS-12132/shared/reduction/", title="Output Directory for Reduction"
-    )
+    # Placeholder defaults are intentionally empty — the active beamline + IPTS
+    # populate these via the path resolver once the user provides an IPTS number.
+    output_dir: str = Field(default="", title="Output Directory")
+    data_dir: str = Field(default="", title="Data Directory")
+    output_dir_nxv: str = Field(default="", title="Output Directory for NeuXstalViz")
+    output_dir_olex2: str = Field(default="", title="Output Directory for Olex2")
+    output_dir_shelx: str = Field(default="", title="Output Directory for ShelX")
+    output_dir_discus: str = Field(default="", title="Output Directory for Discus")
+    output_dir_reduction: str = Field(default="", title="Output Directory for Reduction")
 
     axis_options: list[str] = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
     x_axis: str = Field(default="sepal_length", title="X Axis")

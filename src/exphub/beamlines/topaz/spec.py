@@ -71,6 +71,11 @@ TOPAZ = BeamlineSpec(
         extra_subscribe_pvs=list(TOPAZ_USER_PANEL_PVS),
         detector_layout="adned_2d_4x4",
         pixel_dims=(1105, 1105),
+        monitor_pvs={
+            "proton_charge": "BL12:Det:PCharge:C",
+            "beam_power": "BL12:Det:rtdl:BeamPowerAvg",
+            "wavelength": "BL12:Det:TH:BL:Lambda",
+        },
     ),
     mantid=MantidSpec(
         instrument_name="TOPAZ",
@@ -91,6 +96,9 @@ TOPAZ = BeamlineSpec(
         is_simulation_default=False,
         run_title_pv="BL12:SMS:RunInfo:RunTitle",
     ),
+    external_links={
+        "data_reduction": "https://nova.ornl.gov/launch/nova-neutrons-trame-topaz",
+    },
     agent=AgentSpec(
         context_prompt=Path("prompts/context.md"),
         knowledge_dir=Path("knowledge"),

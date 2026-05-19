@@ -55,6 +55,11 @@ class DetectorSpec(BaseModel):
     )
     detector_layout: str = "generic"
     pixel_dims: tuple[int, int] | None = None
+    monitor_pvs: dict[str, str] = Field(
+        default_factory=dict,
+        description="Named beam-monitor PVs for status widgets. "
+        'Common keys: "proton_charge", "beam_power", "wavelength".',
+    )
 
 
 class MantidSpec(BaseModel):
@@ -143,6 +148,10 @@ class BeamlineSpec(BaseModel):
     eic: EICSpec = Field(default_factory=EICSpec)
     agent: AgentSpec = Field(default_factory=AgentSpec)
     tabs: TabOverrides = Field(default_factory=TabOverrides)
+    external_links: dict[str, str] = Field(
+        default_factory=dict,
+        description='Named external URLs. Common keys: "data_reduction", "operator_screen".',
+    )
 
     def resolve(self, relative: Path) -> Path:
         """Resolve a path declared in this spec against the beamline package root."""

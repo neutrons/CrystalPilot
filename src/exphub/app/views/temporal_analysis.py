@@ -10,6 +10,7 @@ from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import plotly
 from trame.widgets import vuetify3 as vuetify
 
+from ...core.beamline import active as _active_beamline
 from ..view_models.main import MainViewModel
 
 # Plotly layout shared across the live-data plots in this view.
@@ -218,8 +219,11 @@ class TemporalAnalysisView:
                     style="font-weight: 600;",
                 )
                 with GridLayout(columns=2, gap="0.25em"):
-                    PVInput("BL12:Det:PCharge:C", append="C", label="Proton Charge")
-                    PVInput("BL12:Det:rtdl:BeamPowerAvg", append="MW", label="Beam Power")
+                    _mon = _active_beamline().detector.monitor_pvs
+                    if _mon.get("proton_charge"):
+                        PVInput(_mon["proton_charge"], append="C", label="Proton Charge")
+                    if _mon.get("beam_power"):
+                        PVInput(_mon["beam_power"], append="MW", label="Beam Power")
 
         with HBoxLayout(halign="left"):
             vuetify.VBtn(
