@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from nova.epics.trame import PVInput
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
-from trame.widgets import plotly
+from trame.widgets import html, plotly
 from trame.widgets import vuetify3 as vuetify
 
 from ...core.beamline import active as _active_beamline
@@ -118,112 +118,128 @@ class TemporalAnalysisView:
         #    self.figure_intensity
         #    self.figure_uncertainty
 
-        with GridLayout(columns=2, gap="0.5em", stretch=True):
-            self.figure_intensity = plotly.Figure()
-            self.figure_intensity.update(fig_i)
+        # Figures own the lion's share of vertical space.
+        with html.Div(
+            style=(
+                "flex: 4 1 0;"
+                "min-height: 0;"
+                "display: flex;"
+                "flex-direction: column;"
+            )
+        ):
+            with GridLayout(columns=2, gap="0.5em", stretch=True):
+                self.figure_intensity = plotly.Figure()
+                self.figure_intensity.update(fig_i)
 
-            self.figure_uncertainty = plotly.Figure()
-            self.figure_uncertainty.update(fig_u)
+                self.figure_uncertainty = plotly.Figure()
+                self.figure_uncertainty.update(fig_u)
 
-        # Side-table summary outside the figures: latest UB + lattice + live beam readouts.
-        # UB and lattice are rendered as compact 3x3 grids of plain values — no
-        # row/column labels — so the matrix structure reads directly.
+        # Compact side-table: latest UB + lattice + live beam readouts.
+        # UB and lattice render side-by-side in the left card so the whole
+        # info strip is short vertically.
         cell_style = (
             "font-family: monospace;"
-            "font-size: 0.95em;"
+            "font-size: 0.85em;"
             "text-align: right;"
-            "padding: 4px 10px;"
+            "padding: 2px 6px;"
             "border: 1px solid rgba(0,0,0,0.12);"
             "border-radius: 3px;"
-            "min-width: 90px;"
+            "min-width: 70px;"
         )
+        section_label = "font-weight: 600; font-size: 0.85em;"
+        meta_label = "font-size: 0.75em; color: rgba(0,0,0,0.6);"
 
-        with GridLayout(columns=2, gap="0.5em", stretch=True):
-            with VBoxLayout(classes="border-md pa-2", gap="0.4em"):
-                vuetify.VLabel(
-                    "Latest UB (from live data)",
-                    style="font-weight: 600;",
-                )
-                vuetify.VLabel(
-                    "{{ model_temporalanalysis.latest_ub_timestamp"
-                    " ? 'updated ' + model_temporalanalysis.latest_ub_timestamp"
-                    " : 'no UB inferred yet' }}",
-                    style="font-size: 0.85em; color: rgba(0,0,0,0.6);",
-                )
-
-                # ── UB matrix as a 3x3 grid (no row/col headers) ───────────
-                with GridLayout(columns=3, gap="0.25em"):
-                    for i in range(3):
-                        for j in range(3):
-                            vuetify.VLabel(
-                                "{{ (model_temporalanalysis.latest_ub["
-                                + str(i)
-                                + "] || [])["
-                                + str(j)
-                                + "] != null"
-                                " ? Number(model_temporalanalysis.latest_ub["
-                                + str(i)
-                                + "]["
-                                + str(j)
-                                + "]).toFixed(6) : '—' }}",
-                                style=cell_style,
-                            )
-
-                vuetify.VLabel(
-                    "Lattice constants (a, b, c in Å; α, β, γ in °; V in Å³)",
-                    style="font-weight: 600; padding-top: 6px;",
-                )
-                # ── Lattice as a compact 3x3 grid:
-                #     row 1: a, b, c (Å)
-                #     row 2: α, β, γ (°)
-                #     row 3: V, —, —
-                lattice_cells: list[tuple[str, str, int]] = [
-                    ("a", "Å", 4),
-                    ("b", "Å", 4),
-                    ("c", "Å", 4),
-                    ("alpha", "°", 3),
-                    ("beta", "°", 3),
-                    ("gamma", "°", 3),
-                    ("volume", "Å³", 2),
-                ]
-                with GridLayout(columns=3, gap="0.25em"):
-                    for key, unit, prec in lattice_cells:
+        # Use a fixed flex ratio so this strip never bloats: ~1 unit of
+        # vertical space against 4 units of figure space (configurable via
+        # the parent VBoxLayout from tab_content_panel.py).
+        with html.Div(style="flex: 0 0 auto;"):
+            with GridLayout(columns=2, gap="0.5em"):
+                # Left card: UB + lattice, rendered side by side.
+                with html.Div(
+                    classes="border-md pa-2",
+                    style="display: flex; gap: 0.75em; align-items: flex-start;",
+                ):
+                    # UB matrix column
+                    with html.Div(style="flex: 1 1 0;"):
+                        vuetify.VLabel("Latest UB", style=section_label)
+                        vuetify.VLabel(
+                            "{{ model_temporalanalysis.latest_ub_timestamp"
+                            " ? 'updated ' + model_temporalanalysis.latest_ub_timestamp"
+                            " : 'no UB yet' }}",
+                            style=meta_label,
+                        )
+                        with GridLayout(columns=3, gap="0.15em"):
+                            for i in range(3):
+                                for j in range(3):
+                                    vuetify.VLabel(
+                                        "{{ (model_temporalanalysis.latest_ub["
+                                        + str(i)
+                                        + "] || [])["
+                                        + str(j)
+                                        + "] != null"
+                                        " ? Number(model_temporalanalysis.latest_ub["
+                                        + str(i)
+                                        + "]["
+                                        + str(j)
+                                        + "]).toFixed(5) : '—' }}",
+                                        style=cell_style,
+                                    )
+                    # Lattice column
+                    with html.Div(style="flex: 1 1 0;"):
+                        vuetify.VLabel(
+                            "Lattice (Å, °, Å³)",
+                            style=section_label,
+                        )
+                        vuetify.VLabel("", style=meta_label)  # spacer to align with UB
+                        lattice_cells: list[tuple[str, str, int]] = [
+                            ("a", "Å", 3),
+                            ("b", "Å", 3),
+                            ("c", "Å", 3),
+                            ("alpha", "°", 2),
+                            ("beta", "°", 2),
+                            ("gamma", "°", 2),
+                        ]
+                        with GridLayout(columns=3, gap="0.15em"):
+                            for key, unit, prec in lattice_cells:
+                                vuetify.VLabel(
+                                    "{{ (model_temporalanalysis.latest_lattice && "
+                                    "model_temporalanalysis.latest_lattice['"
+                                    + key
+                                    + "'] != null)"
+                                    " ? Number(model_temporalanalysis.latest_lattice['"
+                                    + key
+                                    + "']).toFixed("
+                                    + str(prec)
+                                    + ") + ' "
+                                    + unit
+                                    + "' : '—' }}",
+                                    style=cell_style,
+                                )
+                        # Volume on its own short row, spans the full width.
                         vuetify.VLabel(
                             "{{ (model_temporalanalysis.latest_lattice && "
-                            "model_temporalanalysis.latest_lattice['"
-                            + key
-                            + "'] != null)"
-                            " ? Number(model_temporalanalysis.latest_lattice['"
-                            + key
-                            + "']).toFixed("
-                            + str(prec)
-                            + ") + ' "
-                            + unit
-                            + "' : '—' }}",
-                            style=cell_style,
+                            "model_temporalanalysis.latest_lattice['volume'] != null)"
+                            " ? 'V = ' + Number(model_temporalanalysis.latest_lattice['volume']).toFixed(2) + ' Å³'"
+                            " : '' }}",
+                            style="font-family: monospace; font-size: 0.8em; padding-top: 2px;",
                         )
-                    # Pad the third row to keep the 3x3 shape (V sits alone).
-                    vuetify.VLabel("", style=cell_style + "border-color: transparent;")
-                    vuetify.VLabel("", style=cell_style + "border-color: transparent;")
 
-                vuetify.VLabel(
-                    "{{ model_temporalanalysis.latest_ub_saved_path"
-                    " ? 'saved: ' + model_temporalanalysis.latest_ub_saved_path"
-                    " : '' }}",
-                    style="font-size: 0.8em; color: rgba(0,0,0,0.55); word-break: break-all;",
-                )
-
-            with VBoxLayout(classes="border-md pa-2", gap="0.25em"):
-                vuetify.VLabel(
-                    "Beam status (live)",
-                    style="font-weight: 600;",
-                )
-                with GridLayout(columns=2, gap="0.25em"):
-                    _mon = _active_beamline().detector.monitor_pvs
-                    if _mon.get("proton_charge"):
-                        PVInput(_mon["proton_charge"], append="C", label="Proton Charge")
-                    if _mon.get("beam_power"):
-                        PVInput(_mon["beam_power"], append="MW", label="Beam Power")
+                # Right card: beam status, compact.
+                with VBoxLayout(classes="border-md pa-2", gap="0.15em"):
+                    vuetify.VLabel("Beam status (live)", style=section_label)
+                    with GridLayout(columns=2, gap="0.2em"):
+                        _mon = _active_beamline().detector.monitor_pvs
+                        if _mon.get("proton_charge"):
+                            PVInput(_mon["proton_charge"], append="C", label="Proton Charge")
+                        if _mon.get("beam_power"):
+                            PVInput(_mon["beam_power"], append="MW", label="Beam Power")
+                    # Saved-path line goes here so it doesn't pad the UB card.
+                    vuetify.VLabel(
+                        "{{ model_temporalanalysis.latest_ub_saved_path"
+                        " ? 'UB saved: ' + model_temporalanalysis.latest_ub_saved_path"
+                        " : '' }}",
+                        style="font-size: 0.7em; color: rgba(0,0,0,0.55); word-break: break-all;",
+                    )
 
         with HBoxLayout(halign="left"):
             vuetify.VBtn(
