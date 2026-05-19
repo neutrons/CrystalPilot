@@ -4,7 +4,7 @@
 **Branch state:** active branch `multibeamline` (off `agentize`); also `main`, `hpc-demo`
 **Scope:** Make CrystalPilot a general-purpose beamline-experiment hub. The 5-tab shell stays. Tab contents, PVs, file paths, presets, schema, knowledge base, and agent prompts become beamline-pluggable. Adding a new beamline should mean *adding a folder*, not editing 17 files.
 
-## Progress so far (Phases 0–1 landed on `multibeamline`)
+## Progress so far (Phases 0–2 landed on `multibeamline`)
 
 | Phase | Commit | What landed |
 |---|---|---|
@@ -13,12 +13,21 @@
 | 0c | `d9eacf5` | Moved 47 hardcoded per-point-group angle lists (~770 lines) from `view_models/main.py` to `app/fixtures/optimizer_fallback_angles.json` |
 | 1a | `e843901` | New `core/beamline/` package: `BeamlineSpec`, `BeamlineContext`, `register`/`get`/`list_ids`/`set_active`/`active` registry |
 | 1b | `07ce67d` | New `beamlines/topaz/` plug-in registering the TOPAZ spec (goniometer/detector/Mantid/paths/EIC/agent) |
-| 1c | `e6f6a86` | Moved `BL12_ADnED_2D_4x4.bob/.macros` into `beamlines/topaz/screens/`; `main_view.py` loads them and `extra_subscribe_pvs` from `BeamlineContext`. `main_view.py` coupling: 25→0 |
-| 1d | `b7b1acd` | `app/models/gonio_pvs.py` is now a 50-line shim that dynamically re-exports the active beamline's `gonio` module; literal PV strings live in `beamlines/topaz/gonio.py`. `gonio_pvs.py` coupling: 16→0 |
+| 1c | `e6f6a86` | Moved `BL12_ADnED_2D_4x4.bob/.macros` into `beamlines/topaz/screens/`; `main_view.py` loads them via context. `main_view.py` coupling: 25→0 |
+| 1d | `b7b1acd` | `app/models/gonio_pvs.py` is now a dynamic shim re-exporting the active beamline's `gonio` module; literal PV strings live in `beamlines/topaz/gonio.py`. `gonio_pvs.py`: 16→0 |
+| 2a | `ec67f68` | New `core/paths/` package: `PathResolver` (bound to a beamline + IPTS), `resolver_for()`, `ipts_name()` |
+| 2b | `f0ecb93` | `models/temporal_analysis.py` routes paths through `PathResolver`; Mantid `Instrument=` reads from spec. Coupling: 19→0 |
+| 2c | `b9ff0f5` | `models/experiment_info.py` instrument/calibration/spectra defaults come from active beamline via `default_factory`; method-body paths via resolver. Coupling: 11→0 |
+| 2d | `16da40b` | `models/eic_control.py` beamline code, run-title PV, EIC dropbox dir all from spec; `beamline_database` auto-builds from registry. Coupling: 8→0 |
+| 2e | `a2ad830` | `models/angle_plan.py` instrument + placeholder row + run-title PV from active beamline. Coupling: 9→0 |
+| 2f | `c00b9a4` | Stragglers: `data_analysis.py` defaults blanked, `views/temporal_analysis.py` reads `monitor_pvs` from spec, `views/data_analysis.py` reads `external_links` from spec, dead comments in `view_models/*` stripped |
 
-**Coupling count: 235 → 194** (full table in section 1). All 77 tests still green at every commit.
+**Coupling count: 235 → 121** (all 121 now isolated to two known callsites: `views/css_status.py` at 115, and 4 stragglers across `agent/{constants,handlers,rag}.py`). All 77 tests stay green at every commit. `BeamlineSpec` now carries: `GoniometerSpec`, `DetectorSpec` (incl. `monitor_pvs`), `MantidSpec`, `PathsSpec` (incl. `default_spectra`), `EICSpec` (incl. `run_title_pv`), `AgentSpec`, `TabOverrides`, plus a top-level `external_links` dict.
 
-Remaining heavy hitters: `views/css_status.py` (115), `models/temporal_analysis.py` (19), `models/experiment_info.py` (11), `models/angle_plan.py` (9), `models/eic_control.py` (8), `models/data_analysis.py` (7), and the view-model / view-side leakage in `view_models/main.py`, `view_models/angle_plan.py`. These are Phase 2-4 work.
+**What's left:**
+- `views/css_status.py` (115 refs) — moves wholesale into `beamlines/topaz/tabs/css_status.py` in Phase 4 (tab plug-in manifest).
+- `agent/{constants,handlers,rag}.py` (4 refs) — Phase 5 (prompt composer + per-beamline knowledge).
+- God-file decomposition (Phase 3 in the original plan) was deferred; it's no longer blocking the multi-beamline goal since file-level coupling is 0 outside the two tracked callsites.
 
 ---
 
