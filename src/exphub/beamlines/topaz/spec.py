@@ -84,6 +84,7 @@ TOPAZ = BeamlineSpec(
         shared_root="/SNS/TOPAZ",
         eic_dropbox="/SNS/groups/topaz/bl_12",
         default_calibration="/SNS/TOPAZ/shared/calibration/2026A_CG/calibration.DetCal",
+        default_spectra="/SNS/TOPAZ/shared/calibrations/2019A/Calibration/Spectrum_32751_32758.dat",
     ),
     eic=EICSpec(
         beamline_code="bl12",

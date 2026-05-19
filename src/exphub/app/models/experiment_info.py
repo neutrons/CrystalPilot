@@ -10,11 +10,50 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
+from ...core.beamline import active as _active_beamline
+from ...core.beamline import list_ids as _beamline_ids
+from ...core.paths import resolver_for as _resolver_for
+
+
+def _default_instrument_list() -> List[str]:
+    """Return the Mantid instrument names of every registered beamline."""
+    try:
+        names = []
+        from ...core.beamline import get as _get
+        for bid in _beamline_ids():
+            inst = _get(bid).mantid.instrument_name
+            if inst:
+                names.append(inst)
+        return names or [""]
+    except Exception:
+        return [""]
+
+
+def _default_instrument() -> str:
+    try:
+        return _active_beamline().mantid.instrument_name
+    except Exception:
+        return ""
+
+
+def _default_cal_filename() -> str:
+    try:
+        return _active_beamline().paths.default_calibration
+    except Exception:
+        return ""
+
+
+def _default_spectra_filename() -> str:
+    try:
+        return _active_beamline().paths.default_spectra
+    except Exception:
+        return ""
+
 
 class Options(BaseModel):
     """A class for the configuration options."""
 
-    instrument_list: List[str] = Field(default=["TOPAZ", "MANDI", "CORELLI"])
+    instrument_list: List[str] = Field(default_factory=_default_instrument_list)
     centering_list: List[str] = Field(default=[])
     crystalsystem_list: List[str] = Field(
         default=[
@@ -47,7 +86,7 @@ class ExperimentInfoModel(BaseModel):
     )
     point_group: str = Field(default="m-3", title="Point group")
 
-    instrument: str = Field(default="TOPAZ", title="Instrument Name")
+    instrument: str = Field(default_factory=_default_instrument, title="Instrument Name")
     ipts_number: str = Field(
         default="35036", title="IPTS Number", min_length=1, description="Proposal number for the experiment"
     )
@@ -62,7 +101,7 @@ class ExperimentInfoModel(BaseModel):
         description="Will be used to create a directory in the shared folder under the IPTS directory.",
     )
     cal_filename: str = Field(
-        default="/SNS/TOPAZ/shared/calibration/2026A_CG/calibration.DetCal",
+        default_factory=_default_cal_filename,
         title="Calibration File",
         description="Calibration file for the current cycle.",
     )
@@ -132,7 +171,7 @@ class ExperimentInfoModel(BaseModel):
         return self
 
     spectra_filename: str = Field(
-        default="/SNS/TOPAZ/shared/calibrations/2019A/Calibration/Spectrum_32751_32758.dat",
+        default_factory=_default_spectra_filename,
         title="Name of spectrum file",
         description="Spectrum file for the current cycle.",
     )
@@ -559,11 +598,12 @@ class ExperimentInfoModel(BaseModel):
         return flux_file
 
     def copy_config_files(self) -> None:
-        if not os.path.exists(f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/"):
-            os.makedirs(f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/")
+        autoreduce_dir = _resolver_for(self.ipts_number).autoreduce_dir + "/"
+        if not os.path.exists(autoreduce_dir):
+            os.makedirs(autoreduce_dir)
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        rd_filename = f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/autoreduce" + timestr + ".config"
-        plt_filename = f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/plotConfig" + timestr + ".ini"
+        rd_filename = autoreduce_dir + "autoreduce" + timestr + ".config"
+        plt_filename = autoreduce_dir + "plotConfig" + timestr + ".ini"
 
         self.plot_config(plt_filename)
         self.reduce_config(rd_filename)
@@ -626,8 +666,9 @@ class ExperimentInfoModel(BaseModel):
         }
         config["REDUCTION"] = {"CalFile": self.cal_filename, "UBDirectory": ub_directory}
         config["NORMALIZATION"] = {"SAFile": self.sa_file, "FluxFile": self.flux_file}
-        if not os.path.exists(f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/"):
-            os.makedirs(f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/autoreduce/")
+        autoreduce_dir = _resolver_for(self.ipts_number).autoreduce_dir + "/"
+        if not os.path.exists(autoreduce_dir):
+            os.makedirs(autoreduce_dir)
 
         with open(filename, "w") as configfile:
             config.write(configfile)
@@ -726,7 +767,7 @@ class ExperimentInfoModel(BaseModel):
     @model_validator(mode="after")
     def adjust_export_folder(self) -> "ExperimentInfoModel":
         if not self.override_export_folder:
-            self.export_folder = f"/SNS/TOPAZ/{self.get_ipts_name()}/shared/ndip/{self.exp_name}"
+            self.export_folder = _resolver_for(self.ipts_number).ipts_dir + f"/shared/ndip/{self.exp_name}"
         return self
 
     @model_validator(mode="after")

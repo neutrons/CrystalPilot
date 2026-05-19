@@ -74,6 +74,7 @@ class PathsSpec(BaseModel):
     shared_root: str = ""
     eic_dropbox: str = ""
     default_calibration: str = ""
+    default_spectra: str = ""
     autoreduce_subdir: str = "shared/autoreduce"
     live_monitor_subdir: str = "shared/CrystalPilot/live-data-monitoring"
 
