@@ -26,7 +26,7 @@ BASELINE: dict[str, int] = {
     "src/exphub/agent/handlers.py": 2,
     "src/exphub/agent/rag.py": 2,
     "src/exphub/app/main.py": 1,
-    "src/exphub/app/models/angle_plan.py": 9,
+    "src/exphub/app/models/angle_plan.py": 0,
     "src/exphub/app/models/data_analysis.py": 7,
     "src/exphub/app/models/eic_client.py": 3,
     "src/exphub/app/models/eic_control.py": 0,

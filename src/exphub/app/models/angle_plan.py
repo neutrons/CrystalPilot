@@ -7,7 +7,33 @@ import numpy as np
 import plotly.graph_objects as go
 from pydantic import BaseModel, Field, model_validator
 
+from ...core.beamline import active as _active_beamline
 from . import gonio_pvs
+
+
+def _default_instrument_name() -> str:
+    try:
+        return _active_beamline().mantid.instrument_name
+    except Exception:
+        return ""
+
+
+def _default_angle_list_read() -> List[Dict]:
+    """Single placeholder row using the active beamline's gonio PV column names."""
+    try:
+        pvs = gonio_pvs.ANGLE_PVS[gonio_pvs.AMBIENT]
+        row: Dict[str, Any] = {
+            "Title": "",
+            "Comment": "",
+            "Wait For": "PCharge",
+            "Value": 10,
+            "Or Time": "",
+        }
+        for axis_pv in pvs.values():
+            row[axis_pv] = 10
+        return [row]
+    except Exception:
+        return [{"Title": "", "Comment": "", "Wait For": "PCharge", "Value": 10, "Or Time": ""}]
 
 # Headers for the experiment-run-strategy table. The cryogenic stage drives
 # only one rotation (CryoOmega), so its header omits phi; the ambient stage
@@ -58,8 +84,8 @@ class RunPlan(BaseModel):
 class AnglePlanModel(BaseModel):
     """Pydantic class for angle plan."""
 
-    # headers: List[str] = Field(default=["Title", "Comment", "phi", "omega", "Wait For", "Value", "Or Time"])
-    # headers: List[str] = Field(default=["Title", "Comment", "BL12:Mot:goniokm:phi", "BL12:Mot:goniokm:omega", "Wait For", "Value", "Or Time"])#noqa
+    # Header layout was previously hardcoded with literal goniometer PV names; the
+    # active rendering builds headers from the beamline context at runtime.
     angle_keys: List[str] = Field(
         default=[
             "id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time",
@@ -153,17 +179,7 @@ class AnglePlanModel(BaseModel):
     )
 
     angle_list_read: List[Dict] = Field(
-        default=[
-            {
-                "Title": "",
-                "Comment": "",
-                "BL12:Mot:goniokm:phi": 10,
-                "BL12:Mot:goniokm:omega": 10,
-                "Wait For": "PCharge",
-                "Value": 10,
-                "Or Time": "",
-            }
-        ],
+        default_factory=_default_angle_list_read,
         title="Angle Plan",
         description="List of angles to be measured",
         exclude=True,
@@ -203,9 +219,6 @@ class AnglePlanModel(BaseModel):
         title="Strategy File",
         description="File path to the plan file",
     )
-    # plan_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/strategy.csv", title="Strategy File", description="File path to the plan file")#noqa
-    # plan_file: str = Field(default="/path/strategy.csv", title="Strategy File", description="File path to the plan file")#noqa
-    # plan_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/table.csv", title="Strategy File", description="File path to the plan file")#noqa
     plan_type: str = Field(default="Crystal Plan", title="Strategy Type", description="Type of the plan")
     plan_type_list: List[str] = Field(default=["CrystalPlan", "NeuXstalViz"])
     wait_for_list: List[str] = Field(default=["PCharge", "seconds"])
@@ -227,7 +240,7 @@ class AnglePlanModel(BaseModel):
         exclude=True,
     )
 
-    instrument: str = Field(default="TOPAZ", title="Instrument Name", description="Name of the instrument")
+    instrument: str = Field(default_factory=_default_instrument_name, title="Instrument Name", description="Name of the instrument")
     wavelength: float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam")
     axes: List = Field(default=[[0, 1, 0]], title="Axes", description="List of axes to be used for the angle plan")
     limits: List = Field(default=[0, 360], title="Limits", description="Limits of the axes")
@@ -409,10 +422,11 @@ class AnglePlanModel(BaseModel):
         - Cryogenic:  Title, CryoOmega, ramp PVs, Comment, Wait For, Value
         Returns the file path written.
         """
+        run_title_pv = _active_beamline().eic.run_title_pv
         angle_cols = gonio_pvs.angle_columns(self.goniometer_type)
         ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [
-            "BL12:SMS:RunInfo:RunTitle",
+            run_title_pv,
             *angle_cols,
             *ramp_cols,
             "Comment",
@@ -424,7 +438,7 @@ class AnglePlanModel(BaseModel):
             writer.writeheader()
             for angle in self.angle_list:
                 row: Dict = {
-                    "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                    run_title_pv: angle.get("title", "CrystalPilot"),
                     "Comment": angle.get("comment", ""),
                 }
                 # Angle cells — always emit; useful even on ramp rows when the
@@ -457,7 +471,7 @@ class AnglePlanModel(BaseModel):
 
         Auto-detects goniometer type from the column headers and updates
         self.goniometer_type to match. Ramp rows are detected by presence
-        of any BL12:SE:Ramp:* (or bare RampStart/...) column with values.
+        of any ramp PV (canonical or bare RampStart/...) column with values.
         """
         with open(file_path, mode="r") as f:
             reader = csv.DictReader(f)
