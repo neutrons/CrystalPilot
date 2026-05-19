@@ -89,6 +89,7 @@ TOPAZ = BeamlineSpec(
     eic=EICSpec(
         beamline_code="bl12",
         is_simulation_default=False,
+        run_title_pv="BL12:SMS:RunInfo:RunTitle",
     ),
     agent=AgentSpec(
         context_prompt=Path("prompts/context.md"),

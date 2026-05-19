@@ -84,6 +84,10 @@ class EICSpec(BaseModel):
     is_simulation_default: bool = False
     supports_simulation: bool = True
     write_scope: list[str] = Field(default_factory=lambda: ["EIC:write"])
+    run_title_pv: str = Field(
+        default="",
+        description="PV the EIC writes the run title into (e.g. BL12:SMS:RunInfo:RunTitle).",
+    )
 
 
 class AgentSpec(BaseModel):

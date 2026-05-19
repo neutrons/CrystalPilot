@@ -7,8 +7,31 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
+from ...core.beamline import active as _active_beamline
+from ...core.beamline import get as _get_beamline
+from ...core.beamline import list_ids as _beamline_ids
+from ...core.paths import resolver_for as _resolver_for
 from . import gonio_pvs
 from .eic_client import EICClient
+
+
+def _default_beamline_code() -> str:
+    try:
+        return _active_beamline().eic.beamline_code
+    except Exception:
+        return ""
+
+
+def _default_beamline_database() -> Dict[str, str]:
+    """Instrument name (Mantid) → EIC beamline code, from every registered beamline."""
+    try:
+        return {
+            _get_beamline(bid).mantid.instrument_name: _get_beamline(bid).eic.beamline_code
+            for bid in _beamline_ids()
+            if _get_beamline(bid).mantid.instrument_name
+        }
+    except Exception:
+        return {}
 
 
 class SubmittedJob(BaseModel):
@@ -43,13 +66,17 @@ class EICControlModel(BaseModel):
     # token_file: str = Field(default="/home/zx5/1-todo/6-hardware/code/token.txt", title="IPTS token")
     # token_file: str = Field(default="/path/token.txt", title="IPTS token")
     token_file: str = Field(default="", title="IPTS token")
-    # token_file: str = Field(default="/SNS/TOPAZ/IPTS-35036/shared/token.txt", title="IPTS token")
 
     is_simulation: bool = Field(default=True, title="Simulation")
-    beamline: str = Field(default="bl12", title="Beamline", description="Name of the beamline")
-    # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
-    # eic_client: EICClient = Field(default_factory=EICClient, title="EIC Client")
-    beamline_database: Dict = Field(default={"TOPAZ": "bl12", "CORELLI": "bl9"}, title="Beamline Database")
+    beamline: str = Field(
+        default_factory=_default_beamline_code,
+        title="Beamline",
+        description="Name of the beamline",
+    )
+    beamline_database: Dict = Field(
+        default_factory=_default_beamline_database,
+        title="Beamline Database",
+    )
 
     eic_submission_success: List[bool] = Field(default=[False], title="EIC Submission Success")
     eic_submission_message: List[str] = Field(default=["No message"], title="EIC Submission Message")
@@ -103,7 +130,7 @@ class EICControlModel(BaseModel):
         """
         timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         filename = f"CrystalPilot-experiment-plan-{timestamp}.csv"
-        destination_dir = f"/SNS/groups/topaz/bl_12/IPTS-{ipts_number}"
+        destination_dir = _resolver_for(ipts_number).eic_dropbox
         destination_path = os.path.join(destination_dir, filename)
 
         try:
@@ -113,10 +140,11 @@ class EICControlModel(BaseModel):
             print(f"Failed to create directory {destination_dir}: {e}")
             raise
 
+        run_title_pv = _active_beamline().eic.run_title_pv
         angle_cols = gonio_pvs.angle_columns(goniometer_type)
         ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [
-            "BL12:SMS:RunInfo:RunTitle",
+            run_title_pv,
             *angle_cols,
             *ramp_cols,
             "Comment",
@@ -129,7 +157,7 @@ class EICControlModel(BaseModel):
             writer.writeheader()
             for angle in angleplan:
                 row: Dict = {
-                    "BL12:SMS:RunInfo:RunTitle": angle.get("title", "CrystalPilot"),
+                    run_title_pv: angle.get("title", "CrystalPilot"),
                     "Comment": angle.get("comment", ""),
                     pvs["omega"]: angle.get("omega", 0),
                 }
@@ -166,13 +194,13 @@ class EICControlModel(BaseModel):
         except Exception as e:
             print(f"Warning: failed to copy strategy to EIC location: {e}")
 
-        self.beamline = self.beamline_database[instrument_name]
-        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
-        eic_client.is_eic_enabled(print_results=True)
-
-        if self.beamline != "bl12":
+        self.beamline = self.beamline_database.get(instrument_name, "")
+        if not self.beamline:
+            print(f"Instrument {instrument_name!r} is not a registered beamline; aborting EIC submit.")
             self.supported_beamline = False
             return
+        eic_client = EICClient(self.token, beamline=self.beamline, ipts_number=ipts_number)
+        eic_client.is_eic_enabled(print_results=True)
 
         desc = "CrystalPilot Submission"
         pvs = gonio_pvs.ANGLE_PVS[goniometer_type]
