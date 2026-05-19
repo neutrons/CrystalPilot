@@ -113,15 +113,15 @@ class TabOverrides(BaseModel):
     Each attribute is either ``None`` (use the framework's default tab) or a
     callable that builds the tab's view. The callable contract is intentionally
     loose so beamlines can mix Pydantic models and Vuetify layouts in whatever
-    way fits.
+    way fits — usually it's a view class accepting a ``MainViewModel``.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    experiment_info: Callable[..., Any] | None = None
-    angle_plan: Callable[..., Any] | None = None
-    temporal_analysis: Callable[..., Any] | None = None
-    css_status: Callable[..., Any] | None = None
-    data_analysis: Callable[..., Any] | None = None
+    experiment_info: Any = None
+    angle_plan: Any = None
+    temporal_analysis: Any = None
+    css_status: Any = None
+    data_analysis: Any = None
 
 
 class BeamlineSpec(BaseModel):

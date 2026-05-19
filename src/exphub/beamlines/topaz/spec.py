@@ -18,8 +18,15 @@ from ...core.beamline import (
     GoniometerSpec,
     MantidSpec,
     PathsSpec,
+    TabOverrides,
     register,
 )
+
+
+def _build_css_status(view_model):
+    """Lazy factory — avoids importing the app layer during spec registration."""
+    from .tabs.css_status import CSSStatusView
+    return CSSStatusView(view_model)
 
 TOPAZ_USER_PANEL_PVS: tuple[str, ...] = (
     "BL12:CS:IPTS",
@@ -119,6 +126,9 @@ TOPAZ = BeamlineSpec(
             },
         },
         supported_tasks=["experiment_steering", "data_processing", "app_help"],
+    ),
+    tabs=TabOverrides(
+        css_status=_build_css_status,
     ),
 )
 

@@ -34,7 +34,6 @@ BASELINE: dict[str, int] = {
     "src/exphub/app/models/temporal_analysis.py": 0,
     "src/exphub/app/view_models/angle_plan.py": 0,
     "src/exphub/app/view_models/main.py": 0,
-    "src/exphub/app/views/css_status.py": 115,
     "src/exphub/app/views/data_analysis.py": 0,
     "src/exphub/app/views/main_view.py": 0,
     "src/exphub/app/views/temporal_analysis.py": 0,

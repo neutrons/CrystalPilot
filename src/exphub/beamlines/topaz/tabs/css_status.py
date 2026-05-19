@@ -1,4 +1,9 @@
-"""Module for the CSS Status tab."""
+"""TOPAZ-specific Instrument Status (CSS) tab.
+
+Holds the ADnED 4×4 detector + TOF channel layout and the BL12 PV wiring.
+Moved here from ``app/views/css_status.py`` as part of the multi-beamline
+refactor (see MULTI_BEAMLINE_PLAN.md, Phase 4).
+"""
 
 import time
 from math import ceil
@@ -14,7 +19,7 @@ from trame.widgets import client, plotly
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets.core import AbstractElement
 
-from ..view_models.main import MainViewModel
+from ....app.view_models.main import MainViewModel
 
 
 class _GatedPVPlot:

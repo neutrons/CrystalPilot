@@ -1,15 +1,19 @@
 """Module for the Tab Content panel."""
 
+import logging
+
 from nova.trame.view.layouts import VBoxLayout
 from trame.widgets import vuetify3 as vuetify
 from trame_server import Server
 
+from ...core.beamline import active as _active_beamline
 from ..view_models.main import MainViewModel
 from .angle_plan import AnglePlanView
-from .css_status import CSSStatusView
 from .data_analysis import DataAnalysisView
 from .experiment_info import ExperimentInfoView
 from .temporal_analysis import TemporalAnalysisView  # Import the new view
+
+logger = logging.getLogger(__name__)
 
 
 class TabContentPanel:
@@ -31,7 +35,20 @@ class TabContentPanel:
         # with VBoxLayout(v_show="controls.active_tab == 4", stretch=True):
         #     EICControlView(self.view_model)
         with VBoxLayout(v_if="controls.active_tab == 5", stretch=True):
-            CSSStatusView(self.view_model)
+            css_status_factory = _active_beamline().tabs.css_status
+            if css_status_factory is not None:
+                css_status_factory(self.view_model)
+            else:
+                logger.warning(
+                    "Active beamline %r does not provide a css_status tab; "
+                    "Instrument Status tab will be blank.",
+                    _active_beamline().id,
+                )
+                vuetify.VAlert(
+                    text="Instrument Status is not configured for this beamline.",
+                    type="info",
+                    variant="tonal",
+                )
         with VBoxLayout(v_show="controls.active_tab == 6", stretch=True):
             DataAnalysisView(self.view_model)
         # with VBoxLayout(v_show="controls.active_tab == 7", stretch=True):
