@@ -330,7 +330,9 @@ def check_peaks(wf: "MantidWorkflow") -> None:
 
     # Selector dispatch. Unknown dropdown picks return None and leave
     # ``intensity_ratio`` at its previous value, matching the legacy
-    # fall-through behavior.
+    # fall-through behavior. A selector that returns None signals "skip
+    # this cycle" — no append, no Rsig recomputation.
+    wf.skip_this_cycle = False
     selector = make_selector(wf.selection, **getattr(wf, "selector_params", {}))
     if selector is not None:
         result = selector.select(
@@ -340,18 +342,33 @@ def check_peaks(wf: "MantidWorkflow") -> None:
             max_peak_idx=wf.maxpeak_idx,
             statistics=statistics,
         )
-        wf.intensity_ratio = result.intensity_ratio
-        wf.selection_aux = result.aux
+        if result is None:
+            wf.skip_this_cycle = True
+        else:
+            wf.intensity_ratio = result.intensity_ratio
+            wf.Rsig = result.rsig
+            wf.selection_aux = result.aux
+            wf.current_labels = {
+                "intensity_title": result.intensity_title,
+                "intensity_yaxis": result.intensity_yaxis,
+                "uncertainty_title": result.uncertainty_title,
+                "uncertainty_yaxis": result.uncertainty_yaxis,
+            }
 
-    wf.Rsig = 100.0 / wf.intensity_ratio
-    print("Rsig = %.2f" % wf.Rsig)
-    if wf.intensity_ratio is not None and wf.Rsig is not None and wf.proton_charge is not None:
+    if not wf.skip_this_cycle:
+        print("Rsig = %.2f" % wf.Rsig)
+    if (
+        not wf.skip_this_cycle
+        and getattr(wf, "intensity_ratio", None) is not None
+        and getattr(wf, "Rsig", None) is not None
+        and wf.proton_charge is not None
+    ):
         wf.proton_charges.append(wf.proton_charge)
         wf.intensity_ratios.append(wf.intensity_ratio)
         wf.rsigs.append(wf.Rsig)
         wf.measure_times.append(wf.measure_time)
     else:
-        print("Skipping entry due to missing data.")
+        print("Skipping entry due to missing data or placeholder mode.")
     wf.sig2s.append(wf.sig2)
     wf.sig3s.append(wf.sig3)
     wf.sig5s.append(wf.sig5)

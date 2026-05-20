@@ -98,6 +98,23 @@ class MantidWorkflow:
         # Optional kwargs passed to selector factories (e.g. {"hkl": (1,0,0)}).
         self.selector_params: dict[str, Any] = {}
         self.selection_aux: dict[str, Any] = {}
+        # Set per cycle by ``pipeline.check_peaks`` after a successful
+        # selector.select() — None entries mean "use figure defaults".
+        self.current_labels: dict[str, Optional[str]] = {
+            "intensity_title": None,
+            "intensity_yaxis": None,
+            "uncertainty_title": None,
+            "uncertainty_yaxis": None,
+        }
+        # Set to True by ``pipeline.check_peaks`` when the active selector
+        # returned None (no peak match, placeholder mode, ...). The
+        # view-model can react by showing a "Waiting for data" figure.
+        self.skip_this_cycle: bool = False
+        # Reset by ``pipeline.check_peaks`` per cycle (live ratio for
+        # the figures); seeded here so legacy fall-through doesn't trip
+        # an AttributeError on first read.
+        self.intensity_ratio: float = 0.0
+        self.Rsig: float = 0.0
 
     def stop(self) -> None:
         """Cancel any in-flight MonitorLiveData thread."""
@@ -191,6 +208,13 @@ class MantidWorkflow:
         self.output_path = resolver_for(self.ipts).autoreduce_dir + "/live_data/"
 
         self.selection = models.temporalanalysis.data_selection
+        # Selector kwargs for the registry factory; unused keys are
+        # ignored by selectors that don't take them.
+        self.selector_params = {
+            "hkl": tuple(models.temporalanalysis.individual_peak_hkl),
+            "hkl_a": tuple(models.temporalanalysis.peak_ratio_hkl_a),
+            "hkl_b": tuple(models.temporalanalysis.peak_ratio_hkl_b),
+        }
 
     def update_peak_output_filenames(self) -> None:
         bl_id = _active_beamline().id

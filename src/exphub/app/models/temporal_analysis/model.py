@@ -15,7 +15,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pydantic import BaseModel, Field
 
-from .figures import build_intensity_figure, build_uncertainty_figure
+from .figures import (
+    build_intensity_figure,
+    build_uncertainty_figure,
+    save_figure_snapshot,
+    waiting_figure,
+)
 from .workflow import MantidWorkflow
 
 
@@ -29,10 +34,26 @@ class TemporalAnalysisModel(BaseModel):
     data_selection_options: List[str] = [
         "All Peaks",
         "Bragg Peaks",
-        "Max Peak",
         "Satellite Peaks",
-        "Diffuse scattering",
+        "Max Peak",
+        "Diffuse Scattering",
+        "Individual Peak",
+        "Peak Ratio",
     ]
+    # User-entered HKLs for the modes that need them. Captured via the
+    # chip+popover UX in views/temporal_analysis.py.
+    individual_peak_hkl: List[int] = Field(
+        default_factory=lambda: [1, 0, 0],
+        title="Individual peak HKL",
+    )
+    peak_ratio_hkl_a: List[int] = Field(
+        default_factory=lambda: [1, 0, 0],
+        title="Peak ratio — peak A HKL (numerator)",
+    )
+    peak_ratio_hkl_b: List[int] = Field(
+        default_factory=lambda: [0, 1, 0],
+        title="Peak ratio — peak B HKL (denominator)",
+    )
     time_steps: List[float] = Field(
         default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps"
     )
@@ -193,11 +214,31 @@ class TemporalAnalysisModel(BaseModel):
         self._intensity_fig_cache = (cache_key, fig)
         return fig
 
+    def _label_overrides(self) -> Dict[str, Optional[str]]:
+        """Return per-mode title/y-axis overrides parked by the latest selector."""
+        if self._mtd_workflow is None:
+            return {}
+        return getattr(self._mtd_workflow, "current_labels", {}) or {}
+
     def _build_figure_intensity(self) -> go.Figure:
+        # Diffuse Scattering is an explicit placeholder mode — show
+        # "Waiting for data" regardless of whether the live loop is running.
+        if self.data_selection == "Diffuse Scattering":
+            return waiting_figure(
+                "Diffuse Scattering (not yet implemented)",
+                "Intensity",
+            )
         if self._mtd_workflow is None:
             return go.Figure()
         ts, vals = self._series_for_intensity()
-        return build_intensity_figure(ts, vals, self.prediction_model_type)
+        labels = self._label_overrides()
+        return build_intensity_figure(
+            ts,
+            vals,
+            self.prediction_model_type,
+            title=labels.get("intensity_title"),
+            yaxis=labels.get("intensity_yaxis"),
+        )
 
     def _uncertainty_cache_key(self) -> Any:
         if self._mtd_workflow is None:
@@ -221,6 +262,11 @@ class TemporalAnalysisModel(BaseModel):
         return fig
 
     def _build_figure_uncertainty(self) -> go.Figure:
+        if self.data_selection == "Diffuse Scattering":
+            return waiting_figure(
+                "Diffuse Scattering (not yet implemented)",
+                "Uncertainty (%)",
+            )
         if self._mtd_workflow is None:
             return go.Figure()
         ts, vals = self._series_for_uncertainty()
@@ -228,9 +274,91 @@ class TemporalAnalysisModel(BaseModel):
         # measure_times regardless of the active prediction-model series.
         # Preserved here for behavior parity with the pre-refactor code.
         guard_series = self._mtd_workflow.measure_times
+        labels = self._label_overrides()
         return build_uncertainty_figure(
-            ts, vals, self.prediction_model_type, guard_series=guard_series
+            ts,
+            vals,
+            self.prediction_model_type,
+            guard_series=guard_series,
+            title=labels.get("uncertainty_title"),
+            yaxis=labels.get("uncertainty_yaxis"),
         )
+
+    # ---------- mode-change buffer clear ----------
+
+    def on_data_selection_change(self, new: str, old: str) -> None:
+        """Clear plot buffers + figure caches when the user switches mode.
+
+        Different modes plot different scalars (mean I/σ, raw ratio, ...),
+        so retaining the previous mode's history would produce a misleading
+        mixed-unit time series. View-model invokes this when the dropdown
+        change is detected.
+        """
+        if new == old or self._mtd_workflow is None:
+            return
+        wf = self._mtd_workflow
+        try:
+            wf.proton_charges.clear()
+            wf.intensity_ratios.clear()
+            wf.rsigs.clear()
+            wf.measure_times.clear()
+            wf.timeseries_plt = []
+            wf.timeseries_data_plt = []
+            wf.current_labels = {
+                "intensity_title": None,
+                "intensity_yaxis": None,
+                "uncertainty_title": None,
+                "uncertainty_yaxis": None,
+            }
+        except Exception as e:
+            print(f"on_data_selection_change: buffer clear failed: {e}")
+        self._intensity_fig_cache = None
+        self._uncertainty_fig_cache = None
+
+    # ---------- figure snapshot persistence ----------
+
+    def save_latest_figure_snapshot(self) -> Dict[str, str]:
+        """Write current figures + their data to the live-monitoring dir.
+
+        Files share a ``live_<bl>-ipts-<N>_run-<run>_<timestamp>`` prefix
+        with the UB ``.mat`` saved by :meth:`MantidWorkflow.save_latest_ub`,
+        though each call generates its own timestamp.
+
+        Returns a dict of ``{kind: path}`` of files that were written;
+        empty dict on failure or before any data is captured.
+        """
+        if self._mtd_workflow is None:
+            return {}
+        wf = self._mtd_workflow
+        if not getattr(wf, "ipts", 0):
+            return {}
+        try:
+            from ....core.beamline import active
+            from ....core.paths import resolver_for
+        except Exception:
+            return {}
+        try:
+            fig_i = self.get_figure_intensity()
+            fig_u = self.get_figure_uncertainty()
+            bl_id = active().id
+            import time as _time
+            timestamp = _time.strftime("%Y%m%d-%H%M%S")
+            run = getattr(wf, "current_run", "na")
+            prefix = f"live_{bl_id}-ipts-{wf.ipts}_run-{run}_{timestamp}"
+            output_dir = resolver_for(wf.ipts).live_monitor_dir + "/"
+            return save_figure_snapshot(
+                output_dir=output_dir,
+                file_prefix=prefix,
+                intensity_fig=fig_i,
+                uncertainty_fig=fig_u,
+                measure_times=wf.measure_times,
+                intensity_ratios=wf.intensity_ratios,
+                rsigs=wf.rsigs,
+                proton_charges=wf.proton_charges,
+            )
+        except Exception as e:
+            print(f"save_latest_figure_snapshot: {e}")
+            return {}
 
     # ---------- live-data lifecycle (delegates to workflow) ----------
 

@@ -89,6 +89,9 @@ class MainViewModel:
         # Track the last-known beamline so the view_state callback only triggers
         # a switch when the user actually picked a new option in the selector.
         self._last_beamline_id: str = self.view_state.beamline_id
+        # Track the last-known peak-selection mode so we can detect user-driven
+        # changes (the callback fires on any field on temporalanalysis).
+        self._last_data_selection: str = self.model.temporalanalysis.data_selection
         # Set parent link for temporalanalysis model so it can access sibling models
         try:
             if hasattr(self.model, "temporalanalysis") and hasattr(self.model.temporalanalysis, "set_parent"):
@@ -115,8 +118,14 @@ class MainViewModel:
             self.model.angleplan, callback_after_update=self.update_angleplan_after_change
         )
         self.eiccontrol_bind = binding.new_bind(self.model.eiccontrol, callback_after_update=self.change_callback)
-        # Create temporalanalysis bind WITHOUT a callback to avoid feedback loops
-        self.temporalanalysis_bind = binding.new_bind(self.model.temporalanalysis)
+        # temporalanalysis_bind needs a *user-driven-change* callback to react
+        # to dropdown / HKL edits (auto-stop on mode switch, buffer clear).
+        # The callback only fires on view→model writes — model→view pushes
+        # via ``update_in_view`` do not loop back through it.
+        self.temporalanalysis_bind = binding.new_bind(
+            self.model.temporalanalysis,
+            callback_after_update=self.on_temporalanalysis_change,
+        )
 
         self.dataanalysis_bind = binding.new_bind(self.model.dataanalysis, callback_after_update=self.change_callback)
 
@@ -170,6 +179,39 @@ class MainViewModel:
             print(f"error in fields {results['errored']}, model not changed")
         else:
             _trace("model fields updated:", results['updated'])
+
+    def on_temporalanalysis_change(self, results: Dict[str, Any]) -> None:
+        """User-driven update on the temporal-analysis form (dropdown or HKL).
+
+        On peak-selection mode change: clear the plot buffers (different
+        modes plot different scalars — units are incompatible), pause the
+        live loop so the user can confirm HKL inputs / configure the next
+        mode, and surface a snackbar prompt to restart.
+        """
+        if results.get("error"):
+            print(f"temporalanalysis error in {results.get('errored')}")
+            return
+        new_sel = self.model.temporalanalysis.data_selection
+        if new_sel != self._last_data_selection:
+            old_sel = self._last_data_selection
+            self._last_data_selection = new_sel
+            try:
+                self.model.temporalanalysis.on_data_selection_change(new_sel, old_sel)
+            except Exception as e:
+                print(f"on_data_selection_change failed: {e}")
+            if self.view_state.is_live_update_running:
+                self.stop_live_update()
+                self.view_state.beamline_switch_notice = (
+                    f"Peak selection changed to '{new_sel}'. "
+                    "Live update paused — press Start to resume."
+                )
+                self.view_state.beamline_switch_visible = True
+                self.view_state_bind.update_in_view(self.view_state)
+            # Push the refreshed (likely placeholder) figures immediately.
+            try:
+                self.update_temporalanalysis_figure()
+            except Exception:
+                pass
 
     def on_view_state_change(self, results: Dict[str, Any]) -> None:
         """Detect user-driven changes to ViewState (currently: beamline selector)."""
@@ -429,6 +471,15 @@ class MainViewModel:
                     print(f"sync_latest_ub_from_workflow failed: {e}")
                 await self._update_figures_async(loop)
                 _trace("=== update temporal done ===")
+                # Persist the latest figures + their data alongside the UB
+                # .mat file. Cheap (HTML write + small CSV); offload anyway
+                # so the event loop stays responsive on slow filesystems.
+                try:
+                    await loop.run_in_executor(
+                        None, self.model.temporalanalysis.save_latest_figure_snapshot
+                    )
+                except Exception as e:
+                    print(f"save_latest_figure_snapshot failed: {e}")
                 if (
                     self.model.eiccontrol.eic_auto_stop_strategy == "By Uncertainty"
                     and len(self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty) > 0

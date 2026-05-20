@@ -6,15 +6,19 @@ Functions are deliberately pure (no I/O, no module/class state) so they
 can be reused across selection modes and dropped onto a unit test.
 
 The caller (:class:`TemporalAnalysisModel`) decides which series to feed
-in based on the active prediction model and peak-selection mode.
+in based on the active prediction model and peak-selection mode. Optional
+``title`` / ``yaxis`` overrides let selectors customise labels per mode
+(e.g. ``Peak Ratio`` plotting ``I_a / I_b`` instead of "Signal Noise Ratio").
 """
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+import os
+from typing import Any, List, Optional, Sequence
 
 import numpy as np
 import plotly.graph_objects as go
+import plotly.io as pio
 from sklearn.linear_model import LinearRegression
 
 from ._debug import trace
@@ -56,20 +60,40 @@ def _waiting_for_data(fig: go.Figure, title: str, yaxis_title: str) -> go.Figure
     return fig
 
 
+def waiting_figure(title: str, yaxis_title: str) -> go.Figure:
+    """Public helper: return a stand-alone 'Waiting for data' figure.
+
+    Used by selectors / modes that explicitly want to clear the plot
+    (e.g. Diffuse Scattering placeholder) rather than letting stale data
+    linger.
+    """
+    return _waiting_for_data(go.Figure(), title, yaxis_title)
+
+
 def build_intensity_figure(
     time_steps: List[float],
     intensity_data: Any,
     model_type: str,
+    title: Optional[str] = None,
+    yaxis: Optional[str] = None,
 ) -> go.Figure:
-    """Top figure: intensity-ratio history + extrapolated prediction line."""
+    """Top figure: intensity-ratio history + extrapolated prediction line.
+
+    ``title`` and ``yaxis`` override the defaults derived from
+    ``model_type`` (used by modes like ``Peak Ratio`` that plot a
+    different quantity).
+    """
     fig = go.Figure()
 
-    if model_type == "Linear Interpolation":
-        title = "Prediction of Intensity"
-        yaxis = "Intensity"
-    else:
-        title = "Prediction of Signal Noise Ratio"
-        yaxis = "Signal Noise Ratio"
+    if title is None or yaxis is None:
+        if model_type == "Linear Interpolation":
+            default_title = "Prediction of Intensity"
+            default_yaxis = "Intensity"
+        else:
+            default_title = "Prediction of Signal Noise Ratio"
+            default_yaxis = "Signal Noise Ratio"
+        title = title or default_title
+        yaxis = yaxis or default_yaxis
 
     if len(time_steps) > 0:
         print("============================================================================================")
@@ -121,34 +145,43 @@ def build_uncertainty_figure(
     uncertainty_data: Any,
     model_type: str,
     guard_series: Optional[List[float]] = None,
+    title: Optional[str] = None,
+    yaxis: Optional[str] = None,
 ) -> go.Figure:
     """Bottom figure: σ(I)/I (Rsig) history + fitted prediction curve.
 
-    Note: the legacy build guarded plotting on ``len(measure_times)``
-    regardless of the active series; ``guard_series`` reproduces that
-    behavior. Pass ``None`` to guard on ``time_steps`` directly.
+    The legacy build guarded plotting on ``len(measure_times)`` regardless
+    of the active series; ``guard_series`` reproduces that behavior. Pass
+    ``None`` to guard on ``time_steps`` directly. ``title`` and ``yaxis``
+    override defaults per mode.
     """
     fig = go.Figure()
 
+    if title is None or yaxis is None:
+        if model_type == "Linear Interpolation":
+            default_title = "Prediction of Uncertainty"
+            default_yaxis = "Uncertainty (%)"
+        else:
+            default_title = "Prediction of σ(I)/I"
+            default_yaxis = "σ(I)/I (%)"
+        title = title or default_title
+        yaxis = yaxis or default_yaxis
+
     if model_type == "Linear Interpolation":
-        title = "Prediction of Uncertainty"
-        yaxis = "Uncertainty (%)"
         ts_arr = np.array(time_steps)
         un_arr = np.array(uncertainty_data)
         nozero_mask = np.where(ts_arr > 0)
         x_pre = np.array(ts_arr[nozero_mask]).reshape(-1, 1)
         y_pre = np.array(un_arr[nozero_mask])
-        x_transformed_pre = 1 / x_pre ** 0.5
-        trace("X_transformed")
-        trace(x_transformed_pre)
-        trace("y")
-        trace(y_pre)
-        model_pre = LinearRegression()
-        model_pre.fit(x_transformed_pre, y_pre)
-        trace(f"Slope: {model_pre.coef_[0]}, Intercept: {model_pre.intercept_}")
-    else:
-        title = "Prediction of σ(I)/I"
-        yaxis = "σ(I)/I (%)"
+        if len(y_pre) > 0:
+            x_transformed_pre = 1 / x_pre ** 0.5
+            trace("X_transformed")
+            trace(x_transformed_pre)
+            trace("y")
+            trace(y_pre)
+            model_pre = LinearRegression()
+            model_pre.fit(x_transformed_pre, y_pre)
+            trace(f"Slope: {model_pre.coef_[0]}, Intercept: {model_pre.intercept_}")
 
     guard = guard_series if guard_series is not None else time_steps
     if len(guard) > 0:
@@ -194,3 +227,78 @@ def build_uncertainty_figure(
     else:
         _waiting_for_data(fig, title, yaxis)
     return fig
+
+
+# ---------- snapshot persistence ----------
+
+def save_figure_snapshot(
+    output_dir: str,
+    file_prefix: str,
+    *,
+    intensity_fig: go.Figure,
+    uncertainty_fig: go.Figure,
+    measure_times: Sequence[float],
+    intensity_ratios: Sequence[float],
+    rsigs: Sequence[float],
+    proton_charges: Optional[Sequence[float]] = None,
+) -> dict[str, str]:
+    """Persist the current figures + their underlying data to ``output_dir``.
+
+    Three files are written, all sharing ``file_prefix``:
+
+    - ``<prefix>_intensity.html``    — interactive top plot
+    - ``<prefix>_uncertainty.html``  — interactive bottom plot
+    - ``<prefix>_data.csv``          — the buffers driving the figures
+
+    Returns a dict of ``{kind: path}`` for the files that were written.
+    Missing values (empty buffers, write errors) are silently skipped;
+    this runs on every reduction cycle and must not raise.
+    """
+    written: dict[str, str] = {}
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+    except OSError as e:
+        print(f"save_figure_snapshot: could not create {output_dir}: {e}")
+        return written
+
+    intensity_path = os.path.join(output_dir, f"{file_prefix}_intensity.html")
+    uncertainty_path = os.path.join(output_dir, f"{file_prefix}_uncertainty.html")
+    data_path = os.path.join(output_dir, f"{file_prefix}_data.csv")
+
+    try:
+        pio.write_html(intensity_fig, file=intensity_path, include_plotlyjs="cdn", auto_open=False)
+        written["intensity"] = intensity_path
+    except Exception as e:
+        print(f"save_figure_snapshot: write_html(intensity) failed: {e}")
+
+    try:
+        pio.write_html(uncertainty_fig, file=uncertainty_path, include_plotlyjs="cdn", auto_open=False)
+        written["uncertainty"] = uncertainty_path
+    except Exception as e:
+        print(f"save_figure_snapshot: write_html(uncertainty) failed: {e}")
+
+    try:
+        n = len(measure_times)
+        if n > 0:
+            cols = [np.asarray(measure_times, dtype=float)]
+            header = ["time_s"]
+            if proton_charges is not None and len(proton_charges) == n:
+                cols.append(np.asarray(proton_charges, dtype=float))
+                header.append("proton_charge_C")
+            cols.append(np.asarray(intensity_ratios[:n], dtype=float))
+            header.append("intensity_ratio")
+            cols.append(np.asarray(rsigs[:n], dtype=float))
+            header.append("rsig_or_uncertainty_pct")
+            stacked = np.column_stack(cols)
+            np.savetxt(
+                data_path,
+                stacked,
+                delimiter=",",
+                header=",".join(header),
+                comments="",
+            )
+            written["data"] = data_path
+    except Exception as e:
+        print(f"save_figure_snapshot: data CSV write failed: {e}")
+
+    return written
