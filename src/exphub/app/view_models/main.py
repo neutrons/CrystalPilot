@@ -69,6 +69,9 @@ class ViewState(BaseModel):
     beamline_options: list[dict] = Field(default_factory=_default_beamline_options)
     beamline_switch_notice: str = Field(default="")
     beamline_switch_visible: bool = Field(default=False)
+    # Chip+popover visibility flags for the temporal-analysis tab's HKL editors.
+    hkl_individual_menu: bool = Field(default=False)
+    hkl_peak_ratio_menu: bool = Field(default=False)
 
 
 class MainViewModel:
@@ -180,13 +183,36 @@ class MainViewModel:
         else:
             _trace("model fields updated:", results['updated'])
 
-    def on_temporalanalysis_change(self, results: Dict[str, Any]) -> None:
-        """User-driven update on the temporal-analysis form (dropdown or HKL).
+    def _handle_plot_definition_change(self, reason: str) -> None:
+        """User changed something that invalidates the plotted time series.
 
-        On peak-selection mode change: clear the plot buffers (different
-        modes plot different scalars — units are incompatible), pause the
-        live loop so the user can confirm HKL inputs / configure the next
-        mode, and surface a snackbar prompt to restart.
+        Clears the workflow's plot buffers, pauses the live loop if running,
+        surfaces a snackbar prompt, and re-pushes the (now empty) figures
+        so the view shows "Waiting for data" until the user restarts.
+        """
+        try:
+            self.model.temporalanalysis.clear_plot_buffers()
+        except Exception as e:
+            print(f"clear_plot_buffers failed: {e}")
+        if self.view_state.is_live_update_running:
+            self.stop_live_update()
+            self.view_state.beamline_switch_notice = (
+                f"{reason}. Live update paused — press Start to resume."
+            )
+            self.view_state.beamline_switch_visible = True
+            self.view_state_bind.update_in_view(self.view_state)
+        try:
+            self.update_temporalanalysis_figure()
+        except Exception:
+            pass
+
+    def on_temporalanalysis_change(self, results: Dict[str, Any]) -> None:
+        """User-driven update on the temporal-analysis form (dropdown change).
+
+        HKL edits inside the chip+popover do not flow through this path —
+        the popover's Apply button calls :meth:`apply_individual_hkl` /
+        :meth:`apply_peak_ratio_hkls` directly so we only invalidate
+        buffers on user commit, not on every keystroke.
         """
         if results.get("error"):
             print(f"temporalanalysis error in {results.get('errored')}")
@@ -195,23 +221,24 @@ class MainViewModel:
         if new_sel != self._last_data_selection:
             old_sel = self._last_data_selection
             self._last_data_selection = new_sel
-            try:
-                self.model.temporalanalysis.on_data_selection_change(new_sel, old_sel)
-            except Exception as e:
-                print(f"on_data_selection_change failed: {e}")
-            if self.view_state.is_live_update_running:
-                self.stop_live_update()
-                self.view_state.beamline_switch_notice = (
-                    f"Peak selection changed to '{new_sel}'. "
-                    "Live update paused — press Start to resume."
-                )
-                self.view_state.beamline_switch_visible = True
-                self.view_state_bind.update_in_view(self.view_state)
-            # Push the refreshed (likely placeholder) figures immediately.
-            try:
-                self.update_temporalanalysis_figure()
-            except Exception:
-                pass
+            self._handle_plot_definition_change(f"Peak selection changed to '{new_sel}'")
+
+    def apply_individual_hkl(self) -> None:
+        """User clicked Apply in the Individual-peak HKL popover."""
+        self._handle_plot_definition_change(
+            f"Individual peak HKL set to {tuple(self.model.temporalanalysis.individual_peak_hkl)}"
+        )
+        self.view_state.hkl_individual_menu = False
+        self.view_state_bind.update_in_view(self.view_state)
+
+    def apply_peak_ratio_hkls(self) -> None:
+        """User clicked Apply in the Peak-Ratio HKL popover."""
+        ta = self.model.temporalanalysis
+        self._handle_plot_definition_change(
+            f"Peak ratio set to {tuple(ta.peak_ratio_hkl_a)} / {tuple(ta.peak_ratio_hkl_b)}"
+        )
+        self.view_state.hkl_peak_ratio_menu = False
+        self.view_state_bind.update_in_view(self.view_state)
 
     def on_view_state_change(self, results: Dict[str, Any]) -> None:
         """Detect user-driven changes to ViewState (currently: beamline selector)."""

@@ -286,15 +286,16 @@ class TemporalAnalysisModel(BaseModel):
 
     # ---------- mode-change buffer clear ----------
 
-    def on_data_selection_change(self, new: str, old: str) -> None:
-        """Clear plot buffers + figure caches when the user switches mode.
+    def clear_plot_buffers(self) -> None:
+        """Drop the per-cycle plot history + invalidate figure caches.
 
-        Different modes plot different scalars (mean I/σ, raw ratio, ...),
-        so retaining the previous mode's history would produce a misleading
-        mixed-unit time series. View-model invokes this when the dropdown
-        change is detected.
+        Called whenever the *meaning* of the plotted scalar changes —
+        mode switch, HKL edit in Individual/PeakRatio modes — so the
+        figures don't show mixed-unit history.
         """
-        if new == old or self._mtd_workflow is None:
+        self._intensity_fig_cache = None
+        self._uncertainty_fig_cache = None
+        if self._mtd_workflow is None:
             return
         wf = self._mtd_workflow
         try:
@@ -311,9 +312,13 @@ class TemporalAnalysisModel(BaseModel):
                 "uncertainty_yaxis": None,
             }
         except Exception as e:
-            print(f"on_data_selection_change: buffer clear failed: {e}")
-        self._intensity_fig_cache = None
-        self._uncertainty_fig_cache = None
+            print(f"clear_plot_buffers: {e}")
+
+    def on_data_selection_change(self, new: str, old: str) -> None:
+        """Thin wrapper around clear_plot_buffers for dropdown changes."""
+        if new == old:
+            return
+        self.clear_plot_buffers()
 
     # ---------- figure snapshot persistence ----------
 

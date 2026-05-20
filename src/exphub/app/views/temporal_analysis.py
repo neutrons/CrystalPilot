@@ -61,11 +61,130 @@ class TemporalAnalysisView:
                 items="model_temporalanalysis.prediction_model_type_options",
                 type="select",
             )
-            InputField(
-                v_model="model_temporalanalysis.data_selection",
-                items="model_temporalanalysis.data_selection_options",
-                type="select",
-            )
+            # Peak-selection dropdown + an inline HKL chip. The chip is shown
+            # only for modes that need HKL input (Individual Peak / Peak Ratio)
+            # and clicking it opens a small popover anchored to the chip.
+            with html.Div(
+                style="display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap;",
+            ):
+                with html.Div(style="flex: 1 1 auto; min-width: 180px;"):
+                    InputField(
+                        v_model="model_temporalanalysis.data_selection",
+                        items="model_temporalanalysis.data_selection_options",
+                        type="select",
+                    )
+                vuetify.VChip(
+                    "HKL [{{ model_temporalanalysis.individual_peak_hkl[0] }},"
+                    " {{ model_temporalanalysis.individual_peak_hkl[1] }},"
+                    " {{ model_temporalanalysis.individual_peak_hkl[2] }}] ✎",
+                    id="hkl-chip-individual",
+                    v_if="model_temporalanalysis.data_selection === 'Individual Peak'",
+                    size="small",
+                    variant="outlined",
+                    style="cursor: pointer;",
+                )
+                with vuetify.VMenu(
+                    activator="#hkl-chip-individual",
+                    v_model=("controls.hkl_individual_menu", False),
+                    close_on_content_click=False,
+                    location="bottom",
+                ):
+                    with vuetify.VCard(min_width=280, classes="pa-2"):
+                        vuetify.VCardSubtitle("Edit individual-peak HKL")
+                        with vuetify.VCardText():
+                            with GridLayout(columns=3, gap="0.5em"):
+                                InputField(
+                                    v_model="model_temporalanalysis.individual_peak_hkl[0]",
+                                    type="number",
+                                    label="h",
+                                    density="compact",
+                                )
+                                InputField(
+                                    v_model="model_temporalanalysis.individual_peak_hkl[1]",
+                                    type="number",
+                                    label="k",
+                                    density="compact",
+                                )
+                                InputField(
+                                    v_model="model_temporalanalysis.individual_peak_hkl[2]",
+                                    type="number",
+                                    label="l",
+                                    density="compact",
+                                )
+                        with vuetify.VCardActions():
+                            vuetify.VBtn(
+                                "Apply",
+                                click=self.view_model.apply_individual_hkl,
+                                color="primary",
+                                size="small",
+                                variant="elevated",
+                            )
+                vuetify.VChip(
+                    "[{{ model_temporalanalysis.peak_ratio_hkl_a[0] }},"
+                    " {{ model_temporalanalysis.peak_ratio_hkl_a[1] }},"
+                    " {{ model_temporalanalysis.peak_ratio_hkl_a[2] }}]"
+                    " / [{{ model_temporalanalysis.peak_ratio_hkl_b[0] }},"
+                    " {{ model_temporalanalysis.peak_ratio_hkl_b[1] }},"
+                    " {{ model_temporalanalysis.peak_ratio_hkl_b[2] }}] ✎",
+                    id="hkl-chip-peak-ratio",
+                    v_if="model_temporalanalysis.data_selection === 'Peak Ratio'",
+                    size="small",
+                    variant="outlined",
+                    style="cursor: pointer;",
+                )
+                with vuetify.VMenu(
+                    activator="#hkl-chip-peak-ratio",
+                    v_model=("controls.hkl_peak_ratio_menu", False),
+                    close_on_content_click=False,
+                    location="bottom",
+                ):
+                    with vuetify.VCard(min_width=320, classes="pa-2"):
+                        vuetify.VCardSubtitle("Edit peak-ratio HKLs (numerator / denominator)")
+                        with vuetify.VCardText():
+                            with html.Div(
+                                style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.3em;",
+                            ):
+                                vuetify.VLabel("Peak A", style="min-width: 60px; font-size: 0.85em;")
+                                with html.Div(style="flex: 1 1 auto;"):
+                                    with GridLayout(columns=3, gap="0.3em"):
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_a[0]",
+                                            type="number", label="h", density="compact",
+                                        )
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_a[1]",
+                                            type="number", label="k", density="compact",
+                                        )
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_a[2]",
+                                            type="number", label="l", density="compact",
+                                        )
+                            with html.Div(
+                                style="display: flex; align-items: center; gap: 0.5em;",
+                            ):
+                                vuetify.VLabel("Peak B", style="min-width: 60px; font-size: 0.85em;")
+                                with html.Div(style="flex: 1 1 auto;"):
+                                    with GridLayout(columns=3, gap="0.3em"):
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_b[0]",
+                                            type="number", label="h", density="compact",
+                                        )
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_b[1]",
+                                            type="number", label="k", density="compact",
+                                        )
+                                        InputField(
+                                            v_model="model_temporalanalysis.peak_ratio_hkl_b[2]",
+                                            type="number", label="l", density="compact",
+                                        )
+                        with vuetify.VCardActions():
+                            vuetify.VBtn(
+                                "Apply",
+                                click=self.view_model.apply_peak_ratio_hkls,
+                                color="primary",
+                                size="small",
+                                variant="elevated",
+                            )
             InputField(
                 v_model="model_temporalanalysis.time_interval",
             )
