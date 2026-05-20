@@ -209,11 +209,13 @@ class MantidWorkflow:
 
         self.selection = models.temporalanalysis.data_selection
         # Selector kwargs for the registry factory; unused keys are
-        # ignored by selectors that don't take them.
+        # ignored by selectors that don't take them. HKLs are stored as
+        # scalar pydantic fields and assembled into tuples here.
+        ta = models.temporalanalysis
         self.selector_params = {
-            "hkl": tuple(models.temporalanalysis.individual_peak_hkl),
-            "hkl_a": tuple(models.temporalanalysis.peak_ratio_hkl_a),
-            "hkl_b": tuple(models.temporalanalysis.peak_ratio_hkl_b),
+            "hkl": (ta.individual_peak_h, ta.individual_peak_k, ta.individual_peak_l),
+            "hkl_a": (ta.peak_ratio_a_h, ta.peak_ratio_a_k, ta.peak_ratio_a_l),
+            "hkl_b": (ta.peak_ratio_b_h, ta.peak_ratio_b_k, ta.peak_ratio_b_l),
         }
 
     def update_peak_output_filenames(self) -> None:

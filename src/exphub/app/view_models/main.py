@@ -225,8 +225,10 @@ class MainViewModel:
 
     def apply_individual_hkl(self) -> None:
         """User clicked Apply in the Individual-peak HKL popover."""
+        ta = self.model.temporalanalysis
         self._handle_plot_definition_change(
-            f"Individual peak HKL set to {tuple(self.model.temporalanalysis.individual_peak_hkl)}"
+            f"Individual peak HKL set to "
+            f"({ta.individual_peak_h}, {ta.individual_peak_k}, {ta.individual_peak_l})"
         )
         self.view_state.hkl_individual_menu = False
         self.view_state_bind.update_in_view(self.view_state)
@@ -235,7 +237,9 @@ class MainViewModel:
         """User clicked Apply in the Peak-Ratio HKL popover."""
         ta = self.model.temporalanalysis
         self._handle_plot_definition_change(
-            f"Peak ratio set to {tuple(ta.peak_ratio_hkl_a)} / {tuple(ta.peak_ratio_hkl_b)}"
+            f"Peak ratio set to "
+            f"({ta.peak_ratio_a_h}, {ta.peak_ratio_a_k}, {ta.peak_ratio_a_l}) / "
+            f"({ta.peak_ratio_b_h}, {ta.peak_ratio_b_k}, {ta.peak_ratio_b_l})"
         )
         self.view_state.hkl_peak_ratio_menu = False
         self.view_state_bind.update_in_view(self.view_state)

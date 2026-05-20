@@ -40,20 +40,33 @@ class TemporalAnalysisModel(BaseModel):
         "Individual Peak",
         "Peak Ratio",
     ]
-    # User-entered HKLs for the modes that need them. Captured via the
-    # chip+popover UX in views/temporal_analysis.py.
-    individual_peak_hkl: List[int] = Field(
-        default_factory=lambda: [1, 0, 0],
-        title="Individual peak HKL",
-    )
-    peak_ratio_hkl_a: List[int] = Field(
-        default_factory=lambda: [1, 0, 0],
-        title="Peak ratio — peak A HKL (numerator)",
-    )
-    peak_ratio_hkl_b: List[int] = Field(
-        default_factory=lambda: [0, 1, 0],
-        title="Peak ratio — peak B HKL (denominator)",
-    )
+    # User-entered HKLs for the modes that need them. Stored as 9 scalar
+    # fields rather than 3 List[int] fields because trame's state diffing
+    # doesn't reliably round-trip ``v-model="array[i]"`` writes from the
+    # browser; binding each input to a top-level scalar avoids the issue.
+    # Tuples are assembled at consumption time in
+    # :meth:`MantidWorkflow.update_experiment_info`.
+    individual_peak_h: int = Field(default=1, title="Individual peak h")
+    individual_peak_k: int = Field(default=0, title="Individual peak k")
+    individual_peak_l: int = Field(default=0, title="Individual peak l")
+    peak_ratio_a_h: int = Field(default=1, title="Peak ratio A h (numerator)")
+    peak_ratio_a_k: int = Field(default=0, title="Peak ratio A k (numerator)")
+    peak_ratio_a_l: int = Field(default=0, title="Peak ratio A l (numerator)")
+    peak_ratio_b_h: int = Field(default=0, title="Peak ratio B h (denominator)")
+    peak_ratio_b_k: int = Field(default=1, title="Peak ratio B k (denominator)")
+    peak_ratio_b_l: int = Field(default=0, title="Peak ratio B l (denominator)")
+
+    @property
+    def individual_peak_hkl(self) -> tuple[int, int, int]:
+        return (self.individual_peak_h, self.individual_peak_k, self.individual_peak_l)
+
+    @property
+    def peak_ratio_hkl_a(self) -> tuple[int, int, int]:
+        return (self.peak_ratio_a_h, self.peak_ratio_a_k, self.peak_ratio_a_l)
+
+    @property
+    def peak_ratio_hkl_b(self) -> tuple[int, int, int]:
+        return (self.peak_ratio_b_h, self.peak_ratio_b_k, self.peak_ratio_b_l)
     time_steps: List[float] = Field(
         default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps"
     )
