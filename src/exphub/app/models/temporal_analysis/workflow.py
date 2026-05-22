@@ -110,6 +110,11 @@ class MantidWorkflow:
         # returned None (no peak match, placeholder mode, ...). The
         # view-model can react by showing a "Waiting for data" figure.
         self.skip_this_cycle: bool = False
+        # Human-readable reason from the most recent skipped cycle. Read by
+        # the figure builders so the on-screen placeholder names the actual
+        # problem (e.g. "Peak (1,0,0) not indexed in workspace") instead of
+        # a generic "Waiting for data".
+        self.skip_reason: str = ""
         # Reset by ``pipeline.check_peaks`` per cycle (live ratio for
         # the figures); seeded here so legacy fall-through doesn't trip
         # an AttributeError on first read.

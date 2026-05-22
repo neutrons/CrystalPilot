@@ -216,6 +216,7 @@ class TemporalAnalysisModel(BaseModel):
             n,
             ts[-1] if n else None,
             vals[-1] if n and len(vals) else None,
+            getattr(self._mtd_workflow, "skip_reason", "") if n == 0 else "",
         )
 
     def get_figure_intensity(self) -> go.Figure:
@@ -251,6 +252,7 @@ class TemporalAnalysisModel(BaseModel):
             self.prediction_model_type,
             title=labels.get("intensity_title"),
             yaxis=labels.get("intensity_yaxis"),
+            skip_reason=getattr(self._mtd_workflow, "skip_reason", "") or None,
         )
 
     def _uncertainty_cache_key(self) -> Any:
@@ -263,6 +265,7 @@ class TemporalAnalysisModel(BaseModel):
             n,
             ts[-1] if n else None,
             vals[-1] if n and len(vals) else None,
+            getattr(self._mtd_workflow, "skip_reason", "") if n == 0 else "",
         )
 
     def get_figure_uncertainty(self) -> go.Figure:
@@ -295,6 +298,7 @@ class TemporalAnalysisModel(BaseModel):
             guard_series=guard_series,
             title=labels.get("uncertainty_title"),
             yaxis=labels.get("uncertainty_yaxis"),
+            skip_reason=getattr(self._mtd_workflow, "skip_reason", "") or None,
         )
 
     # ---------- mode-change buffer clear ----------
@@ -324,6 +328,7 @@ class TemporalAnalysisModel(BaseModel):
                 "uncertainty_title": None,
                 "uncertainty_yaxis": None,
             }
+            wf.skip_reason = ""
         except Exception as e:
             print(f"clear_plot_buffers: {e}")
 

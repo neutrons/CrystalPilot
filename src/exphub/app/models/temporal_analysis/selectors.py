@@ -66,6 +66,88 @@ class PeakSelector(Protocol):
 
 # ---------- helpers ----------
 
+def _read_peak_row(peaks_ws: Any, i: int) -> Optional[tuple[int, int, int, int, float, float]]:
+    """Return ``(idx, h, k, l, I, σ)`` for peak ``i``, or ``None`` on read error."""
+    try:
+        peak = peaks_ws.getPeak(i)
+        ihkl = peak.getIntHKL()
+        h, k, l = int(ihkl[0]), int(ihkl[1]), int(ihkl[2])
+        I = float(peak.getIntensity())
+        s = float(peak.getSigmaIntensity())
+        return (i, h, k, l, I, s)
+    except Exception:
+        return None
+
+
+def _format_peaks_summary(peaks_ws: Any, limit: int = 50) -> str:
+    """Tabular dump of every peak's IntHKL + I + σ in workspace order.
+
+    Used by selectors that need to tell the user *what is available* when
+    the requested HKL doesn't match. Truncated past ``limit`` rows so a
+    1000-peak workspace doesn't spam the console.
+    """
+    try:
+        n = peaks_ws.getNumberPeaks()
+    except Exception:
+        return "  <peaks workspace unavailable>"
+    if n == 0:
+        return "  <empty peaks workspace>"
+    lines: list[str] = []
+    lines.append(f"  workspace has {n} peaks (showing up to {limit}, in workspace order):")
+    lines.append(f"  {'idx':>4}  {'IntHKL':>14}  {'I':>12}  {'σ':>10}  {'I/σ':>8}")
+    shown = min(n, limit)
+    for i in range(shown):
+        row = _read_peak_row(peaks_ws, i)
+        if row is None:
+            lines.append(f"  {i:>4}  <peak read failed>")
+            continue
+        _, h, k, l, I, s = row
+        isig = (I / s) if s > 0 else float("nan")
+        lines.append(f"  {i:>4}  ({h:>3},{k:>3},{l:>3})  {I:>12.2f}  {s:>10.2f}  {isig:>8.2f}")
+    if shown < n:
+        lines.append(f"  ... ({n - shown} more peaks omitted)")
+    return "\n".join(lines)
+
+
+def _format_smallest_hkl_peaks(peaks_ws: Any, k_show: int = 10) -> str:
+    """Show ``k_show`` indexed peaks with the smallest |HKL|.
+
+    Sort key is ``(|h|+|k|+|l|, |h|, |k|, |l|)``. Unindexed peaks (IntHKL
+    == (0,0,0)) are filtered out so the user sees genuine candidates they
+    can paste into the Individual Peak / Peak Ratio HKL inputs.
+    """
+    try:
+        n = peaks_ws.getNumberPeaks()
+    except Exception:
+        return "  <peaks workspace unavailable>"
+    rows: list[tuple[int, int, int, int, float, float]] = []
+    for i in range(n):
+        row = _read_peak_row(peaks_ws, i)
+        if row is None:
+            continue
+        _, h, k, l, _, _ = row
+        if h == 0 and k == 0 and l == 0:
+            continue
+        rows.append(row)
+    if not rows:
+        return "  <no indexed peaks in workspace>"
+    rows.sort(key=lambda r: (abs(r[1]) + abs(r[2]) + abs(r[3]), abs(r[1]), abs(r[2]), abs(r[3])))
+    lines: list[str] = []
+    lines.append(f"  smallest-|HKL| indexed peaks (showing up to {k_show} of {len(rows)}):")
+    lines.append(f"  {'idx':>4}  {'IntHKL':>14}  {'I':>12}  {'σ':>10}  {'I/σ':>8}")
+    for idx, h, k, l, I, s in rows[:k_show]:
+        isig = (I / s) if s > 0 else float("nan")
+        lines.append(f"  {idx:>4}  ({h:>3},{k:>3},{l:>3})  {I:>12.2f}  {s:>10.2f}  {isig:>8.2f}")
+    return "\n".join(lines)
+
+
+def _print_peaks_summary(peaks_ws: Any, header: str, limit: int = 50, k_smallest: int = 10) -> None:
+    """Print ``header`` + smallest-|HKL| candidates + workspace-order dump."""
+    print(header)
+    print(_format_smallest_hkl_peaks(peaks_ws, k_show=k_smallest))
+    print(_format_peaks_summary(peaks_ws, limit=limit))
+
+
 def _mnp_is_zero(peak: Any) -> bool:
     """True if a peak's modulation indices (m,n,p) are all zero.
 
@@ -132,6 +214,7 @@ class AllPeaksSelector:
     """
 
     name = "All Peaks"
+    last_skip_reason: str = ""
 
     def select(
         self,
@@ -141,6 +224,7 @@ class AllPeaksSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = ""
         r = float(statistics["Mean ((I)/sd(I))"])
         return SelectionResult(intensity_ratio=r, rsig=100.0 / r)
 
@@ -149,6 +233,7 @@ class BraggPeaksSelector:
     """Mean I/σ over peaks whose modulation indices are all zero."""
 
     name = "Bragg Peaks"
+    last_skip_reason: str = ""
 
     def select(
         self,
@@ -158,10 +243,12 @@ class BraggPeaksSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = ""
         idxs = [i for i in range(peaks_ws.getNumberPeaks())
                 if _mnp_is_zero(peaks_ws.getPeak(i))]
         out = _reduce_mean_isig(int_array, sig_array, idxs)
         if out is None:
+            self.last_skip_reason = "No Bragg peaks (IntMNP == 0) with σ > 0 in this cycle"
             return None
         r, rsig = out
         return SelectionResult(
@@ -184,6 +271,7 @@ class SatellitePeaksSelector:
     """
 
     name = "Satellite Peaks"
+    last_skip_reason: str = ""
 
     def select(
         self,
@@ -193,10 +281,14 @@ class SatellitePeaksSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = ""
         idxs = [i for i in range(peaks_ws.getNumberPeaks())
                 if not _mnp_is_zero(peaks_ws.getPeak(i))]
         out = _reduce_mean_isig(int_array, sig_array, idxs)
         if out is None:
+            self.last_skip_reason = (
+                "No satellite peaks indexed (check ModVector / MaxOrder)"
+            )
             return None
         r, rsig = out
         return SelectionResult(
@@ -218,6 +310,7 @@ class MaxPeakSelector:
     """
 
     name = "Max Peak"
+    last_skip_reason: str = ""
 
     def select(
         self,
@@ -227,7 +320,14 @@ class MaxPeakSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
-        if max_peak_idx < 0 or sig_array[max_peak_idx] <= 0:
+        self.last_skip_reason = ""
+        if max_peak_idx < 0:
+            self.last_skip_reason = "Max-peak index not yet established"
+            return None
+        if sig_array[max_peak_idx] <= 0:
+            self.last_skip_reason = (
+                f"Max peak (idx {max_peak_idx}) has σ ≤ 0 — cannot compute I/σ"
+            )
             return None
         r = float(int_array[max_peak_idx] / sig_array[max_peak_idx])
         return SelectionResult(intensity_ratio=r, rsig=100.0 / r)
@@ -241,6 +341,7 @@ class DiffuseScatteringSelector:
     """
 
     name = "Diffuse Scattering"
+    last_skip_reason: str = "Diffuse Scattering reduction not yet implemented"
 
     def select(
         self,
@@ -250,6 +351,7 @@ class DiffuseScatteringSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = "Diffuse Scattering reduction not yet implemented"
         return None
 
 
@@ -257,6 +359,7 @@ class IndividualPeakSelector:
     """I/σ of the single peak matching the user-entered HKL."""
 
     name = "Individual Peak"
+    last_skip_reason: str = ""
 
     def __init__(self, hkl: Sequence[int]) -> None:
         self.hkl = (int(hkl[0]), int(hkl[1]), int(hkl[2]))
@@ -269,11 +372,21 @@ class IndividualPeakSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = ""
         idx = _find_peak_by_inthkl(peaks_ws, self.hkl)
         if idx is None:
-            print(f"IndividualPeakSelector: peak {self.hkl} not found in workspace")
+            self.last_skip_reason = (
+                f"Peak HKL {self.hkl} not indexed in workspace — pick from listing"
+            )
+            _print_peaks_summary(
+                peaks_ws,
+                header=f"IndividualPeakSelector: peak {self.hkl} not found in workspace",
+            )
             return None
         if sig_array[idx] <= 0:
+            self.last_skip_reason = (
+                f"Peak {self.hkl} found (idx {idx}) but σ ≤ 0 — skipping this cycle"
+            )
             return None
         r = float(int_array[idx] / sig_array[idx])
         title = f"Prediction of I/σ — peak {self.hkl}"
@@ -297,6 +410,7 @@ class PeakRatioSelector:
     """
 
     name = "Peak Ratio"
+    last_skip_reason: str = ""
 
     def __init__(self, hkl_a: Sequence[int], hkl_b: Sequence[int]) -> None:
         self.hkl_a = (int(hkl_a[0]), int(hkl_a[1]), int(hkl_a[2]))
@@ -310,17 +424,30 @@ class PeakRatioSelector:
         max_peak_idx: int,
         statistics: dict,
     ) -> Optional[SelectionResult]:
+        self.last_skip_reason = ""
         ia = _find_peak_by_inthkl(peaks_ws, self.hkl_a)
         ib = _find_peak_by_inthkl(peaks_ws, self.hkl_b)
         if ia is None or ib is None:
             missing = []
             if ia is None: missing.append(str(self.hkl_a))
             if ib is None: missing.append(str(self.hkl_b))
-            print(f"PeakRatioSelector: peaks not found: {', '.join(missing)}")
+            missing_str = ", ".join(missing)
+            self.last_skip_reason = (
+                f"Peak Ratio: HKL(s) not indexed — {missing_str}"
+            )
+            _print_peaks_summary(
+                peaks_ws,
+                header=f"PeakRatioSelector: peaks not found: {missing_str}",
+            )
             return None
         I_a, s_a = float(int_array[ia]), float(sig_array[ia])
         I_b, s_b = float(int_array[ib]), float(sig_array[ib])
         if I_b == 0 or I_a == 0 or s_a <= 0 or s_b <= 0:
+            self.last_skip_reason = (
+                f"Peak Ratio: degenerate I/σ — "
+                f"{self.hkl_a}: I={I_a:.2f},σ={s_a:.2f}; "
+                f"{self.hkl_b}: I={I_b:.2f},σ={s_b:.2f}"
+            )
             return None
         ratio = I_a / I_b
         rel_unc = ((s_a / I_a) ** 2 + (s_b / I_b) ** 2) ** 0.5

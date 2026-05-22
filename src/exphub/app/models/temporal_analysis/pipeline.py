@@ -344,7 +344,11 @@ def check_peaks(wf: "MantidWorkflow") -> None:
         )
         if result is None:
             wf.skip_this_cycle = True
+            wf.skip_reason = getattr(selector, "last_skip_reason", "") or (
+                f"Selector '{wf.selection}' returned no data this cycle"
+            )
         else:
+            wf.skip_reason = ""
             wf.intensity_ratio = result.intensity_ratio
             wf.Rsig = result.rsig
             wf.selection_aux = result.aux
@@ -354,6 +358,9 @@ def check_peaks(wf: "MantidWorkflow") -> None:
                 "uncertainty_title": result.uncertainty_title,
                 "uncertainty_yaxis": result.uncertainty_yaxis,
             }
+    else:
+        wf.skip_this_cycle = True
+        wf.skip_reason = f"No selector registered for mode '{wf.selection}'"
 
     if not wf.skip_this_cycle:
         print("Rsig = %.2f" % wf.Rsig)

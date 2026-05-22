@@ -37,7 +37,12 @@ def _apply_axes(fig: go.Figure) -> None:
     fig.update_yaxes(showline=True, linewidth=2, linecolor="black", mirror=True, **GRID_KWARGS)
 
 
-def _waiting_for_data(fig: go.Figure, title: str, yaxis_title: str) -> go.Figure:
+def _waiting_for_data(
+    fig: go.Figure,
+    title: str,
+    yaxis_title: str,
+    message: Optional[str] = None,
+) -> go.Figure:
     fig.update_layout(
         title={"text": title, "x": 0.5, "xanchor": "center"},
         xaxis_title="Time Steps (s)",
@@ -48,26 +53,28 @@ def _waiting_for_data(fig: go.Figure, title: str, yaxis_title: str) -> go.Figure
         margin=FIG_MARGIN,
     )
     _apply_axes(fig)
+    text = message if message else "Waiting for data"
     fig.add_annotation(
-        text="Waiting for data",
+        text=text,
         xref="paper",
         yref="paper",
         x=0.5,
         y=0.5,
         showarrow=False,
-        font={"size": 20, "color": "red"},
+        font={"size": 18, "color": "red"},
+        align="center",
     )
     return fig
 
 
-def waiting_figure(title: str, yaxis_title: str) -> go.Figure:
-    """Public helper: return a stand-alone 'Waiting for data' figure.
+def waiting_figure(title: str, yaxis_title: str, message: Optional[str] = None) -> go.Figure:
+    """Public helper: return a stand-alone placeholder figure.
 
-    Used by selectors / modes that explicitly want to clear the plot
-    (e.g. Diffuse Scattering placeholder) rather than letting stale data
-    linger.
+    ``message`` overrides the default "Waiting for data" annotation —
+    used by selector-aware callers to surface a more specific reason
+    (e.g. "Peak (1,0,0) not indexed in workspace").
     """
-    return _waiting_for_data(go.Figure(), title, yaxis_title)
+    return _waiting_for_data(go.Figure(), title, yaxis_title, message=message)
 
 
 def build_intensity_figure(
@@ -76,6 +83,7 @@ def build_intensity_figure(
     model_type: str,
     title: Optional[str] = None,
     yaxis: Optional[str] = None,
+    skip_reason: Optional[str] = None,
 ) -> go.Figure:
     """Top figure: intensity-ratio history + extrapolated prediction line.
 
@@ -136,7 +144,7 @@ def build_intensity_figure(
         )
         _apply_axes(fig)
     else:
-        _waiting_for_data(fig, title, yaxis)
+        _waiting_for_data(fig, title, yaxis, message=skip_reason)
     return fig
 
 
@@ -147,6 +155,7 @@ def build_uncertainty_figure(
     guard_series: Optional[List[float]] = None,
     title: Optional[str] = None,
     yaxis: Optional[str] = None,
+    skip_reason: Optional[str] = None,
 ) -> go.Figure:
     """Bottom figure: σ(I)/I (Rsig) history + fitted prediction curve.
 
@@ -225,7 +234,7 @@ def build_uncertainty_figure(
         )
         _apply_axes(fig)
     else:
-        _waiting_for_data(fig, title, yaxis)
+        _waiting_for_data(fig, title, yaxis, message=skip_reason)
     return fig
 
 
