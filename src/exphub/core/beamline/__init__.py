@@ -8,9 +8,12 @@ Public surface:
 - :class:`SingleCrystalConfig`, :class:`SansConfig` — the discriminated
   ``technique_config`` payloads, keyed on ``kind``.
 - :func:`register`, :func:`get`, :func:`list_ids`, :func:`active` — the
-  module-level registry surface.
+  module-level beamline registry surface.
 - :class:`BeamlineContext` — the runtime accessor handed to view-models and
   the agent.
+- :class:`TechniqueManifest`, :class:`TabKey`, :class:`PhaseDefinition`,
+  :class:`ActionTool` + :func:`register_technique`, :func:`get_technique`,
+  :func:`active_technique` — the technique-family plug-in surface.
 """
 
 from .context import BeamlineContext
@@ -28,8 +31,19 @@ from .spec import (
     TabOverrides,
     TechniqueConfig,
 )
+from .technique import (
+    ActionTool,
+    PhaseDefinition,
+    TabKey,
+    TechniqueManifest,
+    active_technique,
+    get_technique,
+    list_technique_ids,
+    register_technique,
+)
 
 __all__ = [
+    "ActionTool",
     "AgentSpec",
     "BeamlineContext",
     "BeamlineSpec",
@@ -38,13 +52,20 @@ __all__ = [
     "GoniometerSpec",
     "MantidSpec",
     "PathsSpec",
+    "PhaseDefinition",
     "SansConfig",
     "SingleCrystalConfig",
+    "TabKey",
     "TabOverrides",
     "TechniqueConfig",
+    "TechniqueManifest",
     "active",
+    "active_technique",
     "get",
+    "get_technique",
     "list_ids",
+    "list_technique_ids",
     "register",
+    "register_technique",
     "set_active",
 ]
