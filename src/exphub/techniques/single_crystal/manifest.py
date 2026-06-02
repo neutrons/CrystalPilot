@@ -18,6 +18,7 @@ from ...core.beamline.technique import (
     TechniqueManifest,
     register_technique,
 )
+from .agent.phases import SINGLE_CRYSTAL_PHASES
 
 _TECHNIQUE_DIR = Path(__file__).resolve().parent
 
@@ -86,7 +87,9 @@ SINGLE_CRYSTAL = register_technique(
         # Technique-level prompt fragment, inserted between core identity and
         # the beamline context by the 3-layer composer.
         prompts_dir=_TECHNIQUE_DIR / "prompts",
-        # phases / action_tools / knowledge_dir / eic_row_builder /
-        # root_model_factory are wired to their consumers in later P1.b steps.
+        # Experiment phase sequence consumed by the agent's PhaseManager.
+        phases=SINGLE_CRYSTAL_PHASES,
+        # action_tools / knowledge_dir / eic_row_builder / root_model_factory
+        # are wired to their consumers in later P1.b / P3a steps.
     )
 )

@@ -517,10 +517,10 @@ class TestPhaseManager:
         assert "Data Analysis" in summary
 
     def test_full_workflow_cycle(self):
-        from exphub.agent.workflow import PhaseManager, PHASE_NAMES
+        from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
-        for i in range(len(PHASE_NAMES) - 1):
+        for _ in range(len(pm.phase_names) - 1):
             pm.complete_current()
             pm.advance()
         # Should be at last phase

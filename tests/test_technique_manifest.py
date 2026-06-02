@@ -137,3 +137,51 @@ def test_composed_prompt_includes_technique_layer():
     assert prompt.index("Technique: Single-Crystal Diffraction") < prompt.index(
         "TOPAZ is a single-crystal"
     )
+
+
+# ---------- PhaseManager sourced from the manifest ----------
+
+
+def test_manifest_carries_single_crystal_phases():
+    manifest = get_technique("single_crystal")
+    names = [p.name for p in manifest.phases]
+    assert names == [
+        "setup", "monitor", "plan", "refine_plan", "submit", "observe", "analyse",
+    ]
+
+
+def test_phase_manager_defaults_to_active_technique_phases():
+    from exphub.agent.workflow import PhaseManager
+
+    set_active("topaz")
+    pm = PhaseManager()
+    assert pm.phases == active_technique().phases
+    assert pm.current_name == "setup"
+
+
+def test_phase_manager_accepts_explicit_phases():
+    from exphub.agent.workflow import PhaseManager
+    from exphub.core.beamline import PhaseDefinition, TabKey
+
+    custom = (
+        PhaseDefinition(name="a", tab=TabKey.IPTS, label="A", description="first"),
+        PhaseDefinition(name="b", tab=TabKey.LIVE, label="B", description="second"),
+    )
+    pm = PhaseManager(custom)
+    assert pm.phase_names == ["a", "b"]
+    assert pm.current_name == "a"
+
+
+# ---------- navigate_to_tab TabKey shim ----------
+
+
+def test_navigate_tab_maps_tabkey_to_dispatcher_int():
+    from exphub.app.view_models.main import _tab_to_int
+
+    assert _tab_to_int(TabKey.IPTS) == 1
+    assert _tab_to_int(TabKey.LIVE) == 2
+    assert _tab_to_int(TabKey.STEERING) == 3
+    assert _tab_to_int(TabKey.STATUS) == 5
+    assert _tab_to_int(TabKey.ANALYSIS) == 6
+    # legacy integer addressing passes straight through (shim).
+    assert _tab_to_int(3) == 3

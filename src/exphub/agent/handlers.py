@@ -13,12 +13,13 @@ import json
 import re
 from typing import Any, Callable
 
+from ..core.beamline import TabKey
 from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .workflow import PhaseManager
 
 # Type alias for handler functions
 HandlerFn = Callable[
-    [str, "Callable[[], dict] | None", "dict[str, dict]", "Callable[[int], None] | None"],
+    [str, "Callable[[], dict] | None", "dict[str, dict]", "Callable[[TabKey | int], None] | None"],
     "str | None",
 ]
 
@@ -36,7 +37,7 @@ def handle_show_config(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
 ) -> str | None:
     """Handle "show config" / "current settings" requests."""
     norm = _normalize(user_text)
@@ -61,7 +62,7 @@ def handle_list_presets(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
 ) -> str | None:
     """Handle "list presets" / "what presets" requests."""
     norm = _normalize(user_text)
@@ -84,7 +85,7 @@ def handle_navigate(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
 ) -> str | None:
     """Handle "go to [tab]" / "switch to [tab]" requests."""
     if nav_fn is None:
@@ -106,7 +107,7 @@ def handle_help(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
 ) -> str | None:
     """Handle "help" / "what can you do" requests."""
     norm = _normalize(user_text)
@@ -160,7 +161,7 @@ def handle_intent(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
     *,
     phase_manager: PhaseManager | None = None,
 ) -> str | None:
@@ -199,7 +200,7 @@ def handle_phase_confirm(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
     *,
     phase_manager: PhaseManager | None = None,
 ) -> str | None:
@@ -216,7 +217,7 @@ def handle_phase_confirm(
 
     if norm in _CONFIRM_NO or any(norm.startswith(c) for c in _CONFIRM_NO):
         phase_manager.current_state.pending_confirm = False
-        return f"Staying in **{phase_manager.current.tab_name}**. Let me know when you're ready to move on."
+        return f"Staying in **{phase_manager.current.label}**. Let me know when you're ready to move on."
 
     return None
 
@@ -229,7 +230,7 @@ def handle_workflow_status(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
     schema_props: dict[str, dict],
-    nav_fn: Callable[[int], None] | None,
+    nav_fn: Callable[[TabKey | int], None] | None,
     *,
     phase_manager: PhaseManager | None = None,
 ) -> str | None:
@@ -267,7 +268,7 @@ def run_handlers(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None = None,
     schema_props: dict[str, dict] | None = None,
-    nav_fn: Callable[[int], None] | None = None,
+    nav_fn: Callable[[TabKey | int], None] | None = None,
     phase_manager: PhaseManager | None = None,
 ) -> str | None:
     """Run through the handler chain, returning the first non-None reply.

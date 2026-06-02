@@ -58,13 +58,16 @@ class TabKey(str, Enum):
 class PhaseDefinition:
     """One step of a technique's experiment workflow (for the PhaseManager).
 
-    The agent's ``PhaseManager`` is parametrised from a technique's phase list
-    in P1.b; this is the cross-technique contract for an entry. ``field_prefixes``
-    scopes which schema fields are relevant while the user is in this phase.
+    The agent's ``PhaseManager`` is parametrised from a technique's phase list.
+    ``tab`` is the :class:`TabKey` the phase lives on; ``label`` is the phase's
+    user-facing name (which may differ from the tab's label — e.g. a "submit"
+    phase on the steering tab). ``field_prefixes`` scopes which schema fields
+    are relevant while the user is in this phase.
     """
 
     name: str
     tab: TabKey
+    label: str
     description: str
     field_prefixes: tuple[str, ...] = ()
 

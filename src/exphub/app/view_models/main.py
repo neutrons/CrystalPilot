@@ -8,7 +8,10 @@ import tempfile
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
+
+if TYPE_CHECKING:
+    from ...core.beamline import TabKey
 
 # Verbose tracing for ViewModel actions; off by default. Used to gate the
 # (~100) print statements scattered across this module which previously
@@ -26,6 +29,22 @@ def _trace(*args: Any) -> None:
 def _load_optimizer_fallback_angles() -> dict[str, list[list[float]]]:
     fixture = Path(__file__).parent.parent / "fixtures" / "optimizer_fallback_angles.json"
     return json.loads(fixture.read_text())
+
+
+# TabKey value -> legacy integer tab number used by the trame dispatcher's
+# v_if/v_show predicates. Keyed by the enum's string value so this module
+# needs no runtime import of TabKey.
+_TAB_KEY_TO_INT: dict[str, int] = {
+    "ipts": 1, "live": 2, "steering": 3, "status": 5, "analysis": 6,
+}
+
+
+def _tab_to_int(tab: "TabKey | int | str") -> int:
+    """Translate a TabKey (or its str value) to the dispatcher's int; pass ints through."""
+    if isinstance(tab, int):
+        return tab
+    key = getattr(tab, "value", tab)  # TabKey -> "ipts"; plain str -> itself
+    return _TAB_KEY_TO_INT.get(key, 1)
 
 # from ..models.css_status import CSSStatusModel
 # from ..models.temporal_analysis import TemporalAnalysisModel
@@ -261,13 +280,16 @@ class MainViewModel:
         self.change_callback(results)
         self.angleplan_bind.update_in_view(self.model.angleplan)
 
-    def navigate_to_tab(self, tab_number: int) -> None:
-        """Switch the active tab by number and push the change to the view.
+    def navigate_to_tab(self, tab: "TabKey | int") -> None:
+        """Switch the active tab and push the change to the view.
 
-        Tab values: 1=IPTS Info, 2=Live Data Processing,
-        3=Experiment Steering, 5=Instrument Status, 6=Data Analysis.
+        Accepts a :class:`TabKey` (preferred — the agent and the technique
+        manifest speak TabKey) or the legacy integer tab number (translation
+        shim). The trame dispatcher keys its v_if/v_show predicates on the int
+        (1=IPTS Info, 2=Live Data Processing, 3=Experiment Steering,
+        5=Instrument Status, 6=Data Analysis), so the TabKey is mapped here.
         """
-        self.view_state.active_tab = tab_number
+        self.view_state.active_tab = _tab_to_int(tab)
         self.view_state_bind.update_in_view(self.view_state)
 
     def switch_beamline(self, beamline_id: str) -> None:
