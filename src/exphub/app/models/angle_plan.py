@@ -13,7 +13,7 @@ from . import gonio_pvs
 
 def _default_instrument_name() -> str:
     try:
-        return _active_beamline().mantid.instrument_name
+        return _active_beamline().single_crystal.mantid.instrument_name
     except Exception:
         return ""
 
@@ -422,7 +422,7 @@ class AnglePlanModel(BaseModel):
         - Cryogenic:  Title, CryoOmega, ramp PVs, Comment, Wait For, Value
         Returns the file path written.
         """
-        run_title_pv = _active_beamline().eic.run_title_pv
+        run_title_pv = _active_beamline().single_crystal.run_title_pv
         angle_cols = gonio_pvs.angle_columns(self.goniometer_type)
         ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [

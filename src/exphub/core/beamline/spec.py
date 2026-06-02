@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GoniometerSpec(BaseModel):
@@ -42,17 +42,14 @@ class GoniometerSpec(BaseModel):
 
 
 class DetectorSpec(BaseModel):
-    """Area-detector / status-screen description."""
+    """Area-detector description shared across technique families.
 
-    bob_screen_path: Path | None = Field(
-        default=None,
-        description="Phoebus .bob file (relative to the beamline package).",
-    )
-    macros_path: Path | None = Field(default=None)
-    extra_subscribe_pvs: list[str] = Field(
-        default_factory=list,
-        description="PVs not in the .bob screen that still need a JS subscription.",
-    )
+    Cross-technique fields only — every neutron instrument has a detector
+    layout and beam-monitor PVs. Single-crystal-specific operator-screen
+    assets (the Phoebus ``.bob`` screen + extra-subscribe PVs) live on
+    :class:`SingleCrystalConfig`, not here.
+    """
+
     detector_layout: str = "generic"
     pixel_dims: tuple[int, int] | None = None
     monitor_pvs: dict[str, str] = Field(
@@ -78,8 +75,6 @@ class PathsSpec(BaseModel):
 
     shared_root: str = ""
     eic_dropbox: str = ""
-    default_calibration: str = ""
-    default_spectra: str = ""
     autoreduce_subdir: str = "shared/autoreduce"
     live_monitor_subdir: str = "shared/CrystalPilot/live-data-monitoring"
 
@@ -89,10 +84,6 @@ class EICSpec(BaseModel):
     is_simulation_default: bool = False
     supports_simulation: bool = True
     write_scope: list[str] = Field(default_factory=lambda: ["EIC:write"])
-    run_title_pv: str = Field(
-        default="",
-        description="PV the EIC writes the run title into (e.g. BL12:SMS:RunInfo:RunTitle).",
-    )
 
 
 class AgentSpec(BaseModel):
@@ -139,6 +130,57 @@ class TabOverrides(BaseModel):
     data_analysis: Optional[TabFactory] = None
 
 
+class SingleCrystalConfig(BaseModel):
+    """Technique payload for single-crystal diffraction beamlines.
+
+    Carries everything that *every* single-crystal beamline needs but that has
+    no meaning for other technique families (SANS, reflectometry, ...): the
+    goniometer stack, Mantid peak-finding defaults, calibration/spectra files,
+    the run-title PV, and the Phoebus operator-screen assets. Selected at read
+    time through :attr:`BeamlineSpec.single_crystal`, which narrows the
+    discriminated union.
+    """
+
+    kind: Literal["single_crystal"] = "single_crystal"
+    goniometer: GoniometerSpec = Field(default_factory=GoniometerSpec)
+    mantid: MantidSpec = Field(default_factory=MantidSpec)
+    default_calibration: str = ""
+    default_spectra: str = ""
+    run_title_pv: str = Field(
+        default="",
+        description="PV the EIC writes the run title into (e.g. BL12:SMS:RunInfo:RunTitle).",
+    )
+    bob_screen_path: Path | None = Field(
+        default=None,
+        description="Phoebus .bob operator screen (relative to the beamline package).",
+    )
+    bob_macros_path: Path | None = Field(default=None)
+    extra_subscribe_pvs: list[str] = Field(
+        default_factory=list,
+        description="PVs not in the .bob screen that still need a JS subscription.",
+    )
+
+
+class SansConfig(BaseModel):
+    """Technique payload for small-angle neutron scattering beamlines.
+
+    Minimal stub for shape parity in P0.5 — no USANS beamline ships yet (that
+    lands in P5) and the real reduction/transmission parametrisation is
+    specified when the SANS technique skeleton (P4) lands. Every field is an
+    optional placeholder until then.
+    """
+
+    kind: Literal["sans"] = "sans"
+    mantid_instrument_name: str | None = None
+    default_q_range: tuple[float, float] | None = None
+    transmission_monitor_pv: str | None = None
+    live_stream_url: str | None = None
+
+
+TechniqueConfig = SingleCrystalConfig | SansConfig
+"""Discriminated union of per-technique spec payloads, keyed on ``kind``."""
+
+
 class BeamlineSpec(BaseModel):
     """One beamline's full description.
 
@@ -156,9 +198,13 @@ class BeamlineSpec(BaseModel):
         description="Filesystem root of this beamline's plug-in package; "
         "resolved automatically when registered.",
     )
-    goniometer: GoniometerSpec = Field(default_factory=GoniometerSpec)
+    technique: Literal["single_crystal", "sans"] = Field(
+        default="single_crystal",
+        description="Technique family this beamline belongs to. Kept in step "
+        "with ``technique_config.kind`` by a validator; read it for cheap "
+        "manifest lookup / selector gating without touching the union.",
+    )
     detector: DetectorSpec = Field(default_factory=DetectorSpec)
-    mantid: MantidSpec = Field(default_factory=MantidSpec)
     paths: PathsSpec = Field(default_factory=PathsSpec)
     eic: EICSpec = Field(default_factory=EICSpec)
     agent: AgentSpec = Field(default_factory=AgentSpec)
@@ -167,6 +213,41 @@ class BeamlineSpec(BaseModel):
         default_factory=dict,
         description='Named external URLs. Common keys: "data_reduction", "operator_screen".',
     )
+    technique_config: SingleCrystalConfig | SansConfig = Field(
+        default_factory=SingleCrystalConfig,
+        discriminator="kind",
+        description="Per-technique payload. The discriminator narrows the union "
+        "at every read site, so a new technique gets a clean config instead of "
+        "a wall of Optional fields.",
+    )
+
+    @model_validator(mode="after")
+    def _sync_technique(self) -> "BeamlineSpec":
+        """Keep ``technique`` in step with ``technique_config``.
+
+        ``technique_config.kind`` is authoritative — it is the Pydantic union
+        discriminator and is baked into each config subclass — so ``technique``
+        is derived from it. Plug-in authors only have to set ``technique_config``.
+        """
+        if self.technique != self.technique_config.kind:
+            self.technique = self.technique_config.kind
+        return self
+
+    @property
+    def single_crystal(self) -> SingleCrystalConfig:
+        """Return the single-crystal technique payload, narrowing the union.
+
+        Raises :class:`TypeError` when the active technique is not
+        single-crystal — a clearer failure than an ``AttributeError`` surfacing
+        deep in a call site that assumed a goniometer / Mantid config.
+        """
+        cfg = self.technique_config
+        if not isinstance(cfg, SingleCrystalConfig):
+            raise TypeError(
+                f"Beamline {self.id!r} has technique {self.technique!r}; its "
+                f"technique_config is {type(cfg).__name__}, not SingleCrystalConfig."
+            )
+        return cfg
 
     def resolve(self, relative: Path) -> Path:
         """Resolve a path declared in this spec against the beamline package root."""

@@ -256,7 +256,7 @@ class MantidWorkflow:
 
     def start_live_data_collection_instances(self) -> None:
         """Kick off StartLiveData; the per-cycle reduction is driven separately."""
-        instrument_name = _active_beamline().mantid.instrument_name
+        instrument_name = _active_beamline().single_crystal.mantid.instrument_name
         try:
             mtdapi.StartLiveData(
                 Instrument=instrument_name,

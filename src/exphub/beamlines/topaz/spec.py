@@ -18,6 +18,7 @@ from ...core.beamline import (
     GoniometerSpec,
     MantidSpec,
     PathsSpec,
+    SingleCrystalConfig,
     TabOverrides,
     register,
 )
@@ -56,26 +57,8 @@ TOPAZ = BeamlineSpec(
     display_name="TOPAZ (SNS BL-12)",
     facility="SNS",
     target_station="TS-1",
-    goniometer=GoniometerSpec(
-        type="ambient_2axis",
-        angle_pvs={
-            "omega": "BL12:Mot:goniokm:omega",
-            "phi": "BL12:Mot:goniokm:phi",
-        },
-        ramp_pvs={
-            "start": "BL12:SE:Ramp:Start",
-            "end": "BL12:SE:Ramp:End",
-            "rate": "BL12:SE:Ramp:Rate",
-            "soak": "BL12:SE:Ramp:Soak",
-            "run": "BL12:SE:Ramp:Run",
-        },
-        charge_pv="BL12:Det:PCharge:C",
-        angle_columns_order=["omega", "phi"],
-    ),
+    technique="single_crystal",
     detector=DetectorSpec(
-        bob_screen_path=Path("screens/BL12_ADnED_2D_4x4.bob"),
-        macros_path=Path("screens/BL12_ADnED_2D_4x4.macros"),
-        extra_subscribe_pvs=list(TOPAZ_USER_PANEL_PVS),
         detector_layout="adned_2d_4x4",
         pixel_dims=(1105, 1105),
         monitor_pvs={
@@ -84,28 +67,49 @@ TOPAZ = BeamlineSpec(
             "wavelength": "BL12:Det:TH:BL:Lambda",
         },
     ),
-    mantid=MantidSpec(
-        instrument_name="TOPAZ",
-        wavelength_min=0.4,
-        wavelength_max=3.45,
-        default_max_q=17.0,
-        default_tolerance=0.12,
-        default_num_peaks_to_find=500,
-    ),
     paths=PathsSpec(
         shared_root="/SNS/TOPAZ",
         eic_dropbox="/SNS/groups/topaz/bl_12",
-        default_calibration="/SNS/TOPAZ/shared/calibration/2026A_CG/calibration.DetCal",
-        default_spectra="/SNS/TOPAZ/shared/calibrations/2019A/Calibration/Spectrum_32751_32758.dat",
     ),
     eic=EICSpec(
         beamline_code="bl12",
         is_simulation_default=False,
-        run_title_pv="BL12:SMS:RunInfo:RunTitle",
     ),
     external_links={
         "data_reduction": "https://nova.ornl.gov/launch/nova-neutrons-trame-topaz",
     },
+    technique_config=SingleCrystalConfig(
+        goniometer=GoniometerSpec(
+            type="ambient_2axis",
+            angle_pvs={
+                "omega": "BL12:Mot:goniokm:omega",
+                "phi": "BL12:Mot:goniokm:phi",
+            },
+            ramp_pvs={
+                "start": "BL12:SE:Ramp:Start",
+                "end": "BL12:SE:Ramp:End",
+                "rate": "BL12:SE:Ramp:Rate",
+                "soak": "BL12:SE:Ramp:Soak",
+                "run": "BL12:SE:Ramp:Run",
+            },
+            charge_pv="BL12:Det:PCharge:C",
+            angle_columns_order=["omega", "phi"],
+        ),
+        mantid=MantidSpec(
+            instrument_name="TOPAZ",
+            wavelength_min=0.4,
+            wavelength_max=3.45,
+            default_max_q=17.0,
+            default_tolerance=0.12,
+            default_num_peaks_to_find=500,
+        ),
+        default_calibration="/SNS/TOPAZ/shared/calibration/2026A_CG/calibration.DetCal",
+        default_spectra="/SNS/TOPAZ/shared/calibrations/2019A/Calibration/Spectrum_32751_32758.dat",
+        run_title_pv="BL12:SMS:RunInfo:RunTitle",
+        bob_screen_path=Path("screens/BL12_ADnED_2D_4x4.bob"),
+        bob_macros_path=Path("screens/BL12_ADnED_2D_4x4.macros"),
+        extra_subscribe_pvs=list(TOPAZ_USER_PANEL_PVS),
+    ),
     agent=AgentSpec(
         context_prompt=Path("prompts/context.md"),
         knowledge_dir=Path("knowledge"),

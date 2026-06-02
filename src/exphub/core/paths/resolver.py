@@ -65,7 +65,7 @@ class PathResolver:
 
     @property
     def default_calibration(self) -> str:
-        return self.spec.paths.default_calibration
+        return self.spec.single_crystal.default_calibration
 
     # ----- IPTS-derived -----------------------------------------------------
 

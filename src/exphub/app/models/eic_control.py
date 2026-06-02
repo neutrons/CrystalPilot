@@ -26,9 +26,9 @@ def _default_beamline_database() -> Dict[str, str]:
     """Instrument name (Mantid) → EIC beamline code, from every registered beamline."""
     try:
         return {
-            _get_beamline(bid).mantid.instrument_name: _get_beamline(bid).eic.beamline_code
+            _get_beamline(bid).single_crystal.mantid.instrument_name: _get_beamline(bid).eic.beamline_code
             for bid in _beamline_ids()
-            if _get_beamline(bid).mantid.instrument_name
+            if _get_beamline(bid).single_crystal.mantid.instrument_name
         }
     except Exception:
         return {}
@@ -140,7 +140,7 @@ class EICControlModel(BaseModel):
             print(f"Failed to create directory {destination_dir}: {e}")
             raise
 
-        run_title_pv = _active_beamline().eic.run_title_pv
+        run_title_pv = _active_beamline().single_crystal.run_title_pv
         angle_cols = gonio_pvs.angle_columns(goniometer_type)
         ramp_cols = list(gonio_pvs.RAMP_PVS.values())
         fieldnames = [

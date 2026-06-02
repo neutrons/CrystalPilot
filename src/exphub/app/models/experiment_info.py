@@ -21,7 +21,7 @@ def _default_instrument_list() -> List[str]:
         names = []
         from ...core.beamline import get as _get
         for bid in _beamline_ids():
-            inst = _get(bid).mantid.instrument_name
+            inst = _get(bid).single_crystal.mantid.instrument_name
             if inst:
                 names.append(inst)
         return names or [""]
@@ -31,21 +31,21 @@ def _default_instrument_list() -> List[str]:
 
 def _default_instrument() -> str:
     try:
-        return _active_beamline().mantid.instrument_name
+        return _active_beamline().single_crystal.mantid.instrument_name
     except Exception:
         return ""
 
 
 def _default_cal_filename() -> str:
     try:
-        return _active_beamline().paths.default_calibration
+        return _active_beamline().single_crystal.default_calibration
     except Exception:
         return ""
 
 
 def _default_spectra_filename() -> str:
     try:
-        return _active_beamline().paths.default_spectra
+        return _active_beamline().single_crystal.default_spectra
     except Exception:
         return ""
 

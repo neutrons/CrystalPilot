@@ -20,6 +20,7 @@ from ...core.beamline import (
     GoniometerSpec,
     MantidSpec,
     PathsSpec,
+    SingleCrystalConfig,
     register,
 )
 
@@ -43,26 +44,8 @@ CORELLI = BeamlineSpec(
     display_name="CORELLI (SNS BL-9)",
     facility="SNS",
     target_station="TS-1",
-    goniometer=GoniometerSpec(
-        type="ambient_2axis",
-        angle_pvs={
-            "omega": "BL9:Mot:Sample:omega",
-            "phi": "BL9:Mot:Sample:phi",
-        },
-        ramp_pvs={
-            "start": "BL9:SE:Ramp:Start",
-            "end": "BL9:SE:Ramp:End",
-            "rate": "BL9:SE:Ramp:Rate",
-            "soak": "BL9:SE:Ramp:Soak",
-            "run": "BL9:SE:Ramp:Run",
-        },
-        charge_pv="BL9:Det:PCharge:C",
-        angle_columns_order=["omega", "phi"],
-    ),
+    technique="single_crystal",
     detector=DetectorSpec(
-        bob_screen_path=None,  # No CORELLI .bob shipped yet
-        macros_path=None,
-        extra_subscribe_pvs=list(CORELLI_USER_PANEL_PVS),
         detector_layout="corelli_array",
         pixel_dims=None,
         monitor_pvs={
@@ -71,26 +54,47 @@ CORELLI = BeamlineSpec(
             "wavelength": "BL9:Det:TH:BL:Lambda",
         },
     ),
-    mantid=MantidSpec(
-        instrument_name="CORELLI",
-        wavelength_min=0.7,
-        wavelength_max=2.89,
-        default_max_q=14.0,
-        default_tolerance=0.15,
-        default_num_peaks_to_find=300,
-    ),
     paths=PathsSpec(
         shared_root="/SNS/CORELLI",
         eic_dropbox="/SNS/groups/corelli/bl_9",
-        default_calibration="",  # set per cycle
-        default_spectra="",
     ),
     eic=EICSpec(
         beamline_code="bl9",
         is_simulation_default=False,
-        run_title_pv="BL9:SMS:RunInfo:RunTitle",
     ),
     external_links={},
+    technique_config=SingleCrystalConfig(
+        goniometer=GoniometerSpec(
+            type="ambient_2axis",
+            angle_pvs={
+                "omega": "BL9:Mot:Sample:omega",
+                "phi": "BL9:Mot:Sample:phi",
+            },
+            ramp_pvs={
+                "start": "BL9:SE:Ramp:Start",
+                "end": "BL9:SE:Ramp:End",
+                "rate": "BL9:SE:Ramp:Rate",
+                "soak": "BL9:SE:Ramp:Soak",
+                "run": "BL9:SE:Ramp:Run",
+            },
+            charge_pv="BL9:Det:PCharge:C",
+            angle_columns_order=["omega", "phi"],
+        ),
+        mantid=MantidSpec(
+            instrument_name="CORELLI",
+            wavelength_min=0.7,
+            wavelength_max=2.89,
+            default_max_q=14.0,
+            default_tolerance=0.15,
+            default_num_peaks_to_find=300,
+        ),
+        default_calibration="",  # set per cycle
+        default_spectra="",
+        run_title_pv="BL9:SMS:RunInfo:RunTitle",
+        bob_screen_path=None,  # No CORELLI .bob shipped yet
+        bob_macros_path=None,
+        extra_subscribe_pvs=list(CORELLI_USER_PANEL_PVS),
+    ),
     agent=AgentSpec(
         context_prompt=Path("prompts/context.md"),
         knowledge_dir=Path("knowledge"),

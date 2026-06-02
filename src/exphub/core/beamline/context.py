@@ -31,17 +31,18 @@ class BeamlineContext:
     # ----- PVs --------------------------------------------------------------
 
     def angle_pv(self, axis: str) -> str:
+        gonio = self.spec.single_crystal.goniometer
         try:
-            return self.spec.goniometer.angle_pvs[axis]
+            return gonio.angle_pvs[axis]
         except KeyError as exc:
             raise KeyError(
                 f"Beamline {self.id!r} has no angle PV for axis {axis!r}. "
-                f"Known axes: {sorted(self.spec.goniometer.angle_pvs)}"
+                f"Known axes: {sorted(gonio.angle_pvs)}"
             ) from exc
 
     def ramp_pv(self, key: str) -> str:
         try:
-            return self.spec.goniometer.ramp_pvs[key]
+            return self.spec.single_crystal.goniometer.ramp_pvs[key]
         except KeyError as exc:
             raise KeyError(
                 f"Beamline {self.id!r} has no ramp PV for {key!r}."
@@ -49,18 +50,18 @@ class BeamlineContext:
 
     @property
     def charge_pv(self) -> str:
-        return self.spec.goniometer.charge_pv
+        return self.spec.single_crystal.goniometer.charge_pv
 
     @property
     def angle_columns(self) -> list[str]:
         """Ordered PV column names for the goniometer's angle axes."""
-        order = self.spec.goniometer.angle_columns_order
-        return [self.spec.goniometer.angle_pvs[axis] for axis in order]
+        gonio = self.spec.single_crystal.goniometer
+        return [gonio.angle_pvs[axis] for axis in gonio.angle_columns_order]
 
     @property
     def angle_axis_keys(self) -> list[str]:
         """Internal axis names in the same order as :attr:`angle_columns`."""
-        return list(self.spec.goniometer.angle_columns_order)
+        return list(self.spec.single_crystal.goniometer.angle_columns_order)
 
     # ----- paths ------------------------------------------------------------
 
@@ -80,16 +81,18 @@ class BeamlineContext:
 
     @property
     def bob_screen(self) -> Path | None:
-        if self.spec.detector.bob_screen_path is None:
+        path = self.spec.single_crystal.bob_screen_path
+        if path is None:
             return None
-        return self.spec.resolve(self.spec.detector.bob_screen_path)
+        return self.spec.resolve(path)
 
     @property
     def bob_macros(self) -> Path | None:
-        if self.spec.detector.macros_path is None:
+        path = self.spec.single_crystal.bob_macros_path
+        if path is None:
             return None
-        return self.spec.resolve(self.spec.detector.macros_path)
+        return self.spec.resolve(path)
 
     @property
     def extra_subscribe_pvs(self) -> tuple[str, ...]:
-        return tuple(self.spec.detector.extra_subscribe_pvs)
+        return tuple(self.spec.single_crystal.extra_subscribe_pvs)
