@@ -81,6 +81,8 @@ SINGLE_CRYSTAL = register_technique(
         # Sub-models the agent bridges onto the schema. Authoritative here; the
         # agent's bridge module starts reading this in P1.b.
         bridged_submodels=("experimentinfo", "angleplan", "eiccontrol", "dataanalysis"),
+        # Authoritative sub-model for fields that appear in more than one.
+        field_owner={"point_group": "experimentinfo", "instrument": "experimentinfo"},
         # Technique-level prompt fragment, inserted between core identity and
         # the beamline context by the 3-layer composer.
         prompts_dir=_TECHNIQUE_DIR / "prompts",

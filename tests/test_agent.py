@@ -41,7 +41,8 @@ class _FakeMainModel(BaseModel):
     experimentinfo: _SubModel = Field(default_factory=_SubModel)
 
 
-# patch BRIDGED_SUBMODELS to only include "experimentinfo" for these tests
+# patch bridge.bridged_submodels() to only include "experimentinfo" for these
+# tests (it now reads from the active technique manifest, not a constant).
 _FAKE_BRIDGED = ("experimentinfo",)
 
 
@@ -52,7 +53,7 @@ _FAKE_BRIDGED = ("experimentinfo",)
 class TestSnapshotModels:
     def test_returns_flat_dict(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         snap = bridge.snapshot_models(model)
@@ -64,7 +65,7 @@ class TestSnapshotModels:
 
     def test_list_field_present(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         model.experimentinfo.angle_list_pd = [_ItemModel(phi=10.0, omega=20.0)]
@@ -75,7 +76,7 @@ class TestSnapshotModels:
 
     def test_missing_submodel_skipped(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", ("nonexistent",))
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: ("nonexistent",))
 
         model = _FakeMainModel()
         snap = bridge.snapshot_models(model)
@@ -90,7 +91,7 @@ class TestApplyAgentConfig:
 
     def test_writes_scalar_field(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         bindings = self._make_bindings()
@@ -104,7 +105,7 @@ class TestApplyAgentConfig:
 
     def test_no_change_when_value_identical(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         bindings = self._make_bindings()
@@ -116,7 +117,7 @@ class TestApplyAgentConfig:
 
     def test_returns_error_on_validation_failure(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         # Pass a list containing an invalid dict for a List[_ItemModel] field.
         # _coerce_list_field will call _ItemModel(**bad), which raises a
@@ -134,7 +135,7 @@ class TestApplyAgentConfig:
 
     def test_pushes_binding_when_dirty(self, monkeypatch):
         from exphub.agent import bridge
-        monkeypatch.setattr(bridge, "BRIDGED_SUBMODELS", _FAKE_BRIDGED)
+        monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         bindings = self._make_bindings()

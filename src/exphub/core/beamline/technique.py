@@ -106,6 +106,7 @@ class TechniqueManifest(BaseModel):
     tab_labels: dict[TabKey, str] = Field(default_factory=dict)
     tab_aliases: dict[str, TabKey] = Field(default_factory=dict)
     bridged_submodels: tuple[str, ...] = ()
+    field_owner: dict[str, str] = Field(default_factory=dict)
     phases: tuple[PhaseDefinition, ...] = ()
     action_tools: tuple[ActionTool, ...] = ()
     prompts_dir: Path | None = None

@@ -15,20 +15,35 @@ from typing import Any, Dict, get_args, get_origin
 
 from pydantic import BaseModel
 
+from ..core.beamline import active_technique
+
 logger = logging.getLogger(__name__)
 
-# Sub-model attribute names on MainModel that the agent can read and write.
-# Import this constant in mvvm_factory and view_models/chat instead of
-# re-listing the names by hand.
-BRIDGED_SUBMODELS: tuple[str, ...] = ("experimentinfo", "angleplan", "eiccontrol", "dataanalysis")
 
-# Explicit ownership for fields that appear in multiple sub-models.
-# The listed sub-model is the *authoritative* source; others are ignored
-# during snapshot and receive writes second (if at all).
-FIELD_OWNER: dict[str, str] = {
-    "point_group": "experimentinfo",
-    "instrument": "experimentinfo",
-}
+def bridged_submodels() -> tuple[str, ...]:
+    """Sub-model attribute names on MainModel the agent reads and writes.
+
+    Sourced from the active technique's manifest (was a module-level constant).
+    Call this in mvvm_factory / view_models.chat instead of re-listing names.
+    Returns an empty tuple if no technique is resolvable (e.g. very early in
+    startup, or in isolated unit tests that register no beamline).
+    """
+    try:
+        return active_technique().bridged_submodels
+    except Exception:
+        return ()
+
+
+def field_owner() -> dict[str, str]:
+    """Authoritative sub-model for fields that appear in several sub-models.
+
+    Sourced from the active technique's manifest. The listed sub-model is the
+    authoritative source: it wins during snapshot and is written first.
+    """
+    try:
+        return active_technique().field_owner
+    except Exception:
+        return {}
 
 
 def _coerce_list_field(model_cls: type, field_name: str, value: Any) -> Any:
@@ -66,8 +81,9 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
     flat: Dict[str, Any] = {}
     # Track which sub-model contributed each field (for collision detection)
     _source: Dict[str, str] = {}
+    owners = field_owner()
 
-    for attr_name in BRIDGED_SUBMODELS:
+    for attr_name in bridged_submodels():
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue
@@ -83,7 +99,7 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
 
             if field_name in flat:
                 # Collision: field already set by an earlier sub-model.
-                owner = FIELD_OWNER.get(field_name)
+                owner = owners.get(field_name)
                 if owner and owner == attr_name:
                     # This sub-model is the explicit owner — overwrite.
                     flat[field_name] = val
@@ -132,7 +148,7 @@ def apply_agent_config(
     updated: list[str] = []
     errors: dict[str, str] = {}
 
-    for attr_name in BRIDGED_SUBMODELS:
+    for attr_name in bridged_submodels():
         sub = getattr(main_model, attr_name, None)
         if sub is None:
             continue
@@ -183,11 +199,11 @@ def write_single_field(
     Respects ``FIELD_OWNER``: if the field has an explicit owner, only
     that sub-model is written to.
     """
-    owner = FIELD_OWNER.get(field_name)
-    search_order = BRIDGED_SUBMODELS
+    owner = field_owner().get(field_name)
+    search_order = bridged_submodels()
     if owner:
         # Put the owner first so it gets written to preferentially
-        search_order = (owner,) + tuple(n for n in BRIDGED_SUBMODELS if n != owner)
+        search_order = (owner,) + tuple(n for n in search_order if n != owner)
 
     for attr_name in search_order:
         sub = getattr(main_model, attr_name, None)

@@ -19,7 +19,7 @@ from typing import Any, Dict
 from nova.mvvm.interface import BindingInterface
 
 from ...agent.agent import Agent
-from ...agent.bridge import BRIDGED_SUBMODELS, apply_agent_config, snapshot_models, write_single_field
+from ...agent.bridge import apply_agent_config, bridged_submodels, snapshot_models, write_single_field
 from ...agent.handlers import run_handlers
 from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
@@ -76,7 +76,7 @@ class ChatViewModel:
             if self._agent is not None:
                 return
             schema_props = schema_from_model_instance(self.main_model)
-            for attr in BRIDGED_SUBMODELS:
+            for attr in bridged_submodels():
                 sub = getattr(self.main_model, attr, None)
                 if sub is not None:
                     schema_props.update(schema_from_model_instance(sub))
