@@ -7,20 +7,74 @@ this module re-exports the active beamline's values so existing callers
 keep working during the multi-beamline refactor.
 
 New code should obtain PVs from :class:`exphub.core.beamline.BeamlineContext`
-instead.
+instead. When the active beamline has no ``gonio`` submodule (e.g. SANS
+instruments such as USANS), this shim falls back to empty stubs so
+importing the module does not crash at module-load time — single-crystal
+call sites that hit the stubs will fail at the use site with a clear
+error rather than at startup.
 """
 
 from __future__ import annotations
 
 import importlib
+import logging
+from types import SimpleNamespace
+from typing import Any
 
 from ...core.beamline import active as _active_beamline
 
-# Resolve the active beamline's ``gonio`` submodule and re-export every name.
-# The active beamline is determined at module import time. Switching beamlines
-# at runtime should be done through BeamlineContext directly; this shim is for
-# call sites that have not yet been migrated.
-_gonio = importlib.import_module(f"exphub.beamlines.{_active_beamline().id}.gonio")
+_log = logging.getLogger(__name__)
+
+
+def _empty_stub() -> SimpleNamespace:
+    """Return a stub gonio module so import never raises.
+
+    Single-crystal callers that try to read e.g. ``ANGLE_PVS`` get empty
+    structures instead of strings; downstream code that iterates the dict
+    sees an empty plan rather than crashing the app at startup.
+    """
+    def _angle_columns(_goniometer_type: str) -> list[str]:
+        return []
+
+    def _angle_keys(_goniometer_type: str) -> list[str]:
+        return []
+
+    def _detect_goniometer_type(_columns: list[str]) -> str:
+        return "none"
+
+    def _ramp_value(_row: dict, _key: str) -> str:
+        return ""
+
+    def _is_ramp_row(_row: dict) -> bool:
+        return False
+
+    return SimpleNamespace(
+        AMBIENT="",
+        CRYOGENIC="",
+        ANGLE_PVS={},
+        RAMP_PVS={},
+        RAMP_PV_ALIASES={},
+        WAIT_FOR_PCHARGE_PV="",
+        angle_columns=_angle_columns,
+        angle_keys=_angle_keys,
+        detect_goniometer_type=_detect_goniometer_type,
+        ramp_value=_ramp_value,
+        is_ramp_row=_is_ramp_row,
+    )
+
+
+try:
+    _gonio: Any = importlib.import_module(
+        f"exphub.beamlines.{_active_beamline().id}.gonio"
+    )
+except ModuleNotFoundError:
+    _log.info(
+        "Active beamline %r has no gonio module — using empty stubs. "
+        "Single-crystal features (angle plan, EIC submission) will not "
+        "function until a beamline with a gonio module is active.",
+        _active_beamline().id,
+    )
+    _gonio = _empty_stub()
 
 AMBIENT = _gonio.AMBIENT
 CRYOGENIC = _gonio.CRYOGENIC
