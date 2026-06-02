@@ -9,7 +9,7 @@ framework.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -107,21 +107,36 @@ class AgentSpec(BaseModel):
     )
 
 
+TabFactory = Callable[[Any], Any]
+"""Factory protocol for a beamline-provided tab view.
+
+Called with the active ``MainViewModel`` (or technique view-model in the
+post-refactor world) and returns the constructed tab content. Conventionally
+a lazy-import closure so spec.py stays import-cheap and per-tab code only
+loads when the tab is first navigated to.
+"""
+
+
 class TabOverrides(BaseModel):
     """Plug-in points for per-tab content.
 
-    Each attribute is either ``None`` (use the framework's default tab) or a
-    callable that builds the tab's view. The callable contract is intentionally
-    loose so beamlines can mix Pydantic models and Vuetify layouts in whatever
-    way fits — usually it's a view class accepting a ``MainViewModel``.
+    Each attribute is either ``None`` (use the framework / technique default)
+    or a :data:`TabFactory` callable that builds the tab's view. The expected
+    usage idiom is the lazy-import closure pattern that
+    ``beamlines/topaz/spec.py`` already uses for ``css_status``.
+
+    Per the multi-technique plan (see ``MULTI_TECHNIQUE_PLAN.md``), tabs 1-3
+    get a technique-level default when the override is ``None``; tabs 4-5
+    fall through to a per-beamline placeholder with optional message +
+    external links.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    experiment_info: Any = None
-    angle_plan: Any = None
-    temporal_analysis: Any = None
-    css_status: Any = None
-    data_analysis: Any = None
+    experiment_info: Optional[TabFactory] = None
+    angle_plan: Optional[TabFactory] = None
+    temporal_analysis: Optional[TabFactory] = None
+    css_status: Optional[TabFactory] = None
+    data_analysis: Optional[TabFactory] = None
 
 
 class BeamlineSpec(BaseModel):
