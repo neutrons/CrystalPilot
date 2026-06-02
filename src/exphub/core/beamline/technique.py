@@ -164,8 +164,19 @@ def active_technique() -> TechniqueManifest:
 
 
 def _reset_for_tests() -> None:
-    """Test-only helper. Clear registry state."""
+    """Test-only helper. Clear registry state and drop cached technique modules.
+
+    Registration happens as a side effect of importing ``exphub.techniques.<id>``.
+    Python caches that module in ``sys.modules``, so clearing the registry alone
+    would leave lazy re-discovery broken (a re-import returns the cached module
+    without re-running its ``register_technique`` call). Evicting the cached
+    modules makes the next :func:`get_technique` import re-register cleanly.
+    """
+    import sys
+
     _TECHNIQUE_REGISTRY.clear()
+    for name in [m for m in sys.modules if m.startswith("exphub.techniques.")]:
+        del sys.modules[name]
 
 
 __all__ = [

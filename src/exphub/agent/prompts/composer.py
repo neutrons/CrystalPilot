@@ -3,6 +3,7 @@
 Layout::
 
     [Core identity]              prompts/core_identity.md   (beamline-agnostic, always)
+    [Technique context]          techniques/<id>/prompts/context.md  (per active technique)
     [Beamline context]           <beamline_pkg>/<context_prompt>  (per active spec)
     [Task instructions]          prompts/tasks/<task>.md   (per active task; optional)
 
@@ -18,6 +19,7 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
+from ...core.beamline import get_technique
 from ..core_aliases import active_spec  # safe lazy aliases; see file
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,23 @@ def _read(path: Path | None) -> str:
         return path.read_text(encoding="utf-8").strip()
     except OSError:
         return ""
+
+
+def _technique_context_prompt(beamline_id: str | None) -> str:
+    """Resolve the active beamline's *technique* context fragment, if any.
+
+    The technique layer (e.g. "single-crystal diffraction") sits between the
+    beamline-agnostic core identity and the per-beamline context, so the LLM
+    gets technique-level concepts that every beamline of the family shares.
+    """
+    try:
+        spec = active_spec(beamline_id)
+        manifest = get_technique(spec.technique)
+    except Exception:
+        return ""
+    if manifest.prompts_dir is None:
+        return ""
+    return _read(manifest.prompts_dir / "context.md")
 
 
 def _beamline_context_prompt(beamline_id: str | None) -> str:
@@ -79,13 +98,15 @@ def compose_system_prompt(
 
 def _layered_pieces(beamline_id: str | None, task: str | None) -> Iterable[str]:
     yield _read(_CORE_IDENTITY)
+    yield _technique_context_prompt(beamline_id)
     yield _beamline_context_prompt(beamline_id)
     yield _task_prompt(task)
 
 
 def describe_active_context(beamline_id: str | None = None, task: str | None = None) -> str:
     """A single line summarising the active beamline + task. For per-turn logging
-    and to inject into the LLM's first SystemMessage."""
+    and to inject into the LLM's first SystemMessage.
+    """
     try:
         spec = active_spec(beamline_id)
         location = spec.facility + (f"/{spec.target_station}" if spec.target_station else "")

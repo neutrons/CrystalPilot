@@ -119,3 +119,21 @@ def test_manifest_is_frozen():
     manifest = get_technique("single_crystal")
     with pytest.raises(ValidationError):
         manifest.id = "mutated"  # type: ignore[misc]
+
+
+# ---------- 3-layer prompt composition ----------
+
+
+def test_composed_prompt_includes_technique_layer():
+    from exphub.agent.prompts.composer import compose_system_prompt
+
+    set_active("topaz")
+    prompt = compose_system_prompt(task="experiment_steering")
+    # core identity, then technique layer, then beamline layer — all present.
+    assert "# Core Identity" in prompt
+    assert "Technique: Single-Crystal Diffraction" in prompt
+    assert "TOPAZ is a single-crystal" in prompt
+    # technique fragment precedes the beamline fragment.
+    assert prompt.index("Technique: Single-Crystal Diffraction") < prompt.index(
+        "TOPAZ is a single-crystal"
+    )

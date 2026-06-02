@@ -10,6 +10,7 @@ import-cheap and avoid pulling the trame view stack in at module load.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from ...core.beamline.technique import (
@@ -17,6 +18,8 @@ from ...core.beamline.technique import (
     TechniqueManifest,
     register_technique,
 )
+
+_TECHNIQUE_DIR = Path(__file__).resolve().parent
 
 # --- default tab factories (lazy-import the existing app views) -------------
 #
@@ -78,8 +81,10 @@ SINGLE_CRYSTAL = register_technique(
         # Sub-models the agent bridges onto the schema. Authoritative here; the
         # agent's bridge module starts reading this in P1.b.
         bridged_submodels=("experimentinfo", "angleplan", "eiccontrol", "dataanalysis"),
-        # phases / action_tools / prompts_dir / knowledge_dir /
-        # eic_row_builder / root_model_factory are wired to their consumers in
-        # P1.b; left at their contract defaults for now.
+        # Technique-level prompt fragment, inserted between core identity and
+        # the beamline context by the 3-layer composer.
+        prompts_dir=_TECHNIQUE_DIR / "prompts",
+        # phases / action_tools / knowledge_dir / eic_row_builder /
+        # root_model_factory are wired to their consumers in later P1.b steps.
     )
 )
