@@ -1,5 +1,9 @@
 # CrystalPilot → ExpHub: Multi-Beamline Refactoring Plan
 
+> **See also:** [`MULTI_TECHNIQUE_PLAN.md`](MULTI_TECHNIQUE_PLAN.md) — the
+> follow-on refactor adding a technique-family layer above beamlines, so
+> USANS (SANS) can plug in alongside TOPAZ/CORELLI (single-crystal).
+
 **Author:** generated 2026-05-19 from deep code analysis
 **Branch state:** active branch `multibeamline` (off `agentize`); also `main`, `hpc-demo`
 **Scope:** Make CrystalPilot a general-purpose beamline-experiment hub. The 5-tab shell stays. Tab contents, PVs, file paths, presets, schema, knowledge base, and agent prompts become beamline-pluggable. Adding a new beamline should mean *adding a folder*, not editing 17 files.

@@ -6,6 +6,12 @@ that adding a beamline only requires creating a new directory under
 
 See `MULTI_BEAMLINE_PLAN.md` at the repo root for the design rationale.
 
+> **Heads up:** A follow-on `MULTI_TECHNIQUE_PLAN.md` refactor is in
+> progress. Once it lands, adding a beamline of a *different* technique
+> family (e.g. SANS rather than single-crystal diffraction) requires
+> declaring `technique="sans"` on the spec and using a different config
+> shape; the per-beamline plug-in directory pattern itself stays the same.
+
 ---
 
 ## 1. Pick an id
