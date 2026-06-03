@@ -6,8 +6,13 @@ This file resolves the registry lazily on first call.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
-def active_spec(beamline_id: str | None = None):
+if TYPE_CHECKING:
+    from ..core.beamline import BeamlineSpec
+
+
+def active_spec(beamline_id: str | None = None) -> BeamlineSpec:
     """Return the active or named beamline's spec, importing the registry lazily."""
     from ..core.beamline import active as _active
     from ..core.beamline import get as _get

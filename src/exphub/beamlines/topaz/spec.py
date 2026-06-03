@@ -9,6 +9,7 @@ Values consolidated from the pre-refactor codebase:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from ...core.beamline import (
     AgentSpec,
@@ -24,8 +25,11 @@ from ...core.beamline import (
     register,
 )
 
+if TYPE_CHECKING:
+    from .tabs.css_status import CSSStatusView
 
-def _build_css_status(view_model):
+
+def _build_css_status(view_model: Any) -> CSSStatusView:
     """Lazy factory — avoids importing the app layer during spec registration."""
     from .tabs.css_status import CSSStatusView
     return CSSStatusView(view_model)

@@ -17,11 +17,12 @@ Usage::
 from __future__ import annotations
 
 import hashlib
+import importlib
 import logging
 import math
 import re
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence, cast
 
 logger = logging.getLogger(__name__)
 
@@ -130,12 +131,14 @@ def _content_hash(chunks: list[str]) -> str:
 class _LazyEmbeddingFunction:
     """ChromaDB-compatible embedding function with lazy SentenceTransformer loading."""
 
-    _model = None
+    _model: Any = None
 
     @classmethod
-    def _get_model(cls):
+    def _get_model(cls) -> Any:
         if cls._model is None:
-            from sentence_transformers import SentenceTransformer
+            SentenceTransformer = importlib.import_module(
+                "sentence_transformers"
+            ).SentenceTransformer
             logger.info("Loading SentenceTransformer model (first use)…")
             cls._model = SentenceTransformer("all-MiniLM-L6-v2")
             logger.info("SentenceTransformer model loaded.")
@@ -165,9 +168,9 @@ class BeamlineKnowledgeBase:
 
     def __init__(self, knowledge_dir: Path = _KNOWLEDGE_DIR) -> None:
         self._chunks: list[str] = []
-        self._collection = None
-        self._fallback_vectorizer = None
-        self._fallback_matrix = None
+        self._collection: Any = None
+        self._fallback_vectorizer: Any = None
+        self._fallback_matrix: Any = None
 
         texts, metas = _load_and_chunk(knowledge_dir)
         self._chunks = texts
@@ -186,7 +189,7 @@ class BeamlineKnowledgeBase:
     def _try_chromadb(self, texts: list[str], metas: list[dict], knowledge_dir: Path) -> bool:
         """Attempt to initialise ChromaDB collection. Returns True on success."""
         try:
-            import chromadb
+            chromadb = importlib.import_module("chromadb")
         except ImportError:
             logger.info("RAG: chromadb not installed — using TF-IDF fallback")
             return False
@@ -299,7 +302,11 @@ class BeamlineKnowledgeBase:
             llm = get_configured_chat_model()
             logger.info("RAG: calling synthesis LLM…")
             result = llm.invoke(prompt)
-            answer = result.content.strip() if hasattr(result, "content") else str(result).strip()
+            answer = (
+                cast(str, result.content).strip()
+                if hasattr(result, "content")
+                else str(result).strip()
+            )
             logger.info("RAG: synthesis answer (first 120 chars): %s", answer[:120])
             return answer
         except Exception as exc:

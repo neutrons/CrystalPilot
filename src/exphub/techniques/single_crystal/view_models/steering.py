@@ -466,13 +466,16 @@ class SingleCrystalSteeringViewModel:
             print("============================================================================================")
             _trace("get_live_mtd_data")
             try:
+                # The loop only runs after the workflow has been initialized.
+                wf = self.model.temporalanalysis.mtd_workflow
+                assert wf is not None
                 # update_experiment_info only sets Python attrs — safe on event loop thread
                 models = self.model.temporalanalysis.get_models()
-                self.model.temporalanalysis.mtd_workflow.update_experiment_info(models)
+                wf.update_experiment_info(models)
                 # live_data_reduction runs the full Mantid pipeline; offload to thread pool
                 # so the event loop (and GUI) stays responsive during the reduction.
                 await loop.run_in_executor(
-                    None, self.model.temporalanalysis.mtd_workflow.live_data_reduction
+                    None, wf.live_data_reduction
                 )
                 _trace("get_live_mtd_data done")
                 print("============================================================================================")
@@ -494,16 +497,16 @@ class SingleCrystalSteeringViewModel:
                     print(f"save_latest_figure_snapshot failed: {e}")
                 if (
                     self.model.eiccontrol.eic_auto_stop_strategy == "By Uncertainty"
-                    and len(self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty) > 0
+                    and len(wf.temporal_poisson_uncertainty) > 0
                 ):
                     if (
-                        self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty[-1]
+                        wf.temporal_poisson_uncertainty[-1]
                         < self.model.eiccontrol.eic_auto_stop_uncertainty_threshold
                     ):
                         print("stop_run")
                         self.stoprun()
-                        self.model.temporalanalysis.mtd_workflow.temporal_poisson_uncertainty = []
-                        self.model.temporalanalysis.mtd_workflow.timeseries_data_plt = []
+                        wf.temporal_poisson_uncertainty = []
+                        wf.timeseries_data_plt = []
 
                         continue
             except asyncio.CancelledError:

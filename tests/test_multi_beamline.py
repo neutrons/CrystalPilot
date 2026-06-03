@@ -14,18 +14,18 @@ from exphub.agent.prompts.composer import compose_system_prompt, describe_active
 from exphub.core.beamline import BeamlineContext, active, get, list_ids, set_active
 
 
-def test_both_beamlines_registered():
+def test_both_beamlines_registered() -> None:
     ids = list_ids()
     assert "topaz" in ids
     assert "corelli" in ids
 
 
-def test_topaz_is_default_active():
+def test_topaz_is_default_active() -> None:
     set_active("topaz")
     assert active().id == "topaz"
 
 
-def test_set_active_swaps_pvs_and_paths():
+def test_set_active_swaps_pvs_and_paths() -> None:
     set_active("topaz")
     topaz_ctx = BeamlineContext(active())
     assert topaz_ctx.angle_pv("omega") == "BL12:Mot:goniokm:omega"
@@ -42,7 +42,7 @@ def test_set_active_swaps_pvs_and_paths():
     set_active("topaz")
 
 
-def test_set_active_swaps_presets():
+def test_set_active_swaps_presets() -> None:
     set_active("topaz")
     assert "topaz_standard" in active().agent.presets
 
@@ -53,7 +53,7 @@ def test_set_active_swaps_presets():
     set_active("topaz")
 
 
-def test_prompt_composer_includes_active_beamline_context():
+def test_prompt_composer_includes_active_beamline_context() -> None:
     set_active("topaz")
     topaz_prompt = compose_system_prompt(task="experiment_steering")
     assert "TOPAZ is a single-crystal" in topaz_prompt
@@ -71,7 +71,7 @@ def test_prompt_composer_includes_active_beamline_context():
     set_active("topaz")
 
 
-def test_describe_active_context():
+def test_describe_active_context() -> None:
     set_active("topaz")
     line = describe_active_context(task="experiment_steering")
     assert "TOPAZ" in line
@@ -85,7 +85,7 @@ def test_describe_active_context():
     set_active("topaz")
 
 
-def test_agent_presets_aggregate_from_registry():
+def test_agent_presets_aggregate_from_registry() -> None:
     from exphub.agent.constants import get_experiment_presets
 
     presets = get_experiment_presets()
@@ -93,9 +93,11 @@ def test_agent_presets_aggregate_from_registry():
     assert "corelli_standard" in presets
 
 
-def test_corelli_spec_resolves_paths_relative_to_package():
+def test_corelli_spec_resolves_paths_relative_to_package() -> None:
     spec = get("corelli")
     # No BOB screen configured for CORELLI yet — should be None, not crash.
     assert BeamlineContext(spec).bob_screen is None
     # Context-prompt path resolves into the corelli/ package.
-    assert "corelli" in str(spec.resolve(spec.agent.context_prompt))
+    context_prompt = spec.agent.context_prompt
+    assert context_prompt is not None
+    assert "corelli" in str(spec.resolve(context_prompt))

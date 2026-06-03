@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from langchain_core.tools import tool
 
@@ -69,11 +69,11 @@ def _make_action_tool(spec: "ActionTool", fn: "Callable[[], Any] | None") -> Any
 
 def make_tools(
     schema_props: dict[str, dict],
-    snapshot_fn=None,
-    nav_fn=None,
-    rag=None,
+    snapshot_fn: "Callable[[], dict] | None" = None,
+    nav_fn: "Callable[[int], Any] | None" = None,
+    rag: Any = None,
     action_fns: dict | None = None,
-    action_tools=None,
+    action_tools: "Sequence[ActionTool] | None" = None,
 ) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 

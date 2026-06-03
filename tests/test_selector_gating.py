@@ -12,6 +12,7 @@ Two behaviours are pinned here (MULTI_TECHNIQUE_PLAN.md P3 deliverables 4-5):
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterator
 
 import pytest
 
@@ -21,7 +22,7 @@ from exphub.core.beamline.registry import _REGISTRY
 
 
 @pytest.fixture
-def sans_stub():
+def sans_stub() -> Iterator[BeamlineSpec]:
     """Register a throwaway SANS-technique beamline, then deregister it."""
     spec = BeamlineSpec(
         id="_sans_stub",
@@ -39,7 +40,7 @@ def sans_stub():
 # --------------------------- selector gating ---------------------------------
 
 
-def test_cross_technique_option_marked_disabled(sans_stub):
+def test_cross_technique_option_marked_disabled(sans_stub: BeamlineSpec) -> None:
     """With a single-crystal beamline active, the SANS option is disabled."""
     from exphub.app.view_models.app_shell import _default_beamline_options
 
@@ -54,7 +55,7 @@ def test_cross_technique_option_marked_disabled(sans_stub):
     assert by_id["_sans_stub"]["disabled"] is True
 
 
-def test_switch_beamline_refuses_cross_technique(sans_stub):
+def test_switch_beamline_refuses_cross_technique(sans_stub: BeamlineSpec) -> None:
     """A programmatic cross-technique switch is a no-op + snackbar notice."""
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server
@@ -82,7 +83,7 @@ def test_switch_beamline_refuses_cross_technique(sans_stub):
 # --------------------------- on_deactivate -----------------------------------
 
 
-def test_on_deactivate_cancels_live_update():
+def test_on_deactivate_cancels_live_update() -> None:
     """on_deactivate stops the live-update task and flips the running flag."""
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server
@@ -110,7 +111,7 @@ def test_on_deactivate_cancels_live_update():
     asyncio.run(_scenario())
 
 
-def test_shell_deactivate_hook_wired_to_steering():
+def test_shell_deactivate_hook_wired_to_steering() -> None:
     """mvvm_factory passes the steering VM's on_deactivate into the shell."""
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server

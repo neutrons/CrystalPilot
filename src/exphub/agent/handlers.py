@@ -279,8 +279,8 @@ def run_handlers(
 
     # Phase-aware handlers first (confirmation should intercept before anything else)
     if phase_manager is not None:
-        for handler in _PHASE_HANDLERS:
-            result = handler(user_text, snapshot_fn, props, nav_fn, phase_manager=phase_manager)
+        for phase_handler in _PHASE_HANDLERS:
+            result = phase_handler(user_text, snapshot_fn, props, nav_fn, phase_manager=phase_manager)
             if result is not None:
                 return result
 

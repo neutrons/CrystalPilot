@@ -24,11 +24,15 @@ hand-built model.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from typing import Any
+
 import pytest
 
 import exphub.beamlines  # noqa: F401 — registers TOPAZ + CORELLI + USANS
 from exphub.agent.bridge import bridged_submodels, snapshot_models
 from exphub.core.beamline import (
+    BeamlineSpec,
     active,
     active_technique,
     set_active,
@@ -39,7 +43,7 @@ _USANS_ID = "usans"
 
 
 @pytest.fixture
-def usans():
+def usans() -> Iterator[BeamlineSpec]:
     """Activate the real USANS beamline, restoring TOPAZ afterwards.
 
     USANS is a registered plug-in (no in-test registration needed since P5); the
@@ -52,7 +56,7 @@ def usans():
         set_active("topaz")
 
 
-def _active_tab1_model():
+def _active_tab1_model() -> Any:
     """Build the active technique's tab-1 (IPTS-Info) model via production seams.
 
     Resolves the technique's root model through the manifest's
@@ -62,6 +66,7 @@ def _active_tab1_model():
     """
     manifest = active_technique()
     factory = manifest.root_model_factory
+    assert factory is not None
     root = factory()
     tab1_field = bridged_submodels()[0]
     return getattr(root, tab1_field)
@@ -76,13 +81,14 @@ def _active_tab1_snapshot() -> dict:
     """
     manifest = active_technique()
     factory = manifest.root_model_factory
+    assert factory is not None
     return snapshot_models(factory())
 
 
 # --------------------------- tab-1 model shape -------------------------------
 
 
-def test_single_crystal_tab1_has_crystalsystem():
+def test_single_crystal_tab1_has_crystalsystem() -> None:
     """A single-crystal beamline exposes the crystallography surface on tab 1."""
     set_active("topaz")
     assert active_technique().id == "single_crystal"
@@ -93,7 +99,7 @@ def test_single_crystal_tab1_has_crystalsystem():
     assert "crystalsystem" in _active_tab1_snapshot()
 
 
-def test_sans_tab1_has_no_crystalsystem(usans):
+def test_sans_tab1_has_no_crystalsystem(usans: BeamlineSpec) -> None:
     """A ``technique="sans"`` beamline drops all crystallography from tab 1."""
     set_active(_USANS_ID)
     assert active().technique == "sans"
@@ -110,7 +116,7 @@ def test_sans_tab1_has_no_crystalsystem(usans):
     assert "crystalsystem" not in _active_tab1_snapshot()
 
 
-def test_techniques_differ_on_the_same_tab_slot(usans):
+def test_techniques_differ_on_the_same_tab_slot(usans: BeamlineSpec) -> None:
     """The same tab slot resolves to differently-shaped models per technique."""
     set_active("topaz")
     sc_fields = set(type(_active_tab1_model()).model_fields)
@@ -129,7 +135,7 @@ def test_techniques_differ_on_the_same_tab_slot(usans):
 # --------------------------- cross-technique gating --------------------------
 
 
-def test_cross_technique_selector_option_disabled(usans):
+def test_cross_technique_selector_option_disabled(usans: BeamlineSpec) -> None:
     """With single-crystal active, the SANS beamline's selector option is gated."""
     from exphub.app.view_models.app_shell import _default_beamline_options
 
@@ -143,7 +149,7 @@ def test_cross_technique_selector_option_disabled(usans):
     assert by_id[_USANS_ID]["disabled"] is True
 
 
-def test_cross_technique_switch_refused_with_banner(usans):
+def test_cross_technique_switch_refused_with_banner(usans: BeamlineSpec) -> None:
     """``switch_beamline`` refuses a cross-technique switch and surfaces the banner."""
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server
@@ -165,7 +171,7 @@ def test_cross_technique_switch_refused_with_banner(usans):
     )
 
 
-def test_same_technique_switch_not_gated(usans):
+def test_same_technique_switch_not_gated(usans: BeamlineSpec) -> None:
     """Sanity: an inside-technique switch (TOPAZ→CORELLI) is *not* gated."""
     from exphub.app.view_models.app_shell import _default_beamline_options
 
@@ -178,7 +184,7 @@ def test_same_technique_switch_not_gated(usans):
 # --------------------------- app construction (P5) ---------------------------
 
 
-def test_mainapp_constructs_with_usans_active(usans):
+def test_mainapp_constructs_with_usans_active(usans: BeamlineSpec) -> None:
     """``MainApp()`` builds end-to-end from a clean env with USANS (SANS) active.
 
     Exercises the composition root under a ``technique="sans"`` beamline: the

@@ -113,7 +113,7 @@ _CORELLI_JOBS = [
 ]
 
 
-def _builder_for(beamline_id: str):
+def _builder_for(beamline_id: str) -> tuple[EICRowBuilder, str]:
     """Activate ``beamline_id`` and return its (reloaded) single-crystal builder.
 
     Reloading the ``gonio_pvs`` shim + ``eic_row_builder`` module after
@@ -137,26 +137,26 @@ def teardown_module(_module: object) -> None:
     _builder_for("topaz")
 
 
-def test_topaz_jobs_are_unchanged_by_refactor():
+def test_topaz_jobs_are_unchanged_by_refactor() -> None:
     builder, ambient = _builder_for("topaz")
     jobs = builder.build_jobs(_PLAN, goniometer_type=ambient)
     assert jobs == _TOPAZ_JOBS
 
 
-def test_corelli_jobs_are_unchanged_by_refactor():
+def test_corelli_jobs_are_unchanged_by_refactor() -> None:
     builder, ambient = _builder_for("corelli")
     jobs = builder.build_jobs(_PLAN, goniometer_type=ambient)
     assert jobs == _CORELLI_JOBS
 
 
-def test_manifest_exposes_row_builder_seam():
+def test_manifest_exposes_row_builder_seam() -> None:
     set_active("topaz")
     builder = active_technique().eic_row_builder
     assert builder is not None
     assert isinstance(builder, EICRowBuilder)
 
 
-def test_build_rows_flat_form_homogeneous_angle_plan():
+def test_build_rows_flat_form_homogeneous_angle_plan() -> None:
     builder, ambient = _builder_for("topaz")
     angle_only = [_PLAN[0], _PLAN[1]]
     headers, rows = builder.build_rows(angle_only, goniometer_type=ambient)
@@ -164,7 +164,7 @@ def test_build_rows_flat_form_homogeneous_angle_plan():
     assert rows == [_TOPAZ_JOBS[0]["row"], _TOPAZ_JOBS[1]["row"]]
 
 
-def test_build_rows_rejects_mixed_shape_plan():
+def test_build_rows_rejects_mixed_shape_plan() -> None:
     builder, ambient = _builder_for("topaz")
     import pytest
 

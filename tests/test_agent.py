@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -51,7 +51,7 @@ _FAKE_BRIDGED = ("experimentinfo",)
 # ---------------------------------------------------------------------------
 
 class TestSnapshotModels:
-    def test_returns_flat_dict(self, monkeypatch):
+    def test_returns_flat_dict(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -63,7 +63,7 @@ class TestSnapshotModels:
         assert "max_q" in snap
         assert snap["max_q"] == 17.0
 
-    def test_list_field_present(self, monkeypatch):
+    def test_list_field_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -74,7 +74,7 @@ class TestSnapshotModels:
         assert "angle_list_pd" in snap
         assert len(snap["angle_list_pd"]) == 1
 
-    def test_missing_submodel_skipped(self, monkeypatch):
+    def test_missing_submodel_skipped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: ("nonexistent",))
 
@@ -84,12 +84,12 @@ class TestSnapshotModels:
 
 
 class TestApplyAgentConfig:
-    def _make_bindings(self):
+    def _make_bindings(self) -> dict[str, MagicMock]:
         bind = MagicMock()
         bind.update_in_view = MagicMock()
         return {"experimentinfo": bind}
 
-    def test_writes_scalar_field(self, monkeypatch):
+    def test_writes_scalar_field(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -103,7 +103,7 @@ class TestApplyAgentConfig:
         assert model.experimentinfo.ipts_number == "IPTS-1234"
         assert errors == {}
 
-    def test_no_change_when_value_identical(self, monkeypatch):
+    def test_no_change_when_value_identical(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -115,7 +115,7 @@ class TestApplyAgentConfig:
 
         assert changed == []
 
-    def test_returns_error_on_validation_failure(self, monkeypatch):
+    def test_returns_error_on_validation_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -133,7 +133,7 @@ class TestApplyAgentConfig:
         assert "angle_list_pd" in errors
         assert changed == []
 
-    def test_pushes_binding_when_dirty(self, monkeypatch):
+    def test_pushes_binding_when_dirty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
@@ -145,7 +145,7 @@ class TestApplyAgentConfig:
 
 
 class TestCoerceListField:
-    def test_list_of_base_models_from_dicts(self):
+    def test_list_of_base_models_from_dicts(self) -> None:
         from exphub.agent.bridge import _coerce_list_field
 
         result = _coerce_list_field(
@@ -155,13 +155,13 @@ class TestCoerceListField:
         assert isinstance(result[0], _ItemModel)
         assert result[0].phi == 5.0
 
-    def test_plain_list_unchanged(self):
+    def test_plain_list_unchanged(self) -> None:
         from exphub.agent.bridge import _coerce_list_field
 
         result = _coerce_list_field(_SubModel, "max_q", [1, 2, 3])
         assert result == [1, 2, 3]
 
-    def test_non_list_passthrough(self):
+    def test_non_list_passthrough(self) -> None:
         from exphub.agent.bridge import _coerce_list_field
 
         result = _coerce_list_field(_SubModel, "ipts_number", "IPTS-9999")
@@ -173,26 +173,26 @@ class TestCoerceListField:
 # ---------------------------------------------------------------------------
 
 class TestSchemaFromModelInstance:
-    def test_returns_dict(self):
+    def test_returns_dict(self) -> None:
         from exphub.agent.schema_gen import schema_from_model_instance
 
         props = schema_from_model_instance(_SubModel())
         assert isinstance(props, dict)
 
-    def test_scalar_fields_present(self):
+    def test_scalar_fields_present(self) -> None:
         from exphub.agent.schema_gen import schema_from_model_instance
 
         props = schema_from_model_instance(_SubModel())
         assert "ipts_number" in props
         assert "max_q" in props
 
-    def test_field_has_title(self):
+    def test_field_has_title(self) -> None:
         from exphub.agent.schema_gen import schema_from_model_instance
 
         props = schema_from_model_instance(_SubModel())
         assert props["ipts_number"].get("title") == "IPTS Number"
 
-    def test_field_has_type(self):
+    def test_field_has_type(self) -> None:
         from exphub.agent.schema_gen import schema_from_model_instance
 
         props = schema_from_model_instance(_SubModel())
@@ -200,7 +200,7 @@ class TestSchemaFromModelInstance:
 
 
 class TestEnrichSchemaWithOptions:
-    def test_injects_enum_from_list_suffix(self):
+    def test_injects_enum_from_list_suffix(self) -> None:
         from exphub.agent.schema_gen import enrich_schema_with_options
 
         schema = {"crystalsystem": {"title": "Crystal System", "type": "string"}}
@@ -209,7 +209,7 @@ class TestEnrichSchemaWithOptions:
 
         assert enriched["crystalsystem"]["enum"] == ["Cubic", "Triclinic", "Hexagonal"]
 
-    def test_injects_enum_from_options_suffix(self):
+    def test_injects_enum_from_options_suffix(self) -> None:
         from exphub.agent.schema_gen import enrich_schema_with_options
 
         schema = {"instrument": {"title": "Instrument", "type": "string"}}
@@ -218,7 +218,7 @@ class TestEnrichSchemaWithOptions:
 
         assert enriched["instrument"]["enum"] == ["TOPAZ", "CORELLI", "MANDI"]
 
-    def test_ignores_non_string_lists(self):
+    def test_ignores_non_string_lists(self) -> None:
         from exphub.agent.schema_gen import enrich_schema_with_options
 
         schema = {"max_q": {"type": "number"}}
@@ -227,7 +227,7 @@ class TestEnrichSchemaWithOptions:
 
         assert "enum" not in enriched["max_q"]
 
-    def test_does_not_mutate_original(self):
+    def test_does_not_mutate_original(self) -> None:
         from exphub.agent.schema_gen import enrich_schema_with_options
 
         schema = {"crystalsystem": {"type": "string"}}
@@ -241,7 +241,7 @@ class TestEnrichSchemaWithOptions:
 # tools.py  (make_tools factory)
 # ---------------------------------------------------------------------------
 
-def _make_schema():
+def _make_schema() -> dict[str, dict[str, object]]:
     return {
         "ipts_number": {"title": "IPTS Number", "type": "string"},
         "max_q": {"title": "Max Q", "type": "number"},
@@ -254,7 +254,7 @@ def _make_schema():
 
 
 class TestSetParameter:
-    def test_returns_name_and_value(self):
+    def test_returns_name_and_value(self) -> None:
         from exphub.agent.tools import make_tools
 
         tools = {t.name: t for t in make_tools(_make_schema())}
@@ -268,29 +268,29 @@ class TestSetParameter:
 class TestValidateMulti:
     """Tests for the _validate_multi closure via set_multiple_parameters."""
 
-    def _get_tool(self, schema=None):
+    def _get_tool(self, schema: dict[str, dict[str, object]] | None = None) -> Any:
         from exphub.agent.tools import make_tools
 
         tools = {t.name: t for t in make_tools(schema or _make_schema())}
         return tools["set_multiple_parameters"]
 
-    def test_accepts_valid_values(self):
+    def test_accepts_valid_values(self) -> None:
         tool = self._get_tool()
         result = tool.invoke({"parameters": {"max_q": 14.0, "ipts_number": "IPTS-1"}})
         assert "max_q" in result["validated"]
         assert result["errors"] == {}
 
-    def test_rejects_unknown_parameter(self):
+    def test_rejects_unknown_parameter(self) -> None:
         tool = self._get_tool()
         result = tool.invoke({"parameters": {"nonexistent_field": 42}})
         assert "nonexistent_field" in result["errors"]
 
-    def test_rejects_invalid_enum_value(self):
+    def test_rejects_invalid_enum_value(self) -> None:
         tool = self._get_tool()
         result = tool.invoke({"parameters": {"instrument": "UNKNOWN_BEAM"}})
         assert "instrument" in result["errors"]
 
-    def test_accepts_enum_case_insensitive(self):
+    def test_accepts_enum_case_insensitive(self) -> None:
         tool = self._get_tool()
         result = tool.invoke({"parameters": {"instrument": "topaz"}})
         assert result["validated"].get("instrument") == "TOPAZ"
@@ -298,37 +298,37 @@ class TestValidateMulti:
 
 
 class TestNavigateToTab:
-    def _get_tool(self, nav_fn=None):
+    def _get_tool(self, nav_fn: Callable[[int], Any] | None = None) -> Any:
         from exphub.agent.tools import make_tools
 
         tools = {t.name: t for t in make_tools(_make_schema(), nav_fn=nav_fn)}
         return tools["navigate_to_tab"]
 
-    def test_resolves_name_to_number(self):
-        calls = []
+    def test_resolves_name_to_number(self) -> None:
+        calls: list[int] = []
         tool = self._get_tool(nav_fn=lambda n: calls.append(n))
         result = tool.invoke({"tab_name": "ipts_info"})
         assert result["tab"] == 1
         assert calls == [1]
 
-    def test_resolves_integer_string(self):
-        calls = []
+    def test_resolves_integer_string(self) -> None:
+        calls: list[int] = []
         tool = self._get_tool(nav_fn=lambda n: calls.append(n))
         result = tool.invoke({"tab_name": "3"})
         assert result["tab"] == 3
 
-    def test_normalises_spaces_and_dashes(self):
-        calls = []
+    def test_normalises_spaces_and_dashes(self) -> None:
+        calls: list[int] = []
         tool = self._get_tool(nav_fn=lambda n: calls.append(n))
         result = tool.invoke({"tab_name": "live-data-processing"})
         assert result["tab"] == 2
 
-    def test_returns_error_for_unknown_name(self):
+    def test_returns_error_for_unknown_name(self) -> None:
         tool = self._get_tool(nav_fn=lambda n: None)
         result = tool.invoke({"tab_name": "does_not_exist"})
         assert "error" in result
 
-    def test_returns_error_when_no_nav_fn(self):
+    def test_returns_error_when_no_nav_fn(self) -> None:
         tool = self._get_tool(nav_fn=None)
         result = tool.invoke({"tab_name": "ipts_info"})
         assert "error" in result
@@ -360,13 +360,13 @@ class TestBeamlineKnowledgeBase:
         )
         return tmp_path
 
-    def test_indexes_documents(self, kb_dir):
+    def test_indexes_documents(self, kb_dir: Path) -> None:
         from exphub.agent.rag import BeamlineKnowledgeBase
 
         kb = BeamlineKnowledgeBase(kb_dir)
         assert kb.document_count > 0
 
-    def test_retrieve_returns_results_for_on_topic_query(self, kb_dir):
+    def test_retrieve_returns_results_for_on_topic_query(self, kb_dir: Path) -> None:
         from exphub.agent.rag import BeamlineKnowledgeBase
 
         kb = BeamlineKnowledgeBase(kb_dir)
@@ -374,20 +374,20 @@ class TestBeamlineKnowledgeBase:
         assert len(results) > 0
         assert any("TOPAZ" in r for r in results)
 
-    def test_retrieve_returns_empty_for_garbage_query(self, kb_dir):
+    def test_retrieve_returns_empty_for_garbage_query(self, kb_dir: Path) -> None:
         from exphub.agent.rag import BeamlineKnowledgeBase
 
         kb = BeamlineKnowledgeBase(kb_dir)
         results = kb.retrieve("xyzzy foobarbaz qwerty12345")
         assert results == []
 
-    def test_retrieve_empty_when_no_documents(self, tmp_path):
+    def test_retrieve_empty_when_no_documents(self, tmp_path: Path) -> None:
         from exphub.agent.rag import BeamlineKnowledgeBase
 
         kb = BeamlineKnowledgeBase(tmp_path)
         assert kb.retrieve("anything") == []
 
-    def test_keyword_reranking_promotes_relevant_results(self, kb_dir):
+    def test_keyword_reranking_promotes_relevant_results(self, kb_dir: Path) -> None:
         """Verify that keyword-boosted retrieval promotes keyword-matching passages."""
         from exphub.agent.rag import BeamlineKnowledgeBase
 
@@ -397,7 +397,7 @@ class TestBeamlineKnowledgeBase:
         # TOPAZ passage should be ranked first (keyword overlap)
         assert "TOPAZ" in results[0]
 
-    def test_retrieve_with_budget_respects_limit(self, kb_dir):
+    def test_retrieve_with_budget_respects_limit(self, kb_dir: Path) -> None:
         """Verify that retrieve_with_budget stops at token budget."""
         from exphub.agent.rag import BeamlineKnowledgeBase
 
@@ -407,7 +407,7 @@ class TestBeamlineKnowledgeBase:
         results_large = kb.retrieve_with_budget("crystal systems", token_limit=10000)
         assert len(results_small) <= len(results_large)
 
-    def test_retrieve_with_budget_returns_empty_for_no_match(self, kb_dir):
+    def test_retrieve_with_budget_returns_empty_for_no_match(self, kb_dir: Path) -> None:
         from exphub.agent.rag import BeamlineKnowledgeBase
 
         kb = BeamlineKnowledgeBase(kb_dir)
@@ -415,7 +415,7 @@ class TestBeamlineKnowledgeBase:
         # May return results (semantic search can match anything) but shouldn't crash
         assert isinstance(results, list)
 
-    def test_heading_aware_chunks_stay_together(self, tmp_path):
+    def test_heading_aware_chunks_stay_together(self, tmp_path: Path) -> None:
         """Verify that section-aware chunking doesn't split a short section."""
         from exphub.agent.rag import _chunk_text
 
@@ -442,14 +442,14 @@ class TestBeamlineKnowledgeBase:
 # ---------------------------------------------------------------------------
 
 class TestPhaseManager:
-    def test_initial_phase_is_setup(self):
+    def test_initial_phase_is_setup(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
         assert pm.current_name == "setup"
         assert pm.current_state.status == "active"
 
-    def test_complete_and_advance(self):
+    def test_complete_and_advance(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
@@ -462,7 +462,7 @@ class TestPhaseManager:
         assert pm.current_name == "monitor"
         assert "Live Data" in msg
 
-    def test_advance_without_confirm(self):
+    def test_advance_without_confirm(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
@@ -470,7 +470,7 @@ class TestPhaseManager:
         msg = pm.advance()
         assert pm.current_name == "monitor"
 
-    def test_go_to_phase(self):
+    def test_go_to_phase(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
@@ -479,13 +479,13 @@ class TestPhaseManager:
         assert "Data Analysis" in msg
         assert pm.current_name == "analyse"
 
-    def test_go_to_invalid_phase(self):
+    def test_go_to_invalid_phase(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
         assert pm.go_to_phase("nonexistent") is None
 
-    def test_get_phase_fields_scopes_correctly(self):
+    def test_get_phase_fields_scopes_correctly(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()  # setup phase
@@ -499,16 +499,16 @@ class TestPhaseManager:
         assert "max_q" not in scoped
         assert "spectra_filename" not in scoped
 
-    def test_get_phase_fields_returns_all_when_no_prefixes(self):
+    def test_get_phase_fields_returns_all_when_no_prefixes(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
         pm.go_to_phase("monitor")  # monitor has no field_prefixes
-        all_fields = {"ipts_number": {}, "max_q": {}}
+        all_fields: dict[str, dict] = {"ipts_number": {}, "max_q": {}}
         scoped = pm.get_phase_fields(all_fields)
         assert scoped == all_fields
 
-    def test_status_summary(self):
+    def test_status_summary(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
@@ -516,7 +516,7 @@ class TestPhaseManager:
         assert "IPTS Info" in summary
         assert "Data Analysis" in summary
 
-    def test_full_workflow_cycle(self):
+    def test_full_workflow_cycle(self) -> None:
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
@@ -534,7 +534,7 @@ class TestPhaseManager:
 # ---------------------------------------------------------------------------
 
 class TestHandleIntent:
-    def test_start_experiment_enters_setup(self):
+    def test_start_experiment_enters_setup(self) -> None:
         from exphub.agent.handlers import handle_intent
         from exphub.agent.workflow import PhaseManager
 
@@ -544,7 +544,7 @@ class TestHandleIntent:
         assert result is not None
         assert pm.current_name == "setup"
 
-    def test_keyword_enters_correct_phase(self):
+    def test_keyword_enters_correct_phase(self) -> None:
         from exphub.agent.handlers import handle_intent
         from exphub.agent.workflow import PhaseManager
 
@@ -553,21 +553,21 @@ class TestHandleIntent:
         assert result is not None
         assert pm.current_name == "analyse"
 
-    def test_no_match_returns_none(self):
+    def test_no_match_returns_none(self) -> None:
         from exphub.agent.handlers import handle_intent
         from exphub.agent.workflow import PhaseManager
 
         pm = PhaseManager()
         assert handle_intent("what is TOPAZ?", None, {}, None, phase_manager=pm) is None
 
-    def test_no_phase_manager_returns_none(self):
+    def test_no_phase_manager_returns_none(self) -> None:
         from exphub.agent.handlers import handle_intent
 
         assert handle_intent("start experiment", None, {}, None, phase_manager=None) is None
 
 
 class TestHandlePhaseConfirm:
-    def test_yes_advances(self):
+    def test_yes_advances(self) -> None:
         from exphub.agent.handlers import handle_phase_confirm
         from exphub.agent.workflow import PhaseManager
 
@@ -577,7 +577,7 @@ class TestHandlePhaseConfirm:
         assert result is not None
         assert pm.current_name == "monitor"
 
-    def test_no_stays(self):
+    def test_no_stays(self) -> None:
         from exphub.agent.handlers import handle_phase_confirm
         from exphub.agent.workflow import PhaseManager
 
@@ -588,7 +588,7 @@ class TestHandlePhaseConfirm:
         assert pm.current_name == "setup"
         assert not pm.is_pending_confirm
 
-    def test_not_pending_returns_none(self):
+    def test_not_pending_returns_none(self) -> None:
         from exphub.agent.handlers import handle_phase_confirm
         from exphub.agent.workflow import PhaseManager
 
@@ -597,7 +597,7 @@ class TestHandlePhaseConfirm:
 
 
 class TestHandleWorkflowStatus:
-    def test_shows_status(self):
+    def test_shows_status(self) -> None:
         from exphub.agent.handlers import handle_workflow_status
         from exphub.agent.workflow import PhaseManager
 
@@ -606,7 +606,7 @@ class TestHandleWorkflowStatus:
         assert result is not None
         assert "IPTS Info" in result
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         from exphub.agent.handlers import handle_workflow_status
         from exphub.agent.workflow import PhaseManager
 
@@ -615,95 +615,95 @@ class TestHandleWorkflowStatus:
 
 
 class TestKeywordScore:
-    def test_full_overlap_scores_high(self):
+    def test_full_overlap_scores_high(self) -> None:
         from exphub.agent.rag import _keyword_score
 
         score = _keyword_score("TOPAZ wavelength", "TOPAZ has wavelength range 0.4 to 3.5")
         assert score > 0
 
-    def test_no_overlap_scores_zero(self):
+    def test_no_overlap_scores_zero(self) -> None:
         from exphub.agent.rag import _keyword_score
 
         score = _keyword_score("TOPAZ wavelength", "completely unrelated text here")
         assert score == 0.0
 
-    def test_stop_words_ignored(self):
+    def test_stop_words_ignored(self) -> None:
         from exphub.agent.rag import _keyword_score
 
         # "the" and "of" are stop words — shouldn't contribute
         score = _keyword_score("the of", "the quick brown fox of jumps")
         assert score == 0.0
 
-    def test_empty_text(self):
+    def test_empty_text(self) -> None:
         from exphub.agent.rag import _keyword_score
 
         assert _keyword_score("TOPAZ", "") == 0.0
 
 
 class TestValidatePointGroup:
-    def test_valid_combination(self):
+    def test_valid_combination(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         assert validate_point_group("m-3m", "Cubic") is None
 
-    def test_invalid_combination(self):
+    def test_invalid_combination(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         err = validate_point_group("2/m", "Cubic")
         assert err is not None
         assert "not valid" in err
 
-    def test_no_crystal_system(self):
+    def test_no_crystal_system(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         assert validate_point_group("m-3m", None) is None
 
 
 class TestValidateCentering:
-    def test_valid_combination(self):
+    def test_valid_combination(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         assert validate_centering("P", "1") is None
 
-    def test_invalid_combination(self):
+    def test_invalid_combination(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         err = validate_centering("F", "1")
         assert err is not None
         assert "not valid" in err
 
-    def test_no_point_group(self):
+    def test_no_point_group(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         assert validate_centering("P", None) is None
 
 
 class TestDependentFieldsToReset:
-    def test_crystal_system_resets_both(self):
+    def test_crystal_system_resets_both(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("crystalsystem") == ["point_group", "centering"]
 
-    def test_point_group_resets_centering(self):
+    def test_point_group_resets_centering(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("point_group") == ["centering"]
 
-    def test_unrelated_field_resets_nothing(self):
+    def test_unrelated_field_resets_nothing(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("molecular_formula") == []
 
 
 class TestCheckUnitCellVolume:
-    def test_reasonable_volume_passes(self):
+    def test_reasonable_volume_passes(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl", "Z": 4, "unit_cell_volume": 180.0}
         is_err, msg = check_unit_cell_volume(cfg)
         assert not is_err
 
-    def test_too_small_volume_fails(self):
+    def test_too_small_volume_fails(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         # NaCl has 2 atoms, Z=4 → threshold = 2*4*10 = 80
@@ -712,14 +712,14 @@ class TestCheckUnitCellVolume:
         assert is_err
         assert "small" in msg
 
-    def test_missing_fields_passes(self):
+    def test_missing_fields_passes(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl"}
         is_err, msg = check_unit_cell_volume(cfg)
         assert not is_err
 
-    def test_zero_z_fails(self):
+    def test_zero_z_fails(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl", "Z": 0, "unit_cell_volume": 180.0}
@@ -727,7 +727,7 @@ class TestCheckUnitCellVolume:
         assert is_err
         assert "Z must be" in msg
 
-    def test_complex_formula(self):
+    def test_complex_formula(self) -> None:
         from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         # C6H12O6 = 24 atoms, Z=2 → threshold = 24*2*10 = 480

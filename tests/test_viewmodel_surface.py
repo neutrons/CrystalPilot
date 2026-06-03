@@ -40,7 +40,7 @@ EXPECTED_BINDS = {
 
 
 @pytest.fixture(scope="module")
-def viewmodels():
+def viewmodels() -> dict:
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server
 
@@ -53,22 +53,22 @@ def viewmodels():
 
 
 @pytest.fixture(scope="module")
-def steering_vm(viewmodels):
+def steering_vm(viewmodels: dict) -> object:
     return viewmodels["steering"]
 
 
-def test_steering_vm_exposes_expected_bind_surface(steering_vm):
+def test_steering_vm_exposes_expected_bind_surface(steering_vm: object) -> None:
     missing = sorted(name for name in EXPECTED_BINDS if not hasattr(steering_vm, name))
     assert not missing, f"steering VM is missing expected binds: {missing}"
 
 
-def test_bridged_submodel_binds_exist_on_vm(steering_vm):
+def test_bridged_submodel_binds_exist_on_vm(steering_vm: object) -> None:
     """mvvm_factory wires ``{name}_bind`` for each manifest bridged sub-model."""
     for name in active_technique().bridged_submodels:
         assert hasattr(steering_vm, f"{name}_bind"), name
 
 
-def test_app_shell_vm_exposes_shell_surface(viewmodels):
+def test_app_shell_vm_exposes_shell_surface(viewmodels: dict) -> None:
     """The technique-agnostic shell VM owns the selector/navigation surface."""
     shell = viewmodels["app_shell"]
     assert hasattr(shell, "view_state_bind")

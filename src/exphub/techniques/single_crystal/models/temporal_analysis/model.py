@@ -196,12 +196,14 @@ class TemporalAnalysisModel(BaseModel):
 
     def _series_for_intensity(self) -> tuple[Any, Any]:
         wf = self._mtd_workflow
+        assert wf is not None  # callers guard on _mtd_workflow is None first
         if self.prediction_model_type == "Poisson Model":
             return wf.measure_times, wf.intensity_ratios
         return wf.timeseries_plt, np.array(wf.timeseries_data_plt)
 
     def _series_for_uncertainty(self) -> tuple[Any, Any]:
         wf = self._mtd_workflow
+        assert wf is not None  # callers guard on _mtd_workflow is None first
         if self.prediction_model_type == "Poisson Model":
             return wf.measure_times, wf.rsigs
         return wf.timeseries_plt, wf.temporal_poisson_uncertainty

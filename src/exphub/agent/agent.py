@@ -18,7 +18,13 @@ from pathlib import Path
 from typing import Any, Literal, Set
 
 from jsonschema import ValidationError
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 
@@ -67,13 +73,13 @@ class Agent:
     def __init__(
         self,
         schema_properties: dict[str, dict],
-        snapshot_fn=None,
-        nav_fn=None,
+        snapshot_fn: Any = None,
+        nav_fn: Any = None,
         mcp_tools: list | None = None,
-        phase_manager=None,
-        write_through_fn=None,
+        phase_manager: Any = None,
+        write_through_fn: Any = None,
         action_fns: dict | None = None,
-        action_tools=None,
+        action_tools: Any = None,
         beamline_id: str | None = None,
         task: str | None = None,
     ) -> None:
@@ -95,7 +101,7 @@ class Agent:
         self.system_prompt = _load_system_prompt(beamline_id=beamline_id, task=self._task)
 
         try:
-            self._rag = BeamlineKnowledgeBase()
+            self._rag: BeamlineKnowledgeBase | None = BeamlineKnowledgeBase()
         except Exception as exc:
             logger.warning("RAG init failed (%s) — retrieve_docs will be unavailable", exc)
             self._rag = None
@@ -144,7 +150,7 @@ class Agent:
     # Maximum number of tool-call rounds before forcing a final reply.
     MAX_TOOL_ROUNDS = 6
 
-    def _build_graph(self):
+    def _build_graph(self) -> Any:
         """Build a ReAct-style loop: agent → tools → validator → agent.
 
         The loop continues as long as the LLM emits tool calls, up to
@@ -204,7 +210,7 @@ class Agent:
     # ------------------------------------------------------------------ nodes
 
     def _call_model_node(self, state: AgentState) -> AgentState:
-        msgs = [SystemMessage(content=self.system_prompt)]
+        msgs: list[BaseMessage] = [SystemMessage(content=self.system_prompt)]
 
         # Stamp current beamline + task so the LLM (and debug logs) always know
         # which beamline this conversation is steering.
@@ -244,7 +250,8 @@ class Agent:
         last_user = ""
         for m in reversed(state["messages"]):
             if isinstance(m, HumanMessage):
-                last_user = m.content.strip()
+                content = m.content
+                last_user = content.strip() if isinstance(content, str) else str(content).strip()
                 break
         if last_user and self._looks_like_question(last_user) and state.get("tool_rounds", 0) == 0:
             msgs.append(SystemMessage(
@@ -270,6 +277,7 @@ class Agent:
             "messages": [out],
             "config_state": state.get("config_state", {}),
             "in_config_mode": state.get("in_config_mode", False),
+            "next_to_ask": state.get("next_to_ask", ""),
             "nudge_count": state.get("nudge_count", 0),
             "tool_rounds": state.get("tool_rounds", 0),
         }
@@ -290,7 +298,10 @@ class Agent:
         print(f"[Agent] Tool result: {tool_msg.name}")
 
         try:
-            tool_output = json.loads(tool_msg.content)
+            if isinstance(tool_msg.content, str):
+                tool_output = json.loads(tool_msg.content)
+            else:
+                tool_output = tool_msg.content
         except (json.JSONDecodeError, TypeError):
             tool_output = tool_msg.content
 
@@ -333,7 +344,10 @@ class Agent:
             note = self._validate_navigate_to_tab(state, tool_output)
 
         elif tool_msg.name == "retrieve_docs":
-            note = self._validate_retrieve_docs(state, tool_msg.content)
+            note = self._validate_retrieve_docs(
+                state,
+                tool_msg.content if isinstance(tool_msg.content, str) else str(tool_msg.content),
+            )
 
         elif tool_msg.name in (
             "submit_angle_plan", "authenticate_eic",
@@ -348,7 +362,7 @@ class Agent:
             else:
                 note = str(tool_output)
 
-        new_messages = []
+        new_messages: list[BaseMessage] = []
         if note:
             new_messages.append(SystemMessage(content=f"[TOOL RESULT NOTE] {note}"))
 
@@ -356,6 +370,7 @@ class Agent:
             "messages": new_messages,
             "config_state": state["config_state"],
             "in_config_mode": state.get("in_config_mode", False),
+            "next_to_ask": state.get("next_to_ask", ""),
             "nudge_count": state.get("nudge_count", 0),
             "tool_rounds": rounds,
         }
@@ -392,7 +407,7 @@ class Agent:
             "or replace it with a generic reply):\n\n" + raw_content
         )
 
-    def _validate_navigate_to_tab(self, state: AgentState, tool_output) -> str:
+    def _validate_navigate_to_tab(self, state: AgentState, tool_output: Any) -> str:
         if isinstance(tool_output, dict) and "error" in tool_output:
             return f"Navigation error: {tool_output['error']}"
         tab = tool_output.get("tab") if isinstance(tool_output, dict) else None
@@ -414,7 +429,7 @@ class Agent:
             reply += " Valid options: " + ", ".join(f"`{o}`" for o in opts) + "."
         return reply
 
-    def _validate_refresh_schema(self, state: AgentState, tool_output) -> str:
+    def _validate_refresh_schema(self, state: AgentState, tool_output: Any) -> str:
         if not isinstance(tool_output, dict):
             return str(tool_output)
         if "error" in tool_output:
@@ -461,7 +476,7 @@ class Agent:
         state["in_config_mode"] = True
         return " ".join(parts) or "No changes applied."
 
-    def _validate_get_angle_plan(self, state: AgentState, tool_output) -> str:
+    def _validate_get_angle_plan(self, state: AgentState, tool_output: Any) -> str:
         if isinstance(tool_output, dict) and "error" in tool_output:
             return f"Error reading angle plan: {tool_output['error']}"
         if not isinstance(tool_output, list):
@@ -477,7 +492,7 @@ class Agent:
         ]
         return "**Current Angle Plan:**\n\n" + header + "\n" + sep + "\n" + "\n".join(rows)
 
-    def _validate_list_parameters(self, state: AgentState, tool_output) -> str:
+    def _validate_list_parameters(self, state: AgentState, tool_output: Any) -> str:
         if isinstance(tool_output, list):
             lines = [f"- **{p['title']}** (`{p['name']}`)" +
                      (f": {p['description']}" if p.get("description") else "") +
@@ -620,7 +635,7 @@ class Agent:
         reply = ""
         for msg in reversed(result["messages"]):
             if isinstance(msg, AIMessage) and msg.content:
-                reply = msg.content
+                reply = msg.content if isinstance(msg.content, str) else str(msg.content)
                 break
 
         return reply, self._config_state

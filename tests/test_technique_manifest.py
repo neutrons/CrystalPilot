@@ -31,19 +31,19 @@ from exphub.core.beamline.technique import _reset_for_tests
 # ---------- registry + lazy discovery ----------
 
 
-def test_get_technique_lazily_discovers_single_crystal():
+def test_get_technique_lazily_discovers_single_crystal() -> None:
     _reset_for_tests()
     manifest = get_technique("single_crystal")
     assert isinstance(manifest, TechniqueManifest)
     assert manifest.id == "single_crystal"
 
 
-def test_get_technique_unknown_raises_keyerror():
+def test_get_technique_unknown_raises_keyerror() -> None:
     with pytest.raises(KeyError):
         get_technique("does_not_exist")
 
 
-def test_active_technique_follows_active_beamline():
+def test_active_technique_follows_active_beamline() -> None:
     set_active("topaz")
     assert active_technique().id == "single_crystal"
     set_active("corelli")
@@ -54,7 +54,7 @@ def test_active_technique_follows_active_beamline():
 # ---------- TabKey contract ----------
 
 
-def test_tabkey_values_are_stable():
+def test_tabkey_values_are_stable() -> None:
     # The dispatcher + agent depend on these exact string ids; renaming any is
     # a breaking change.
     assert [k.value for k in TabKey] == [
@@ -69,7 +69,7 @@ def test_tabkey_values_are_stable():
 # ---------- single-crystal manifest shape ----------
 
 
-def test_single_crystal_declares_default_tabs_1_to_3():
+def test_single_crystal_declares_default_tabs_1_to_3() -> None:
     manifest = get_technique("single_crystal")
     assert set(manifest.default_tabs) == {TabKey.IPTS, TabKey.LIVE, TabKey.STEERING}
     # Tabs 4-5 have no technique default (fall through to beamline/placeholder).
@@ -77,7 +77,7 @@ def test_single_crystal_declares_default_tabs_1_to_3():
     assert TabKey.ANALYSIS not in manifest.default_tabs
 
 
-def test_default_tab_factories_take_one_positional_arg():
+def test_default_tab_factories_take_one_positional_arg() -> None:
     """Each factory is called with the active view-model (the TabFactory protocol)."""
     manifest = get_technique("single_crystal")
     for key, factory in manifest.default_tabs.items():
@@ -91,12 +91,12 @@ def test_default_tab_factories_take_one_positional_arg():
         assert len(positional) == 1, key
 
 
-def test_manifest_has_labels_for_all_five_tabs():
+def test_manifest_has_labels_for_all_five_tabs() -> None:
     manifest = get_technique("single_crystal")
     assert set(manifest.tab_labels) == set(TabKey)
 
 
-def test_tab_aliases_resolve_to_valid_tab_keys():
+def test_tab_aliases_resolve_to_valid_tab_keys() -> None:
     manifest = get_technique("single_crystal")
     assert manifest.tab_aliases["temporal_analysis"] is TabKey.LIVE
     assert manifest.tab_aliases["angle_plan"] is TabKey.STEERING
@@ -106,7 +106,7 @@ def test_tab_aliases_resolve_to_valid_tab_keys():
 # ---------- invariant #3: bridged_submodels exist on the root model ----------
 
 
-def test_bridged_submodels_exist_on_main_model():
+def test_bridged_submodels_exist_on_main_model() -> None:
     from exphub.techniques.single_crystal.models.root import SingleCrystalMainModel
 
     manifest = get_technique("single_crystal")
@@ -115,7 +115,7 @@ def test_bridged_submodels_exist_on_main_model():
         assert hasattr(model, name), name
 
 
-def test_manifest_is_frozen():
+def test_manifest_is_frozen() -> None:
     manifest = get_technique("single_crystal")
     with pytest.raises(ValidationError):
         manifest.id = "mutated"  # type: ignore[misc]
@@ -124,7 +124,7 @@ def test_manifest_is_frozen():
 # ---------- 3-layer prompt composition ----------
 
 
-def test_composed_prompt_includes_technique_layer():
+def test_composed_prompt_includes_technique_layer() -> None:
     from exphub.agent.prompts.composer import compose_system_prompt
 
     set_active("topaz")
@@ -142,7 +142,7 @@ def test_composed_prompt_includes_technique_layer():
 # ---------- PhaseManager sourced from the manifest ----------
 
 
-def test_manifest_carries_single_crystal_phases():
+def test_manifest_carries_single_crystal_phases() -> None:
     manifest = get_technique("single_crystal")
     names = [p.name for p in manifest.phases]
     assert names == [
@@ -150,7 +150,7 @@ def test_manifest_carries_single_crystal_phases():
     ]
 
 
-def test_phase_manager_defaults_to_active_technique_phases():
+def test_phase_manager_defaults_to_active_technique_phases() -> None:
     from exphub.agent.workflow import PhaseManager
 
     set_active("topaz")
@@ -159,7 +159,7 @@ def test_phase_manager_defaults_to_active_technique_phases():
     assert pm.current_name == "setup"
 
 
-def test_phase_manager_accepts_explicit_phases():
+def test_phase_manager_accepts_explicit_phases() -> None:
     from exphub.agent.workflow import PhaseManager
     from exphub.core.beamline import PhaseDefinition, TabKey
 
@@ -175,7 +175,7 @@ def test_phase_manager_accepts_explicit_phases():
 # ---------- navigate_to_tab TabKey shim ----------
 
 
-def test_navigate_tab_maps_tabkey_to_dispatcher_int():
+def test_navigate_tab_maps_tabkey_to_dispatcher_int() -> None:
     from exphub.app.view_models.app_shell import _tab_to_int
 
     assert _tab_to_int(TabKey.IPTS) == 1
@@ -190,7 +190,7 @@ def test_navigate_tab_maps_tabkey_to_dispatcher_int():
 # ---------- agent action tools from the manifest ----------
 
 
-def test_manifest_declares_action_tools():
+def test_manifest_declares_action_tools() -> None:
     manifest = get_technique("single_crystal")
     names = {a.name for a in manifest.action_tools}
     assert names == {
@@ -202,7 +202,7 @@ def test_manifest_declares_action_tools():
         assert spec.description
 
 
-def test_make_tools_generates_action_tools_from_manifest():
+def test_make_tools_generates_action_tools_from_manifest() -> None:
     from exphub.agent.tools import make_tools
 
     manifest = get_technique("single_crystal")
@@ -218,7 +218,7 @@ def test_make_tools_generates_action_tools_from_manifest():
     assert "submit_angle_plan" in calls
 
 
-def test_action_tool_reports_unavailable_without_callable():
+def test_action_tool_reports_unavailable_without_callable() -> None:
     from exphub.agent.tools import make_tools
 
     manifest = get_technique("single_crystal")
@@ -233,7 +233,7 @@ def test_action_tool_reports_unavailable_without_callable():
 # ---------- Agent.rebuild_schema plumbing ----------
 
 
-def test_agent_rebuild_schema_refreshes_tools_and_graph():
+def test_agent_rebuild_schema_refreshes_tools_and_graph() -> None:
     from exphub.agent.agent import Agent
 
     set_active("topaz")

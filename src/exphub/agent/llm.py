@@ -11,8 +11,13 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
+from pydantic import SecretStr
+
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +61,7 @@ def _require_key(name: str, friendly: str) -> str:
 # ---------------------------------------------------------------------------
 # Provider resolution
 # ---------------------------------------------------------------------------
-def get_configured_chat_model():
+def get_configured_chat_model() -> BaseChatModel:
     """Return a LangChain chat model based on LLM_PROVIDER env var."""
     _load_env_once()
     provider = os.getenv("LLM_PROVIDER", "ollama").lower()
@@ -69,8 +74,8 @@ def get_configured_chat_model():
         base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
         return ChatOpenAI_openai(
             model=model,
-            openai_api_key=api_key,
-            openai_api_base=base_url,
+            api_key=SecretStr(api_key),
+            base_url=base_url,
             temperature=0.2,
         )
 

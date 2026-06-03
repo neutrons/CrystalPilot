@@ -114,7 +114,7 @@ class MCPService:
             logger.error("Failed to connect to MCP server %s: %s", config.name, exc)
             return False
 
-    async def _load_tools_from_server(self, server_name: str, session) -> None:
+    async def _load_tools_from_server(self, server_name: str, session: ClientSession) -> None:
         tools_response = await session.list_tools()
         for mcp_tool in tools_response.tools:
             lc_tool = self._mcp_tool_to_langchain(server_name, mcp_tool)
@@ -123,7 +123,7 @@ class MCPService:
                 self.tools[tool_name] = lc_tool
                 logger.info("Loaded MCP tool: %s", tool_name)
 
-    def _mcp_tool_to_langchain(self, server_name: str, mcp_tool) -> Optional[BaseTool]:
+    def _mcp_tool_to_langchain(self, server_name: str, mcp_tool: Tool) -> Optional[BaseTool]:
         try:
             async def mcp_tool_wrapper(**kwargs: Any) -> str:
                 server_info = self.servers.get(server_name)

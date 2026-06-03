@@ -117,6 +117,14 @@ disable_error_code = ["import-untyped"]
 # You can exclude files with the following (ONLY WHEN NECESSARY)
 # exclude = ["path/to/file"]
 
+# The MCP SDK is an optional dependency, lazy-imported under a try/except in
+# agent/mcp_service.py and absent from the type-checking environment. Its names
+# are used in annotations and isinstance checks, so treat the missing import as
+# untyped (Any) rather than failing the whole check with import-not-found.
+[[tool.mypy.overrides]]
+module = ["mcp", "mcp.*"]
+ignore_missing_imports = true
+
 [tool.coverage.report]
 omit = [
     '*__init__*', # __init__ files should just re-export other classes and functions

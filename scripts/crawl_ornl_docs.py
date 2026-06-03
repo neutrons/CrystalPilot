@@ -64,11 +64,13 @@ def _fetch_page(url: str) -> str | None:
             else:
                 logger.warning("Failed to fetch %s: %s", url, exc)
                 return None
+    return None
 
 
 def _extract_text(html: str) -> str:
     """Extract readable text from HTML, removing scripts and styles."""
-    from bs4 import BeautifulSoup
+    import importlib
+    BeautifulSoup = importlib.import_module("bs4").BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
@@ -80,7 +82,8 @@ def _extract_text(html: str) -> str:
 
 def _extract_links(html: str, base_url: str) -> list[str]:
     """Extract same-domain links from HTML."""
-    from bs4 import BeautifulSoup
+    import importlib
+    BeautifulSoup = importlib.import_module("bs4").BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
     base_domain = urlparse(base_url).netloc
     links = []
@@ -97,8 +100,8 @@ def _extract_links(html: str, base_url: str) -> list[str]:
 
 def crawl_site(root_url: str) -> list[dict]:
     """Crawl a site up to MAX_DEPTH and return page records."""
-    pages = []
-    visited = set()
+    pages: list[dict] = []
+    visited: set[str] = set()
 
     html = _fetch_page(root_url)
     if not html:
@@ -138,10 +141,11 @@ def pages_to_markdown(pages: list[dict], domain: str) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
-def main():
+def main() -> None:
     try:
-        import requests
-        from bs4 import BeautifulSoup
+        import importlib
+        importlib.import_module("requests")
+        importlib.import_module("bs4")
     except ImportError:
         logger.error("Install dependencies: pip install requests beautifulsoup4")
         return

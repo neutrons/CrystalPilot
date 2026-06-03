@@ -24,7 +24,7 @@ from exphub.core.beamline.spec import TabOverrides
 
 # ---------- TabOverrides intrinsic shape ----------
 
-def test_tab_overrides_default_all_none():
+def test_tab_overrides_default_all_none() -> None:
     overrides = TabOverrides()
     assert overrides.ipts is None
     assert overrides.steering is None
@@ -33,7 +33,7 @@ def test_tab_overrides_default_all_none():
     assert overrides.analysis is None
 
 
-def test_tab_overrides_accepts_callable_in_any_slot():
+def test_tab_overrides_accepts_callable_in_any_slot() -> None:
     def factory(_vm):  # type: ignore[no-untyped-def]
         return object()
 
@@ -48,7 +48,7 @@ def test_tab_overrides_accepts_callable_in_any_slot():
         assert callable(getattr(overrides, slot))
 
 
-def test_tab_overrides_slot_names_are_stable():
+def test_tab_overrides_slot_names_are_stable() -> None:
     """Adding/removing/renaming slots breaks every beamline plug-in and the manifest; pin the set."""
     assert set(TabOverrides.model_fields) == {
         "ipts",
@@ -61,7 +61,7 @@ def test_tab_overrides_slot_names_are_stable():
 
 # ---------- Registered-beamline behaviour ----------
 
-def test_topaz_supplies_css_status_factory():
+def test_topaz_supplies_css_status_factory() -> None:
     """TOPAZ is the reference per-beamline tab implementation."""
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
@@ -72,7 +72,7 @@ def test_topaz_supplies_css_status_factory():
     )
 
 
-def test_corelli_does_not_supply_css_status_factory():
+def test_corelli_does_not_supply_css_status_factory() -> None:
     """CORELLI uses the placeholder fall-through — proves the contract works."""
     if "corelli" not in list_ids():
         pytest.skip("CORELLI beamline plug-in not registered")
@@ -83,7 +83,7 @@ def test_corelli_does_not_supply_css_status_factory():
     )
 
 
-def test_dispatcher_lookup_pattern():
+def test_dispatcher_lookup_pattern() -> None:
     """The tab-content-panel dispatcher reads exactly this surface."""
     spec = active()
     tabs = spec.tabs
@@ -131,7 +131,7 @@ def _resolve_all_slots(spec):  # type: ignore[no-untyped-def]
     return resolved
 
 
-def test_all_five_slots_resolve_to_callable_for_topaz():
+def test_all_five_slots_resolve_to_callable_for_topaz() -> None:
     """Every TabKey resolves to a one-argument factory via the manifest."""
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
@@ -150,7 +150,7 @@ def test_all_five_slots_resolve_to_callable_for_topaz():
         assert len(positional) == 1, key
 
 
-def test_topaz_slots_route_to_expected_sources():
+def test_topaz_slots_route_to_expected_sources() -> None:
     """TOPAZ slot routing.
 
     Tabs 1-3 from technique defaults, STATUS from its status override,
@@ -175,7 +175,7 @@ def test_topaz_slots_route_to_expected_sources():
     assert resolved[TabKey.ANALYSIS] is technique.optional_tab_defaults[TabKey.ANALYSIS]
 
 
-def test_corelli_analysis_resolves_to_real_data_analysis_factory():
+def test_corelli_analysis_resolves_to_real_data_analysis_factory() -> None:
     """CORELLI's ANALYSIS slot (tab 6) must render the real Data Analysis view, not the placeholder.
 
     The ANALYSIS slot has no unconditional technique default; CORELLI neither
@@ -208,7 +208,9 @@ def test_corelli_analysis_resolves_to_real_data_analysis_factory():
     assert analysis_factory is not technique.optional_tab_defaults[TabKey.ANALYSIS]
 
 
-def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
+def test_corelli_data_analysis_factory_builds_real_view(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Invoking CORELLI's ANALYSIS factory constructs the shared ``DataAnalysisView``.
 
     Proves the wrapper wires to the real view, not a placeholder. The view's
@@ -223,7 +225,7 @@ def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
     built = {}
 
     class _FakeBind:
-        def connect(self, _name):  # noqa: D401 - test stub
+        def connect(self, _name: str) -> None:  # noqa: D401 - test stub
             built["connected"] = _name
 
     class _FakeVM:
@@ -234,13 +236,14 @@ def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
     monkeypatch.setattr(da_mod.DataAnalysisView, "create_ui", lambda self: None)
 
     factory = get("corelli").tabs.analysis
+    assert factory is not None
     view = factory(_FakeVM())
 
     assert isinstance(view, da_mod.DataAnalysisView)
     assert built.get("connected") == "model_dataanalysis"
 
 
-def test_placeholder_fall_through_when_not_opted_in():
+def test_placeholder_fall_through_when_not_opted_in() -> None:
     """A slot with no override/default/opt-in resolves to a callable placeholder closure.
 
     The closure is not None and not a technique/override factory.
@@ -279,7 +282,7 @@ def test_placeholder_fall_through_when_not_opted_in():
 
 # ---------- Future-proofing for the multi-technique dispatcher ----------
 
-def test_topaz_factory_signature_is_one_positional():
+def test_topaz_factory_signature_is_one_positional() -> None:
     """Factories receive the active MainViewModel as a single positional argument.
 
     The P3 dispatcher relies on this; lock it now so a beamline can't ship a

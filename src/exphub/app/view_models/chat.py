@@ -14,7 +14,7 @@ import asyncio
 import logging
 import threading
 from functools import partial
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 from nova.mvvm.interface import BindingInterface
 from pydantic import BaseModel
@@ -30,6 +30,9 @@ from ...core.beamline import active_technique
 from ..models.chat import ChatModel
 from ..views.md_render import md_to_html
 
+if TYPE_CHECKING:
+    from ...core.beamline.technique import ActionTool
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,8 +45,8 @@ class ChatViewModel:
         main_model: BaseModel,
         binding: BindingInterface,
         main_bindings: Dict[str, Any],
-        nav_fn=None,
-        main_vm=None,
+        nav_fn: Any | None = None,
+        main_vm: Any | None = None,
     ) -> None:
         self.chat_model = chat_model
         self.main_model = main_model
@@ -89,7 +92,7 @@ class ChatViewModel:
             # Write-through callback: lets the agent push individual field
             # changes to the live model immediately during its turn, so
             # subsequent tool calls (e.g. refresh_schema) see fresh state.
-            def _write_through(field_name: str, value):
+            def _write_through(field_name: str, value: Any) -> tuple[bool, str]:
                 return write_single_field(field_name, value, self.main_model, self.main_bindings)
 
             # UI-action tools declared by the active technique manifest. The
@@ -128,6 +131,9 @@ class ChatViewModel:
 
         try:
             self._ensure_agent()
+            # _ensure_agent() either assigns self._agent or raises, so the
+            # agent is guaranteed to exist for the rest of this turn.
+            assert self._agent is not None
 
             # Pre-agent handler chain: handle deterministic commands without LLM
             snapshot_fn = partial(snapshot_models, self.main_model)
@@ -160,9 +166,10 @@ class ChatViewModel:
             # Offload the blocking LLM call to a thread-pool executor so the
             # asyncio event loop (and the Trame/Vue UI) stays responsive.
             loop = asyncio.get_running_loop()
+            agent = self._agent
             reply, new_config = await loop.run_in_executor(
                 None,
-                lambda: self._agent.invoke(
+                lambda: agent.invoke(
                     user_text,
                     config_state=current_state,
                     bridge_errors=pending_errors,
@@ -219,7 +226,7 @@ class ChatViewModel:
 
     # ------------------------------------------------------------------ helpers
 
-    def _build_action_fns(self, action_tools) -> dict:
+    def _build_action_fns(self, action_tools: tuple[ActionTool, ...]) -> dict:
         """Resolve each manifest :class:`ActionTool` to a live view-model method.
 
         Returns ``{action_name: callable}`` for every spec whose ``vm_method``

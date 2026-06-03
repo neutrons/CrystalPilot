@@ -43,16 +43,16 @@ class FakePeak:
     intensity: float = 100.0
     sigma: float = 10.0
 
-    def getIntHKL(self):
+    def getIntHKL(self) -> tuple[int, int, int]:
         return (self.h, self.k, self.l)
 
-    def getIntMNP(self):
+    def getIntMNP(self) -> tuple[int, int, int]:
         return (self.m, self.n, self.p)
 
-    def getIntensity(self):
+    def getIntensity(self) -> float:
         return self.intensity
 
-    def getSigmaIntensity(self):
+    def getSigmaIntensity(self) -> float:
         return self.sigma
 
 
@@ -60,14 +60,14 @@ class FakePeaksWS:
     def __init__(self, peaks: Sequence[FakePeak]):
         self._peaks = list(peaks)
 
-    def getNumberPeaks(self):
+    def getNumberPeaks(self) -> int:
         return len(self._peaks)
 
-    def getPeak(self, i):
+    def getPeak(self, i: int) -> FakePeak:
         return self._peaks[i]
 
 
-def _arrays_for(ws: FakePeaksWS):
+def _arrays_for(ws: FakePeaksWS) -> tuple[np.ndarray, np.ndarray]:
     n = ws.getNumberPeaks()
     ints = np.array([ws.getPeak(i).getIntensity() for i in range(n)])
     sigs = np.array([ws.getPeak(i).getSigmaIntensity() for i in range(n)])
@@ -76,7 +76,7 @@ def _arrays_for(ws: FakePeaksWS):
 
 # ---------- AllPeaks (statistics-driven) ----------
 
-def test_all_peaks_uses_statistics_row():
+def test_all_peaks_uses_statistics_row() -> None:
     ws = FakePeaksWS([FakePeak(1, 0, 0)])
     ints, sigs = _arrays_for(ws)
     sel = AllPeaksSelector()
@@ -90,7 +90,7 @@ def test_all_peaks_uses_statistics_row():
 
 # ---------- Bragg (filter MNP == 0) ----------
 
-def test_bragg_includes_only_mnp_zero():
+def test_bragg_includes_only_mnp_zero() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, intensity=100, sigma=10),    # Bragg
         FakePeak(1, 0, 0, m=1, intensity=50, sigma=10),  # satellite
@@ -102,10 +102,10 @@ def test_bragg_includes_only_mnp_zero():
     # Mean of (100/10, 80/8) = mean(10, 10) = 10
     assert res.intensity_ratio == pytest.approx(10.0)
     assert res.aux["n_peaks"] == 2
-    assert "Bragg" in res.intensity_yaxis
+    assert res.intensity_yaxis is not None and "Bragg" in res.intensity_yaxis
 
 
-def test_bragg_returns_none_when_no_bragg_peaks():
+def test_bragg_returns_none_when_no_bragg_peaks() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, m=1, intensity=50, sigma=10),
     ])
@@ -114,10 +114,10 @@ def test_bragg_returns_none_when_no_bragg_peaks():
     assert res is None
 
 
-def test_bragg_handles_peak_without_getIntMNP():
+def test_bragg_handles_peak_without_getIntMNP() -> None:
     """Mantid versions without modulation support → treat as all Bragg."""
     class LegacyPeak(FakePeak):
-        def getIntMNP(self):
+        def getIntMNP(self) -> tuple[int, int, int]:
             raise AttributeError("legacy build")
     ws = FakePeaksWS([LegacyPeak(1, 0, 0, intensity=100, sigma=10)])
     ints, sigs = _arrays_for(ws)
@@ -128,7 +128,7 @@ def test_bragg_handles_peak_without_getIntMNP():
 
 # ---------- Satellite (filter MNP != 0) ----------
 
-def test_satellite_includes_only_nonzero_mnp():
+def test_satellite_includes_only_nonzero_mnp() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, intensity=100, sigma=10),       # Bragg, skipped
         FakePeak(1, 0, 0, m=1, intensity=50, sigma=10),    # satellite
@@ -142,7 +142,7 @@ def test_satellite_includes_only_nonzero_mnp():
     assert res.aux["n_peaks"] == 2
 
 
-def test_satellite_empty_when_no_satellites():
+def test_satellite_empty_when_no_satellites() -> None:
     ws = FakePeaksWS([FakePeak(1, 0, 0, intensity=100, sigma=10)])
     ints, sigs = _arrays_for(ws)
     res = SatellitePeaksSelector().select(ws, ints, sigs, max_peak_idx=0, statistics={})
@@ -151,7 +151,7 @@ def test_satellite_empty_when_no_satellites():
 
 # ---------- Max Peak ----------
 
-def test_max_peak_uses_max_idx():
+def test_max_peak_uses_max_idx() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, intensity=50, sigma=10),
         FakePeak(2, 0, 0, intensity=200, sigma=10),  # brightest
@@ -163,7 +163,7 @@ def test_max_peak_uses_max_idx():
     assert res.intensity_ratio == pytest.approx(200 / 10)
 
 
-def test_max_peak_none_when_invalid_idx():
+def test_max_peak_none_when_invalid_idx() -> None:
     ws = FakePeaksWS([FakePeak(1, 0, 0)])
     ints, sigs = _arrays_for(ws)
     res = MaxPeakSelector().select(ws, ints, sigs, max_peak_idx=-1, statistics={})
@@ -172,7 +172,7 @@ def test_max_peak_none_when_invalid_idx():
 
 # ---------- Diffuse Scattering (placeholder) ----------
 
-def test_diffuse_always_none():
+def test_diffuse_always_none() -> None:
     res = DiffuseScatteringSelector().select(
         peaks_ws=None, int_array=np.array([]), sig_array=np.array([]),
         max_peak_idx=0, statistics={},
@@ -182,7 +182,7 @@ def test_diffuse_always_none():
 
 # ---------- Individual Peak ----------
 
-def test_individual_peak_finds_match():
+def test_individual_peak_finds_match() -> None:
     ws = FakePeaksWS([
         FakePeak(0, 0, 0),
         FakePeak(1, 2, 3, intensity=200, sigma=20),
@@ -198,7 +198,7 @@ def test_individual_peak_finds_match():
     assert res.aux["hkl"] == (1, 2, 3)
 
 
-def test_individual_peak_no_match_returns_none():
+def test_individual_peak_no_match_returns_none() -> None:
     ws = FakePeaksWS([FakePeak(1, 0, 0)])
     ints, sigs = _arrays_for(ws)
     res = IndividualPeakSelector(hkl=(2, 0, 0)).select(
@@ -207,20 +207,20 @@ def test_individual_peak_no_match_returns_none():
     assert res is None
 
 
-def test_individual_peak_labels_carry_hkl():
+def test_individual_peak_labels_carry_hkl() -> None:
     ws = FakePeaksWS([FakePeak(3, 1, 4, intensity=100, sigma=10)])
     ints, sigs = _arrays_for(ws)
     res = IndividualPeakSelector(hkl=(3, 1, 4)).select(
         ws, ints, sigs, max_peak_idx=0, statistics={}
     )
     assert res is not None
-    assert "(3, 1, 4)" in res.intensity_title
-    assert "(3, 1, 4)" in res.intensity_yaxis
+    assert res.intensity_title is not None and "(3, 1, 4)" in res.intensity_title
+    assert res.intensity_yaxis is not None and "(3, 1, 4)" in res.intensity_yaxis
 
 
 # ---------- Peak Ratio ----------
 
-def test_peak_ratio_basic():
+def test_peak_ratio_basic() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, intensity=200, sigma=10),   # peak A
         FakePeak(0, 1, 0, intensity=50, sigma=5),     # peak B
@@ -237,7 +237,7 @@ def test_peak_ratio_basic():
     assert res.rsig == pytest.approx(expected_rel_unc * 100)
 
 
-def test_peak_ratio_returns_none_if_either_missing():
+def test_peak_ratio_returns_none_if_either_missing() -> None:
     ws = FakePeaksWS([FakePeak(1, 0, 0, intensity=100, sigma=10)])
     ints, sigs = _arrays_for(ws)
     res = PeakRatioSelector(hkl_a=(1, 0, 0), hkl_b=(9, 9, 9)).select(
@@ -246,7 +246,7 @@ def test_peak_ratio_returns_none_if_either_missing():
     assert res is None
 
 
-def test_peak_ratio_label_overrides_present():
+def test_peak_ratio_label_overrides_present() -> None:
     ws = FakePeaksWS([
         FakePeak(1, 0, 0, intensity=100, sigma=10),
         FakePeak(0, 1, 0, intensity=50, sigma=5),
@@ -262,12 +262,12 @@ def test_peak_ratio_label_overrides_present():
     assert res.intensity_title is not None
     assert res.intensity_yaxis == "I_a / I_b"
     assert res.uncertainty_title is not None
-    assert "ratio" in res.uncertainty_yaxis.lower()
+    assert res.uncertainty_yaxis is not None and "ratio" in res.uncertainty_yaxis.lower()
 
 
 # ---------- Registry / make_selector ----------
 
-def test_registry_contains_all_modes():
+def test_registry_contains_all_modes() -> None:
     expected = {
         "All Peaks", "Bragg Peaks", "Satellite Peaks", "Max Peak",
         "Diffuse Scattering", "Individual Peak", "Peak Ratio",
@@ -275,17 +275,17 @@ def test_registry_contains_all_modes():
     assert expected <= set(SELECTOR_REGISTRY)
 
 
-def test_make_selector_returns_none_for_unknown():
+def test_make_selector_returns_none_for_unknown() -> None:
     assert make_selector("Not A Real Mode") is None
 
 
-def test_make_selector_passes_kwargs_to_factory():
+def test_make_selector_passes_kwargs_to_factory() -> None:
     sel = make_selector("Individual Peak", hkl=(2, 3, 4))
     assert isinstance(sel, IndividualPeakSelector)
     assert sel.hkl == (2, 3, 4)
 
 
-def test_make_selector_ignores_unused_kwargs():
+def test_make_selector_ignores_unused_kwargs() -> None:
     # AllPeaks accepts and ignores hkl=/hkl_a=/hkl_b= — same kwargs the
     # workflow blasts at every selector each cycle.
     sel = make_selector("All Peaks", hkl=(1, 2, 3), hkl_a=(0, 0, 0), hkl_b=(1, 1, 1))

@@ -46,7 +46,7 @@ def field_owner() -> dict[str, str]:
         return {}
 
 
-def _coerce_list_field(model_cls: type, field_name: str, value: Any) -> Any:
+def _coerce_list_field(model_cls: type[BaseModel], field_name: str, value: Any) -> Any:
     """Coerce *value* to ``List[T]`` if the field annotation requires it.
 
     When the agent sets a ``List[BaseModel]`` field (e.g. ``angle_list_pd``)

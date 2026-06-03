@@ -11,6 +11,8 @@ pin the three behaviours the rest of the refactor relies on:
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 import exphub.beamlines  # noqa: F401 — triggers registration
@@ -26,7 +28,7 @@ from exphub.core.beamline import (
 # ---------- shipped beamlines migrated to the discriminated payload ----------
 
 
-def test_topaz_carries_single_crystal_config():
+def test_topaz_carries_single_crystal_config() -> None:
     spec = get("topaz")
     assert spec.technique == "single_crystal"
     assert isinstance(spec.technique_config, SingleCrystalConfig)
@@ -38,7 +40,7 @@ def test_topaz_carries_single_crystal_config():
     assert str(sc.bob_screen_path).endswith("BL12_ADnED_2D_4x4.bob")
 
 
-def test_corelli_carries_single_crystal_config():
+def test_corelli_carries_single_crystal_config() -> None:
     spec = get("corelli")
     assert spec.technique == "single_crystal"
     assert isinstance(spec.technique_config, SingleCrystalConfig)
@@ -47,7 +49,7 @@ def test_corelli_carries_single_crystal_config():
     assert spec.single_crystal.bob_screen_path is None
 
 
-def test_context_reads_through_discriminator():
+def test_context_reads_through_discriminator() -> None:
     """The runtime accessor resolves goniometer + screen via the payload."""
     set_active("topaz")
     ctx = BeamlineContext(get("topaz"))
@@ -62,13 +64,13 @@ def test_context_reads_through_discriminator():
 # ---------- technique / technique_config consistency ----------
 
 
-def test_bare_spec_defaults_to_single_crystal():
+def test_bare_spec_defaults_to_single_crystal() -> None:
     spec = BeamlineSpec(id="bare", display_name="Bare")
     assert spec.technique == "single_crystal"
     assert isinstance(spec.technique_config, SingleCrystalConfig)
 
 
-def test_technique_field_synced_from_payload():
+def test_technique_field_synced_from_payload() -> None:
     spec = BeamlineSpec(
         id="s", display_name="S", technique_config=SansConfig()
     )
@@ -76,7 +78,7 @@ def test_technique_field_synced_from_payload():
     assert spec.technique == "sans"
 
 
-def test_mismatched_technique_kwarg_is_corrected():
+def test_mismatched_technique_kwarg_is_corrected() -> None:
     """``technique_config.kind`` wins over an out-of-sync ``technique`` kwarg."""
     spec = BeamlineSpec(
         id="m",
@@ -90,24 +92,27 @@ def test_mismatched_technique_kwarg_is_corrected():
 # ---------- discriminator parsing + narrowing ----------
 
 
-def test_discriminator_parses_dict_payload():
+def test_discriminator_parses_dict_payload() -> None:
     spec = BeamlineSpec(
         id="p",
         display_name="P",
-        technique_config={"kind": "sans", "mantid_instrument_name": "USANS"},
+        technique_config=cast(
+            "SingleCrystalConfig | SansConfig",
+            {"kind": "sans", "mantid_instrument_name": "USANS"},
+        ),
     )
     assert isinstance(spec.technique_config, SansConfig)
     assert spec.technique == "sans"
     assert spec.technique_config.mantid_instrument_name == "USANS"
 
 
-def test_single_crystal_accessor_rejects_non_sc_payload():
+def test_single_crystal_accessor_rejects_non_sc_payload() -> None:
     spec = BeamlineSpec(id="q", display_name="Q", technique_config=SansConfig())
     with pytest.raises(TypeError):
         _ = spec.single_crystal
 
 
-def test_sans_config_stub_fields_default_none():
+def test_sans_config_stub_fields_default_none() -> None:
     cfg = SansConfig()
     assert cfg.kind == "sans"
     assert cfg.mantid_instrument_name is None

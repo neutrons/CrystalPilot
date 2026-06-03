@@ -11,6 +11,7 @@ from __future__ import annotations
 from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets import html
+from trame_server import Server
 
 from ..view_models.chat import ChatViewModel
 
@@ -169,7 +170,7 @@ _CHAT_CSS = """
 class ChatPaneView:
     """Builds the right-side inline chat panel UI for the NeuDiff Agent."""
 
-    def __init__(self, server, chat_vm: ChatViewModel) -> None:
+    def __init__(self, server: Server, chat_vm: ChatViewModel) -> None:
         self.server = server
         self.chat_vm = chat_vm
         self.ctrl = server.controller
