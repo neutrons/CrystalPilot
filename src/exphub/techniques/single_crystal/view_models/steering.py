@@ -276,6 +276,10 @@ class SingleCrystalSteeringViewModel:
         # single-crystal CSV/row layout lives in the technique manifest and
         # core/eic stays technique-agnostic, only submitting pre-built jobs.
         row_builder = active_technique().eic_row_builder
+        # The single-crystal manifest always provides a row builder (asserted by
+        # test_manifest_exposes_row_builder_seam); narrow the Optional seam so
+        # the submit path can call its methods without a None-guard.
+        assert row_builder is not None
 
         ipts_number = self.model.experimentinfo.ipts_number
         instrument_name = self.model.experimentinfo.instrument

@@ -30,6 +30,20 @@ from typing import Any, Dict, List, Protocol, Tuple, runtime_checkable
 class EICRowBuilder(Protocol):
     """Per-technique translator from strategy-table rows to EIC payloads."""
 
+    def write_strategy_csv(
+        self,
+        strategy_rows: List[Dict[str, Any]],
+        ipts_number: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> str:
+        """Write the technique's strategy CSV to the EIC dropbox location.
+
+        Column layout is technique-defined (e.g. single crystal writes
+        goniometer angle / ramp PV columns). Returns the destination path.
+        """
+        ...
+
     def build_jobs(
         self,
         strategy_rows: List[Dict[str, Any]],
