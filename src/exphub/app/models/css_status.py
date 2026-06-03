@@ -1,9 +1,7 @@
-"""Model for CSS status."""
+"""Compatibility shim for the moved single-crystal css_status model (P2).
 
-from pydantic import BaseModel, Field
+Re-exports ``exphub.techniques.single_crystal.models.css_status`` so existing
+``exphub.app.models.css_status`` imports keep working during P2. Remove in P2.18.
+"""
 
-
-class CSSStatusModel(BaseModel):
-    """Pydantic class for CSS status."""
-
-    active_details_plot: str = Field(default="3")
+from ...techniques.single_crystal.models.css_status import *  # noqa: F401, F403
