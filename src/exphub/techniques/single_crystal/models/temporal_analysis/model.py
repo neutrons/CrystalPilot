@@ -140,7 +140,7 @@ class TemporalAnalysisModel(BaseModel):
 
     def set_parent(self, parent: Any) -> None:
         """Set a back-reference to the owning MainModel."""
-        from ..main_model import MainModel
+        from exphub.app.models.main_model import MainModel
 
         self._parent: MainModel = parent
 
@@ -356,8 +356,8 @@ class TemporalAnalysisModel(BaseModel):
         if not getattr(wf, "ipts", 0):
             return {}
         try:
-            from ....core.beamline import active
-            from ....core.paths import resolver_for
+            from .....core.beamline import active
+            from .....core.paths import resolver_for
         except Exception:
             return {}
         try:

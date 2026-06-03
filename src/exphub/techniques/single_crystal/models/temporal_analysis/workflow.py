@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 import mantid.simpleapi as mtdapi
 import numpy as np
 
-from ....core.beamline import active as _active_beamline
-from ....core.paths import resolver_for
+from .....core.beamline import active as _active_beamline
+from .....core.paths import resolver_for
 from . import pipeline
 from ._debug import trace
 
@@ -196,7 +196,7 @@ class MantidWorkflow:
     # ---------- experiment info & filenames ----------
 
     def update_experiment_info(self, _models: Any) -> None:
-        from ..main_model import MainModel
+        from exphub.app.models.main_model import MainModel
 
         models: MainModel = _models
 

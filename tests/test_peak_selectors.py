@@ -16,7 +16,7 @@ from typing import Sequence
 import numpy as np
 import pytest
 
-from exphub.app.models.temporal_analysis.selectors import (
+from exphub.techniques.single_crystal.models.temporal_analysis.selectors import (
     AllPeaksSelector,
     BraggPeaksSelector,
     DiffuseScatteringSelector,

@@ -74,11 +74,8 @@ BASELINE: dict[str, int] = {
     # Shim re-export line carries the ``gonio_pvs`` token; removed at P2.18.
     "src/exphub/app/models/gonio_pvs.py": 1,
     "src/exphub/app/models/main_model.py": 4,
-    "src/exphub/app/models/temporal_analysis/__init__.py": 1,
-    "src/exphub/app/models/temporal_analysis/model.py": 1,
-    "src/exphub/app/models/temporal_analysis/pipeline.py": 20,
-    "src/exphub/app/models/temporal_analysis/selectors.py": 8,
-    "src/exphub/app/models/temporal_analysis/workflow.py": 16,
+    # Shim re-export line carries the ``temporal_analysis`` token; removed P2.18.
+    "src/exphub/app/models/temporal_analysis.py": 1,
     "src/exphub/app/view_models/angle_plan.py": 12,
     "src/exphub/app/view_models/main.py": 96,
     "src/exphub/app/views/angle_plan.py": 3,
