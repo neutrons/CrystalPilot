@@ -34,6 +34,7 @@ from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..eic.row_builder import EICRowBuilder
 from .spec import TabFactory
 
 logger = logging.getLogger(__name__)
@@ -120,7 +121,13 @@ class TechniqueManifest(BaseModel):
     action_tools: tuple[ActionTool, ...] = ()
     prompts_dir: Path | None = None
     knowledge_dir: Path | None = None
-    eic_row_builder: Callable[..., Any] | None = None
+    # Per-technique EIC row builder (P3a.2). Translates the technique's
+    # strategy-table rows into EIC table-scan submission payloads; the submit
+    # path resolves it via ``active_technique().eic_row_builder`` so core/eic
+    # stays technique-agnostic. Typed as ``EICRowBuilder`` (a runtime
+    # ``Protocol``); ``arbitrary_types_allowed`` lets pydantic hold the
+    # builder instance without validating its method signatures.
+    eic_row_builder: EICRowBuilder | None = None
     root_model_factory: Callable[[], Any] | None = None
 
 

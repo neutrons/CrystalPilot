@@ -18,6 +18,7 @@ from ...core.beamline.technique import (
     TechniqueManifest,
     register_technique,
 )
+from .agent.eic_row_builder import SINGLE_CRYSTAL_EIC_ROW_BUILDER
 from .agent.phases import SINGLE_CRYSTAL_PHASES
 
 # UI-action verbs the agent can trigger. ``vm_method`` is resolved against the
@@ -175,7 +176,11 @@ SINGLE_CRYSTAL = register_technique(
         phases=SINGLE_CRYSTAL_PHASES,
         # UI-action verbs the agent can trigger (submit/authenticate/...).
         action_tools=_ACTION_TOOLS,
-        # knowledge_dir / eic_row_builder / root_model_factory are wired to
-        # their consumers in later steps (P1.b RAG / P3a EIC).
+        # Per-technique EIC row builder (P3a.2): the submit path resolves this
+        # via active_technique().eic_row_builder to turn the angle plan into
+        # EIC table-scan jobs, keeping core/eic technique-agnostic.
+        eic_row_builder=SINGLE_CRYSTAL_EIC_ROW_BUILDER,
+        # knowledge_dir / root_model_factory are wired to their consumers in
+        # later steps (P1.b RAG).
     )
 )

@@ -10,9 +10,11 @@ the technique's own row builder, not here.
 
 from .control import EICControlModel, SubmittedJob
 from .eic_client import EICClient
+from .row_builder import EICRowBuilder
 
 __all__ = [
     "EICClient",
     "EICControlModel",
+    "EICRowBuilder",
     "SubmittedJob",
 ]
