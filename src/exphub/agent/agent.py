@@ -100,17 +100,43 @@ class Agent:
             logger.warning("RAG init failed (%s) — retrieve_docs will be unavailable", exc)
             self._rag = None
 
-        self._tools = make_tools(
-            schema_properties,
-            snapshot_fn=snapshot_fn,
-            nav_fn=nav_fn,
+        # Stored so rebuild_schema() can reconstruct the tool set when the
+        # active beamline's schema / action tools change within a technique.
+        self._snapshot_fn = snapshot_fn
+        self._nav_fn = nav_fn
+        self._action_fns = action_fns
+        self._action_tools = action_tools
+        self._mcp_tools = mcp_tools or []
+
+        self._tools = self._make_tools()
+        self.graph = self._build_graph()
+
+    def _make_tools(self) -> list:
+        """Build the tool list from the stored construction inputs."""
+        tools = make_tools(
+            self.schema_properties,
+            snapshot_fn=self._snapshot_fn,
+            nav_fn=self._nav_fn,
             rag=self._rag,
-            action_fns=action_fns,
-            action_tools=action_tools,
+            action_fns=self._action_fns,
+            action_tools=self._action_tools,
         )
-        if mcp_tools:
-            self._tools.extend(mcp_tools)
-            logger.info("Added %d MCP tools to agent", len(mcp_tools))
+        if self._mcp_tools:
+            tools.extend(self._mcp_tools)
+            logger.info("Added %d MCP tools to agent", len(self._mcp_tools))
+        return tools
+
+    def rebuild_schema(self, schema_properties: dict[str, dict]) -> None:
+        """Rebuild the agent's tools + graph against a new schema.
+
+        Used when the active beamline (and thus the live schema / action tools)
+        changes within a technique family. Cross-technique switching requires an
+        app restart in v1 (see ``MULTI_TECHNIQUE_PLAN.md``); the call site in
+        ``switch_beamline`` lands with the P3 selector-gating work. This method
+        is the plumbing it will use.
+        """
+        self.schema_properties = schema_properties
+        self._tools = self._make_tools()
         self.graph = self._build_graph()
 
     # ------------------------------------------------------------------ graph

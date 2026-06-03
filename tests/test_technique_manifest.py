@@ -228,3 +228,19 @@ def test_action_tool_reports_unavailable_without_callable():
     }
     out = tools["stop_current_run"].invoke({})
     assert "error" in out
+
+
+# ---------- Agent.rebuild_schema plumbing ----------
+
+
+def test_agent_rebuild_schema_refreshes_tools_and_graph():
+    from exphub.agent.agent import Agent
+
+    set_active("topaz")
+    agent = Agent(schema_properties={"a": {"title": "A"}})
+    graph_before = agent.graph
+    agent.rebuild_schema({"b": {"title": "B"}})
+    assert agent.schema_properties == {"b": {"title": "B"}}
+    assert agent.graph is not graph_before  # graph rebuilt
+    # generic tool set still present after rebuild
+    assert any(t.name == "set_parameter" for t in agent._tools)
