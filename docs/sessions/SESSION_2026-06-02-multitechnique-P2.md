@@ -56,9 +56,33 @@ For each moved module:
   `mypy` clean on moved modules and `core/beamline/`
 - ✅ Bind-surface contract test (`test_viewmodel_surface`) unchanged
 
-## What's left in P2
+## Also done this session
 
 - **P2.9** `agent/validation.py` → `techniques/single_crystal/agent/validation.py`
+  (commit `ae4ada1`). Pure functions, no relative imports; shim at the old path
+  keeps `agent.py` + tests importing unchanged. No ratchet impact (agent/ is
+  unscanned).
+
+## The view layer is a coupled cluster (centered on MainViewModel)
+
+Investigation finding that shapes the remaining order:
+
+- All 5 views import `from ..view_models.main import MainViewModel` (and two
+  also import `...core.beamline.active`). They touch *no* models directly.
+- `view_models/angle_plan.py` imports `MainViewModel` (sibling `main`),
+  plus a mix of **moved** models (`angle_plan_engine`, now in techniques) and
+  **not-moved** ones (`main_model`, `plotly`, `pyvista` — these stay in
+  `app/models`). Moving it requires absoluteising several app-pointing imports.
+
+So the views + `view_models/angle_plan` + `main.py` form one unit hanging off
+`MainViewModel`. Moving the views/view-model *before* P2.16 means temporary
+absolute `exphub.app.view_models.main` imports that P2.16's rename must rewrite
+anyway. Cleanest is to treat **P2.16 (the decomposition/rename) as the lynchpin
+of this cluster** and do it together with the view/view-model moves in a
+focused, carefully-tested sequence rather than piecemeal.
+
+## What's left in P2
+
 - **P2.10** `app/view_models/angle_plan.py` → `techniques/single_crystal/view_models/`
 - **P2.11–P2.15** the 5 views (`experiment_info`, `angle_plan`,
   `temporal_analysis`, `data_analysis`, `newtabtemplate`) →
