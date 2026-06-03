@@ -78,10 +78,10 @@ BASELINE: dict[str, int] = {
     "src/exphub/app/models/temporal_analysis.py": 1,
     "src/exphub/app/view_models/angle_plan.py": 12,
     "src/exphub/app/view_models/main.py": 96,
-    "src/exphub/app/views/angle_plan.py": 3,
-    "src/exphub/app/views/experiment_info.py": 6,
+    # View shim re-export lines carry their tokens; removed at P2.18.
+    "src/exphub/app/views/angle_plan.py": 1,
     "src/exphub/app/views/tab_content_panel.py": 2,
-    "src/exphub/app/views/temporal_analysis.py": 3,
+    "src/exphub/app/views/temporal_analysis.py": 1,
     "src/exphub/core/beamline/spec.py": 2,
 }
 
