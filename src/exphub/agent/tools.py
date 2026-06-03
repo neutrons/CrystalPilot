@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from langchain_core.tools import tool
+
+if TYPE_CHECKING:
+    from ..core.beamline import ActionTool
 
 from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .schema_gen import enrich_schema_with_options
@@ -43,12 +46,34 @@ def resolve_param_name(name: str, schema_props: dict[str, dict]) -> tuple[str, d
     return name, None
 
 
+def _make_action_tool(spec: "ActionTool", fn: "Callable[[], Any] | None") -> Any:
+    """Build a no-arg LangChain tool for a technique :class:`ActionTool` spec.
+
+    *fn* is the live callable (a view-model method) or ``None`` if unavailable.
+    The tool's name + description come from the manifest spec.
+    """
+
+    def _run() -> dict:
+        if fn is None:
+            return {"error": f"{spec.name} action is not available in this session."}
+        try:
+            fn()
+            return {"status": "ok", "message": spec.success_message or f"{spec.name} completed."}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    _run.__name__ = spec.name
+    _run.__doc__ = spec.description or f"Run the {spec.name} action."
+    return tool(_run)
+
+
 def make_tools(
     schema_props: dict[str, dict],
     snapshot_fn=None,
     nav_fn=None,
     rag=None,
     action_fns: dict | None = None,
+    action_tools=None,
 ) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
@@ -60,10 +85,14 @@ def make_tools(
         Optional zero-argument callable that returns the current flat config dict
         (i.e. ``bridge.snapshot_models`` partially applied with the live model).
         Required for the ``get_parameter`` tool to work at runtime.
+    action_tools:
+        Optional sequence of :class:`~exphub.core.beamline.technique.ActionTool`
+        specs declared by the active technique. One LLM tool is generated per
+        spec; its callable is looked up in *action_fns* by ``spec.name``.
     action_fns:
-        Optional dict of ``{name: callable}`` for UI-action tools like
-        ``submit_angle_plan``, ``authenticate_eic``, ``initialize_strategy``,
-        ``stop_run``, ``upload_strategy``.
+        Optional dict of ``{action_name: callable}`` providing the live callable
+        for each technique action tool (resolved by the chat view-model against
+        the view-model's methods).
     """
     _actions = action_fns or {}
 
@@ -445,110 +474,7 @@ def make_tools(
         answer = rag.answer(query)
         return answer
 
-    # ------------------------------------------------------------------ UI action tools
-
-    @tool
-    def submit_angle_plan() -> dict:
-        """Submit the current angle plan to the EIC for execution.
-
-        This authenticates (if not already done) and sends all runs in
-        the angle plan to the beamline EIC system.  Check that the angle
-        plan is complete and the EIC settings (token, simulation mode,
-        beamline) are correct before calling this tool.
-
-        Returns ``{"status": "submitted"}`` on success, or
-        ``{"error": ...}`` if the action is unavailable.
-        """
-        fn = _actions.get("submit_angle_plan")
-        if fn is None:
-            return {"error": "submit_angle_plan action is not available in this session."}
-        try:
-            fn()
-            return {"status": "submitted", "message": "Angle plan submitted to EIC."}
-        except Exception as exc:
-            return {"error": str(exc)}
-
-    @tool
-    def authenticate_eic() -> dict:
-        """Load the EIC authentication token from the configured token file.
-
-        Must be called before submitting angle plans.  The token file path
-        is set in the EIC Control section.
-
-        Returns ``{"status": "authenticated"}`` on success, or
-        ``{"error": ...}`` on failure.
-        """
-        fn = _actions.get("authenticate_eic")
-        if fn is None:
-            return {"error": "authenticate_eic action is not available in this session."}
-        try:
-            fn()
-            return {"status": "authenticated", "message": "EIC token loaded successfully."}
-        except Exception as exc:
-            return {"error": str(exc)}
-
-    @tool
-    def initialize_strategy() -> dict:
-        """Initialize (reset) the experiment strategy / angle plan.
-
-        Runs the angle plan optimizer to generate an initial set of
-        goniometer orientations (phi/omega angles) based on the current
-        experiment parameters (crystal system, UB matrix, instrument).
-
-        Returns ``{"status": "initialized"}`` on success, or
-        ``{"error": ...}`` on failure.
-        """
-        fn = _actions.get("initialize_strategy")
-        if fn is None:
-            return {"error": "initialize_strategy action is not available in this session."}
-        try:
-            fn()
-            return {"status": "initialized", "message": "Strategy initialized with optimized angles."}
-        except Exception as exc:
-            return {"error": str(exc)}
-
-    @tool
-    def upload_strategy() -> dict:
-        """Upload an angle plan strategy from the configured CSV file.
-
-        Reads the strategy file (set via ``plan_file`` parameter) and
-        populates the angle plan table.
-
-        Returns ``{"status": "uploaded"}`` on success, or
-        ``{"error": ...}`` on failure.
-        """
-        fn = _actions.get("upload_strategy")
-        if fn is None:
-            return {"error": "upload_strategy action is not available in this session."}
-        try:
-            fn()
-            return {"status": "uploaded", "message": "Strategy file uploaded and loaded."}
-        except Exception as exc:
-            return {"error": str(exc)}
-
-    @tool
-    def stop_current_run() -> dict:
-        """Stop the currently executing EIC scan/run.
-
-        **IMPORTANT:** This is a destructive operation that aborts a
-        running scan.  Before calling this tool, confirm with the user
-        that they want to stop the current run.
-
-        Sends an abort signal to the EIC for the active scan.
-        Use this when the user wants to stop data collection early
-        (e.g., sufficient statistics reached).
-
-        Returns ``{"status": "stopped"}`` on success, or
-        ``{"error": ...}`` on failure.
-        """
-        fn = _actions.get("stop_run")
-        if fn is None:
-            return {"error": "stop_run action is not available in this session."}
-        try:
-            fn()
-            return {"status": "stopped", "message": "Current run stopped."}
-        except Exception as exc:
-            return {"error": str(exc)}
+    # ------------------------------------------------------------------ tools
 
     all_tools = [
         set_parameter, get_default_value, explain_parameter,
@@ -556,7 +482,12 @@ def make_tools(
         set_multiple_parameters, apply_preset, list_presets,
         get_angle_plan, append_run, edit_run, delete_run,
         navigate_to_tab, retrieve_docs,
-        submit_angle_plan, authenticate_eic, initialize_strategy,
-        upload_strategy, stop_current_run,
     ]
+
+    # Technique-specific UI-action tools (submit/authenticate/...): generated
+    # from the active technique's manifest rather than hardcoded here, so a new
+    # technique declares its own verbs without editing tools.py.
+    for spec in (action_tools or []):
+        all_tools.append(_make_action_tool(spec, _actions.get(spec.name)))
+
     return all_tools

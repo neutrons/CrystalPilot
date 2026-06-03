@@ -185,3 +185,46 @@ def test_navigate_tab_maps_tabkey_to_dispatcher_int():
     assert _tab_to_int(TabKey.ANALYSIS) == 6
     # legacy integer addressing passes straight through (shim).
     assert _tab_to_int(3) == 3
+
+
+# ---------- agent action tools from the manifest ----------
+
+
+def test_manifest_declares_action_tools():
+    manifest = get_technique("single_crystal")
+    names = {a.name for a in manifest.action_tools}
+    assert names == {
+        "submit_angle_plan", "authenticate_eic", "initialize_strategy",
+        "upload_strategy", "stop_current_run",
+    }
+    for spec in manifest.action_tools:
+        assert spec.vm_method
+        assert spec.description
+
+
+def test_make_tools_generates_action_tools_from_manifest():
+    from exphub.agent.tools import make_tools
+
+    manifest = get_technique("single_crystal")
+    calls = []
+    fns = {s.name: (lambda s=s: calls.append(s.name)) for s in manifest.action_tools}
+    tools = {
+        t.name: t
+        for t in make_tools({}, action_tools=manifest.action_tools, action_fns=fns)
+    }
+    assert "submit_angle_plan" in tools
+    out = tools["submit_angle_plan"].invoke({})
+    assert out["status"] == "ok"
+    assert "submit_angle_plan" in calls
+
+
+def test_action_tool_reports_unavailable_without_callable():
+    from exphub.agent.tools import make_tools
+
+    manifest = get_technique("single_crystal")
+    tools = {
+        t.name: t
+        for t in make_tools({}, action_tools=manifest.action_tools, action_fns={})
+    }
+    out = tools["stop_current_run"].invoke({})
+    assert "error" in out

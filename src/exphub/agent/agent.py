@@ -73,6 +73,7 @@ class Agent:
         phase_manager=None,
         write_through_fn=None,
         action_fns: dict | None = None,
+        action_tools=None,
         beamline_id: str | None = None,
         task: str | None = None,
     ) -> None:
@@ -105,6 +106,7 @@ class Agent:
             nav_fn=nav_fn,
             rag=self._rag,
             action_fns=action_fns,
+            action_tools=action_tools,
         )
         if mcp_tools:
             self._tools.extend(mcp_tools)

@@ -25,6 +25,7 @@ from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
 from ...agent.utils import pretty_name
 from ...agent.workflow import PhaseManager
+from ...core.beamline import active_technique
 from ..models.chat import ChatModel
 from ..models.main_model import MainModel
 from ..views.md_render import md_to_html
@@ -91,10 +92,11 @@ class ChatViewModel:
             def _write_through(field_name: str, value):
                 return write_single_field(field_name, value, self.main_model, self.main_bindings)
 
-            # Action callbacks for UI-button tools.  These wrap
-            # MainViewModel methods so the agent can programmatically
-            # trigger actions like "Submit through EIC" or "Authenticate".
-            action_fns = self._build_action_fns()
+            # UI-action tools declared by the active technique manifest. The
+            # specs name a view-model method each; resolve them against the
+            # live view-model so the agent can trigger "Submit through EIC" etc.
+            action_tools = active_technique().action_tools
+            action_fns = self._build_action_fns(action_tools)
 
             # Collect MCP tools if any servers are configured
             mcp_tools = self._mcp_service.get_all_tools() if self._mcp_service.is_available() else []
@@ -106,6 +108,7 @@ class ChatViewModel:
                 phase_manager=self._phase_manager,
                 write_through_fn=_write_through,
                 action_fns=action_fns,
+                action_tools=action_tools,
             )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
@@ -216,25 +219,20 @@ class ChatViewModel:
 
     # ------------------------------------------------------------------ helpers
 
-    def _build_action_fns(self) -> dict:
-        """Build the dict of action callbacks for agent UI-action tools.
+    def _build_action_fns(self, action_tools) -> dict:
+        """Resolve each manifest :class:`ActionTool` to a live view-model method.
 
-        Each callback wraps a MainViewModel method.  We resolve the
-        MainViewModel from the binding dict (it's the same instance
-        that created the bindings in mvvm_factory).
+        Returns ``{action_name: callable}`` for every spec whose ``vm_method``
+        exists on the active view-model. Specs with no matching method are
+        skipped (the generated tool then reports "not available").
         """
-        # The main_bindings dict has binding objects keyed by sub-model
-        # name.  We need the MainViewModel instance to call its methods.
-        # It's not stored directly, but we can walk up from the binding.
-        # Simpler: store a reference at init time.
         fns: dict = {}
         vm = self._main_vm
         if vm is not None:
-            fns["submit_angle_plan"] = vm.submit_angle_plan
-            fns["authenticate_eic"] = vm.call_load_token
-            fns["initialize_strategy"] = vm.reset_run
-            fns["upload_strategy"] = vm.upload_strategy
-            fns["stop_run"] = vm.stoprun
+            for spec in action_tools:
+                fn = getattr(vm, spec.vm_method, None)
+                if callable(fn):
+                    fns[spec.name] = fn
         return fns
 
     def toggle_drawer(self) -> None:

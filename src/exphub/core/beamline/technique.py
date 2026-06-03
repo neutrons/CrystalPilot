@@ -74,16 +74,18 @@ class PhaseDefinition:
 
 @dataclass(frozen=True)
 class ActionTool:
-    """A technique-specific agent verb exposed to the chat view-model.
+    """A technique-specific agent verb (a UI-action tool exposed to the LLM).
 
-    The chat VM's action-function table is built from the active manifest in
-    P1.b; ``handler`` is resolved against the live view-model at wiring time
-    (kept as a dotted name / callable so the manifest stays import-cheap).
+    The manifest declares the verb's LLM-facing ``name``, the ``description``
+    shown to the model, the ``vm_method`` attribute resolved against the live
+    technique/main view-model at wiring time (the manifest stays import-cheap),
+    and the ``success_message`` returned to the agent when the action runs.
     """
 
     name: str
-    description: str = ""
-    handler: Callable[..., Any] | None = None
+    vm_method: str
+    description: str
+    success_message: str = ""
 
 
 class TechniqueManifest(BaseModel):
