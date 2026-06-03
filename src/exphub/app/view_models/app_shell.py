@@ -13,7 +13,7 @@ refactor (P2.16).
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from nova.mvvm.interface import BindingInterface
 from pydantic import BaseModel, Field
@@ -39,13 +39,40 @@ def _default_beamline_id() -> str:
         return ""
 
 
+def _active_technique_id() -> str | None:
+    """Technique family of the active beamline (e.g. ``"single_crystal"``)."""
+    try:
+        from ...core.beamline import active as _active_beamline
+
+        return _active_beamline().technique
+    except Exception:
+        return None
+
+
 def _default_beamline_options() -> list[dict]:
-    """Build the ``[{value, title}]`` list for the selector."""
+    """Build the ``[{value, title, disabled}]`` list for the selector.
+
+    Cross-technique options (a beamline whose ``technique`` differs from the
+    active beamline's) are flagged ``disabled``: v1 gates switching across
+    technique families to a restart (see MULTI_TECHNIQUE_PLAN.md P3 / decision
+    #4). The selector renders disabled entries grayed-out alongside a banner.
+    """
     try:
         from ...core.beamline import get as _get
         from ...core.beamline import list_ids as _list_ids
 
-        return [{"value": bid, "title": _get(bid).display_name} for bid in _list_ids()]
+        active_tech = _active_technique_id()
+        options: list[dict] = []
+        for bid in _list_ids():
+            spec = _get(bid)
+            options.append(
+                {
+                    "value": bid,
+                    "title": spec.display_name,
+                    "disabled": active_tech is not None and spec.technique != active_tech,
+                }
+            )
+        return options
     except Exception:
         return []
 
@@ -76,6 +103,11 @@ class AppShellViewState(BaseModel):
     beamline_options: list[dict] = Field(default_factory=_default_beamline_options)
     beamline_switch_notice: str = Field(default="")
     beamline_switch_visible: bool = Field(default=False)
+    # Always-visible banner shown beneath the selector explaining that
+    # cross-technique options are grayed out until restart.
+    cross_technique_banner: str = Field(
+        default="Restart CrystalPilot to switch technique families"
+    )
 
 
 class AppShellViewModel:
@@ -86,9 +118,24 @@ class AppShellViewModel:
         # Track the last-known beamline so the view_state callback only triggers
         # a switch when the user actually picked a new option in the selector.
         self._last_beamline_id: str = self.view_state.beamline_id
+        # Optional lifecycle hook invoked on the *outgoing* technique VM before
+        # an inside-technique switch lands (wired by mvvm_factory to the active
+        # steering VM's ``on_deactivate``). Lets the technique quiesce live
+        # tasks / clear buffers before the registry swaps.
+        self._deactivate_hook: Optional[Callable[[], None]] = None
         self.view_state_bind = binding.new_bind(
             self.view_state, callback_after_update=self.on_view_state_change
         )
+
+    def set_deactivate_hook(self, hook: Callable[[], None]) -> None:
+        """Register the active technique VM's ``on_deactivate`` callback.
+
+        Called once at composition time (mvvm_factory). On an inside-technique
+        beamline switch, ``switch_beamline`` invokes this hook *before* swapping
+        the registry so the outgoing technique can cancel its live-update task,
+        clear temporal buffers, and otherwise quiesce.
+        """
+        self._deactivate_hook = hook
 
     def on_view_state_change(self, results: Dict[str, Any]) -> None:
         """Detect user-driven changes to the shell view-state (beamline selector)."""
@@ -124,16 +171,48 @@ class AppShellViewModel:
         MainApp construction, the agent's RAG index, and the auto-resolved
         model-field defaults already applied to existing instances — won't
         reload mid-session. A snackbar surfaces that note.
+
+        Cross-technique switches (a target beamline whose ``technique`` differs
+        from the active one) are refused: v1 gates technique-family changes to a
+        restart (MULTI_TECHNIQUE_PLAN.md decision #4). The selector already
+        grays such options out; this is the defence-in-depth no-op for a
+        programmatic / stale-state call. The user is told via the snackbar.
         """
-        from ...core.beamline import set_active
+        from ...core.beamline import active, get, set_active
 
         if not beamline_id:
             return
         try:
-            spec = set_active(beamline_id)
+            target = get(beamline_id)
         except KeyError as e:
             print(f"switch_beamline: {e}")
             return
+
+        # Refuse cross-technique switches: no-op + snackbar, and roll the
+        # selector's bound id back to the active beamline so the UI doesn't
+        # show a stale (disabled) selection.
+        try:
+            current_technique = active().technique
+        except Exception:
+            current_technique = None
+        if current_technique is not None and target.technique != current_technique:
+            self._last_beamline_id = self.view_state.beamline_id = active().id
+            self.notify(
+                f"Restart CrystalPilot to switch technique families "
+                f"(cannot switch to {target.display_name} from a "
+                f"{current_technique} beamline)."
+            )
+            return
+
+        # Inside-technique switch: let the outgoing technique quiesce (cancel
+        # live-update task, clear buffers) before the registry swaps.
+        if self._deactivate_hook is not None:
+            try:
+                self._deactivate_hook()
+            except Exception as e:
+                print(f"switch_beamline: deactivate hook failed: {e}")
+
+        spec = set_active(beamline_id)
         # Keep our cached id aligned so the next change_callback doesn't loop.
         self._last_beamline_id = spec.id
         self.view_state.beamline_id = spec.id
@@ -165,4 +244,11 @@ class AppShellViewModel:
         self._push_view_state()
 
     def _push_view_state(self) -> None:
-        self.view_state_bind.update_in_view(self.view_state)
+        # Best-effort: a VM method (e.g. a cross-technique refusal snackbar)
+        # may fire before TabsPanel has connected the ``controls`` namespace.
+        # Swallow the not-yet-connected case so the no-op switch still updates
+        # the in-memory view_state without crashing the caller.
+        try:
+            self.view_state_bind.update_in_view(self.view_state)
+        except ValueError as e:
+            _trace(f"_push_view_state skipped (bind not connected): {e}")

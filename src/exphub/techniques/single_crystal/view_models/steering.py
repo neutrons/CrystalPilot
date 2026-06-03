@@ -404,6 +404,36 @@ class SingleCrystalSteeringViewModel:
         self.view_state_bind.update_in_view(self.view_state)
         await self.get_live_mtd_data()
 
+    def on_deactivate(self) -> None:
+        """Quiesce the steering VM before an inside-technique beamline switch.
+
+        Invoked by the app shell (via ``set_deactivate_hook``) just before the
+        registry swaps to another single-crystal beamline. Best-effort: each
+        step is guarded so a failure in one does not skip the rest, and the VM
+        is left in a clean stopped state (no live-update task, empty plot
+        buffers) for the next beamline.
+
+        This is also the seam P3a-future will reuse for true cross-technique
+        hot-rebuild (cancel async tasks + clear buffers + disconnect binds).
+        """
+        # 1. Cancel the live-update asyncio task + stop the Mantid live thread.
+        try:
+            self.stop_live_update()
+        except Exception as e:
+            print(f"on_deactivate: stop_live_update failed: {e}")
+        # 2. Drop the buffered temporal time-series so stale data from the old
+        #    beamline doesn't bleed into the next one's plots.
+        try:
+            self.model.temporalanalysis.clear_plot_buffers()
+        except Exception as e:
+            print(f"on_deactivate: clear_plot_buffers failed: {e}")
+        # 3. Best-effort: reset the cached selection mode so the next
+        #    user-driven change is detected correctly.
+        try:
+            self._last_data_selection = self.model.temporalanalysis.data_selection
+        except Exception:
+            pass
+
     def stop_live_update(self) -> None:
         """Cancel the asyncio task and stop the Mantid MonitorLiveData thread."""
         if self._live_update_task is not None and not self._live_update_task.done():

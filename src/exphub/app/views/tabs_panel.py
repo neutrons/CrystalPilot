@@ -35,17 +35,27 @@ class TabsPanel:
                     vuetify.VTab("Experiment Steering", value=3)
                     vuetify.VTab("Instrument Status", value=5)
                     vuetify.VTab("Data Analysis", value=6)
-            vuetify.VSelect(
-                v_model=("controls.beamline_id",),
-                items=("controls.beamline_options", []),
-                item_title="title",
-                item_value="value",
-                label="Beamline",
-                density="compact",
-                variant="outlined",
-                hide_details=True,
-                style="max-width: 220px; min-width: 160px; flex: 0 0 auto;",
-            )
+            # ``item_props=True`` spreads each option dict onto the rendered
+            # list item, so a ``{"disabled": True}`` entry grays out (and makes
+            # unselectable) cross-technique beamlines. The banner below the
+            # selector explains why. See AppShellViewModel._default_beamline_options.
+            with html.Div(style="display: flex; flex-direction: column; flex: 0 0 auto;"):
+                vuetify.VSelect(
+                    v_model=("controls.beamline_id",),
+                    items=("controls.beamline_options", []),
+                    item_title="title",
+                    item_value="value",
+                    item_props=True,
+                    label="Beamline",
+                    density="compact",
+                    variant="outlined",
+                    hide_details=True,
+                    style="max-width: 220px; min-width: 160px;",
+                )
+                html.Span(
+                    "{{ controls.cross_technique_banner }}",
+                    style="font-size: 0.7rem; color: rgba(0,0,0,0.6); line-height: 1.1; margin-top: 2px;",
+                )
         with vuetify.VSnackbar(
             v_model="controls.beamline_switch_visible",
             timeout=6000,

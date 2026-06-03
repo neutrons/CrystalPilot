@@ -22,6 +22,10 @@ def create_viewmodels(binding: BindingInterface) -> dict:
     # single-crystal tabs and reuses the shell snackbar via ``notify``.
     shell_vm = AppShellViewModel(binding)
     steering_vm = SingleCrystalSteeringViewModel(model, binding, notify_fn=shell_vm.notify)
+    # On an inside-technique beamline switch the shell calls this hook on the
+    # outgoing technique VM (cancel live-update, clear temporal buffers) before
+    # the registry swaps. P3 deliverable 5.
+    shell_vm.set_deactivate_hook(steering_vm.on_deactivate)
     vm["app_shell"] = shell_vm
     vm["steering"] = steering_vm
 
