@@ -2,13 +2,13 @@
 
 from pydantic import BaseModel, Field
 
-from .angle_plan import AnglePlanModel
-from .css_status import CSSStatusModel
-from .data_analysis import DataAnalysisModel
+from ...techniques.single_crystal.models.angle_plan import AnglePlanModel
+from ...techniques.single_crystal.models.css_status import CSSStatusModel
+from ...techniques.single_crystal.models.data_analysis import DataAnalysisModel
+from ...techniques.single_crystal.models.experiment_info import ExperimentInfoModel
+from ...techniques.single_crystal.models.newtabtemplate import NewTabTemplateModel
+from ...techniques.single_crystal.models.temporal_analysis import TemporalAnalysisModel
 from .eic_control import EICControlModel
-from .experiment_info import ExperimentInfoModel
-from .newtabtemplate import NewTabTemplateModel
-from .temporal_analysis import TemporalAnalysisModel
 
 
 class MainModel(BaseModel):

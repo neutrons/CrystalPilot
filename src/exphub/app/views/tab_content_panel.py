@@ -10,10 +10,10 @@ from trame.widgets import vuetify3 as vuetify
 from trame_server import Server
 
 from ...core.beamline import active as _active_beamline
-from .angle_plan import AnglePlanView
-from .data_analysis import DataAnalysisView
-from .experiment_info import ExperimentInfoView
-from .temporal_analysis import TemporalAnalysisView  # Import the new view
+from ...techniques.single_crystal.views.angle_plan import AnglePlanView
+from ...techniques.single_crystal.views.data_analysis import DataAnalysisView
+from ...techniques.single_crystal.views.experiment_info import ExperimentInfoView
+from ...techniques.single_crystal.views.temporal_analysis import TemporalAnalysisView
 
 if TYPE_CHECKING:
     from ...techniques.single_crystal.view_models.steering import SingleCrystalSteeringViewModel

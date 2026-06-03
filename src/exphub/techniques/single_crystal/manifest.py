@@ -1,11 +1,10 @@
 """Single-crystal technique manifest.
 
 Declares the tab shapes and agent contract shared by every single-crystal
-beamline. In P1.a this lives *additively* alongside the still-in-place
-``app/`` code: the default tab factories lazy-import the existing views from
-``app/views/`` rather than from a moved-out ``techniques/single_crystal/views/``
-package (that physical move is P2). Lazy imports keep manifest registration
-import-cheap and avoid pulling the trame view stack in at module load.
+beamline. The default tab factories lazy-import the technique's own views from
+``techniques/single_crystal/views/`` (the P2 move is complete). Lazy imports
+keep manifest registration import-cheap and avoid pulling the trame view stack
+in at module load.
 """
 
 from __future__ import annotations
@@ -91,19 +90,19 @@ _TECHNIQUE_DIR = Path(__file__).resolve().parent
 
 
 def _ipts_tab(view_model: Any) -> Any:
-    from ...app.views.experiment_info import ExperimentInfoView
+    from .views.experiment_info import ExperimentInfoView
 
     return ExperimentInfoView(view_model)
 
 
 def _live_tab(view_model: Any) -> Any:
-    from ...app.views.temporal_analysis import TemporalAnalysisView
+    from .views.temporal_analysis import TemporalAnalysisView
 
     return TemporalAnalysisView(view_model)
 
 
 def _steering_tab(view_model: Any) -> Any:
-    from ...app.views.angle_plan import AnglePlanView
+    from .views.angle_plan import AnglePlanView
 
     return AnglePlanView(view_model)
 

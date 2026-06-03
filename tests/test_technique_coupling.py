@@ -7,9 +7,11 @@ single-crystal-shaped code (models, view-models, views) out of
 this test acts as a *ratchet*: per-file baselines are recorded below and
 each commit must keep counts at-or-below those baselines.
 
-Baselines drop as P2 lands each file move. The ratchet must reach zero
-(empty ``BASELINE`` map, plus the strict assertion) by the end of P2,
-before P3 starts.
+Baselines drop as P2 lands each file move. P2 is now complete (all
+single-crystal modules moved, all shims deleted); the four files that remain
+in ``BASELINE`` carry coupling the plan defers to P3/P3a (see the note on the
+``BASELINE`` map). The ratchet must reach zero (empty ``BASELINE`` map, plus
+the strict assertion) by the end of P3a.
 
 Patterns matched (single-crystal vocabulary that should not live in
 framework-agnostic code once the refactor finishes):
@@ -59,29 +61,25 @@ ALLOWED_FILES: set[str] = set()
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Per-file baseline captured 2026-06-02 at the start of P0. Each subsequent
-# commit must keep counts at-or-below these numbers. Files not listed must
-# stay at zero. When P2 moves a file to ``techniques/single_crystal/``,
-# delete its row here.
-#
-# This baseline is the END STATE of P0 (no app/core code has moved yet).
-# It will shrink across P2's commits and must reach an empty dict before
-# P3 begins.
+# P2 is complete: every single-crystal-shaped module now lives under
+# techniques/single_crystal/ and all P2 re-export shims are deleted. The four
+# files below retain single-crystal coupling that the plan defers to later
+# phases (option (a), user decision 2026-06-03 — keep P2 scoped to file moves):
+#   - eic_control.py (20): the angle-plan CSV row-builder still names
+#     single-crystal columns; moves to core/eic with a technique RowBuilder
+#     in P3a.
+#   - main_model.py (4): the composite root model still imports + fields the
+#     single-crystal sub-models; becomes technique-root-supplied
+#     (root_model_factory) in P3.
+#   - tab_content_panel.py (2): imports the technique views directly until
+#     P3 makes the dispatcher manifest-driven.
+#   - core/beamline/spec.py (2): two doc-comment mentions, cleared in P3.
+# Each commit must keep counts at-or-below these numbers; files not listed
+# must stay at zero. The ratchet-zero gate (empty dict) lands at end of P3a.
 BASELINE: dict[str, int] = {
-    # Shim re-export line carries the ``angle_plan`` token; removed at P2.18.
-    "src/exphub/app/models/angle_plan.py": 1,
     "src/exphub/app/models/eic_control.py": 20,
-    # Shim re-export line carries the ``gonio_pvs`` token; removed at P2.18.
-    "src/exphub/app/models/gonio_pvs.py": 1,
     "src/exphub/app/models/main_model.py": 4,
-    # Shim re-export line carries the ``temporal_analysis`` token; removed P2.18.
-    "src/exphub/app/models/temporal_analysis.py": 1,
-    # Shim re-export line carries the ``angle_plan`` token; removed at P2.18.
-    "src/exphub/app/view_models/angle_plan.py": 1,
-    # View shim re-export lines carry their tokens; removed at P2.18.
-    "src/exphub/app/views/angle_plan.py": 1,
     "src/exphub/app/views/tab_content_panel.py": 2,
-    "src/exphub/app/views/temporal_analysis.py": 1,
     "src/exphub/core/beamline/spec.py": 2,
 }
 
@@ -143,9 +141,9 @@ def test_total_coupling_within_cap() -> None:
     """Track total framework-side single-crystal coupling."""
     counts = _scan()
     total = sum(counts.values())
-    # Initial cap captured at P0 start; tightens as P2 lands moves.
-    # When P2 completes, this should be 0.
-    INITIAL_CAP = 267
+    # Cap tightened to the post-P2 residual (the four deferred files in
+    # BASELINE). Reaches 0 at the end of P3a.
+    INITIAL_CAP = 28
     assert total <= INITIAL_CAP, (
         f"Total framework-side single-crystal coupling = {total}, "
         f"exceeds cap {INITIAL_CAP}. Each P2 commit should reduce this."

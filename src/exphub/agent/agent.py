@@ -22,17 +22,17 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 
-from .llm import get_configured_chat_model
-from .rag import BeamlineKnowledgeBase
-from .state import AgentState
-from .tools import make_tools, resolve_param_name
-from .utils import coerce_type, pretty_name
-from .validation import (
+from ..techniques.single_crystal.agent.validation import (
     check_unit_cell_volume,
     dependent_fields_to_reset,
     validate_centering,
     validate_point_group,
 )
+from .llm import get_configured_chat_model
+from .rag import BeamlineKnowledgeBase
+from .state import AgentState
+from .tools import make_tools, resolve_param_name
+from .utils import coerce_type, pretty_name
 
 logger = logging.getLogger(__name__)
 

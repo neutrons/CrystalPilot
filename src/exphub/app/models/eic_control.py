@@ -11,7 +11,7 @@ from ...core.beamline import active as _active_beamline
 from ...core.beamline import get as _get_beamline
 from ...core.beamline import list_ids as _beamline_ids
 from ...core.paths import resolver_for as _resolver_for
-from . import gonio_pvs
+from ...techniques.single_crystal.models import gonio_pvs
 from .eic_client import EICClient
 
 

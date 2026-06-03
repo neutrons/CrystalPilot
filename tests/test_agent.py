@@ -642,69 +642,69 @@ class TestKeywordScore:
 
 class TestValidatePointGroup:
     def test_valid_combination(self):
-        from exphub.agent.validation import validate_point_group
+        from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         assert validate_point_group("m-3m", "Cubic") is None
 
     def test_invalid_combination(self):
-        from exphub.agent.validation import validate_point_group
+        from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         err = validate_point_group("2/m", "Cubic")
         assert err is not None
         assert "not valid" in err
 
     def test_no_crystal_system(self):
-        from exphub.agent.validation import validate_point_group
+        from exphub.techniques.single_crystal.agent.validation import validate_point_group
 
         assert validate_point_group("m-3m", None) is None
 
 
 class TestValidateCentering:
     def test_valid_combination(self):
-        from exphub.agent.validation import validate_centering
+        from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         assert validate_centering("P", "1") is None
 
     def test_invalid_combination(self):
-        from exphub.agent.validation import validate_centering
+        from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         err = validate_centering("F", "1")
         assert err is not None
         assert "not valid" in err
 
     def test_no_point_group(self):
-        from exphub.agent.validation import validate_centering
+        from exphub.techniques.single_crystal.agent.validation import validate_centering
 
         assert validate_centering("P", None) is None
 
 
 class TestDependentFieldsToReset:
     def test_crystal_system_resets_both(self):
-        from exphub.agent.validation import dependent_fields_to_reset
+        from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("crystalsystem") == ["point_group", "centering"]
 
     def test_point_group_resets_centering(self):
-        from exphub.agent.validation import dependent_fields_to_reset
+        from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("point_group") == ["centering"]
 
     def test_unrelated_field_resets_nothing(self):
-        from exphub.agent.validation import dependent_fields_to_reset
+        from exphub.techniques.single_crystal.agent.validation import dependent_fields_to_reset
 
         assert dependent_fields_to_reset("molecular_formula") == []
 
 
 class TestCheckUnitCellVolume:
     def test_reasonable_volume_passes(self):
-        from exphub.agent.validation import check_unit_cell_volume
+        from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl", "Z": 4, "unit_cell_volume": 180.0}
         is_err, msg = check_unit_cell_volume(cfg)
         assert not is_err
 
     def test_too_small_volume_fails(self):
-        from exphub.agent.validation import check_unit_cell_volume
+        from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         # NaCl has 2 atoms, Z=4 → threshold = 2*4*10 = 80
         cfg = {"molecular_formula": "NaCl", "Z": 4, "unit_cell_volume": 10.0}
@@ -713,14 +713,14 @@ class TestCheckUnitCellVolume:
         assert "small" in msg
 
     def test_missing_fields_passes(self):
-        from exphub.agent.validation import check_unit_cell_volume
+        from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl"}
         is_err, msg = check_unit_cell_volume(cfg)
         assert not is_err
 
     def test_zero_z_fails(self):
-        from exphub.agent.validation import check_unit_cell_volume
+        from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         cfg = {"molecular_formula": "NaCl", "Z": 0, "unit_cell_volume": 180.0}
         is_err, msg = check_unit_cell_volume(cfg)
@@ -728,7 +728,7 @@ class TestCheckUnitCellVolume:
         assert "Z must be" in msg
 
     def test_complex_formula(self):
-        from exphub.agent.validation import check_unit_cell_volume
+        from exphub.techniques.single_crystal.agent.validation import check_unit_cell_volume
 
         # C6H12O6 = 24 atoms, Z=2 → threshold = 24*2*10 = 480
         cfg = {"molecular_formula": "C6H12O6", "Z": 2, "unit_cell_volume": 500.0}
