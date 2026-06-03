@@ -13,11 +13,13 @@ Mirror the *structure* of the single-crystal equivalents but in a SANS shape:
 
 from .ipts_info import SansIptsInfoModel
 from .iq_reduction import SansIQReductionModel
+from .root import SansMainModel
 from .strategy import SansStrategyModel, SansStrategyRow
 
 __all__ = [
     "SansIptsInfoModel",
     "SansIQReductionModel",
+    "SansMainModel",
     "SansStrategyModel",
     "SansStrategyRow",
 ]
