@@ -11,6 +11,7 @@ in the real values when integrating against the live BL-9 IOC.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from ...core.beamline import (
     AgentSpec,
@@ -26,7 +27,7 @@ from ...core.beamline import (
 )
 
 
-def _build_data_analysis(view_model):
+def _build_data_analysis(view_model: Any) -> Any:
     """Lazy factory — avoids importing the app/view layer during registration."""
     from .tabs.data_analysis import build_data_analysis
     return build_data_analysis(view_model)
