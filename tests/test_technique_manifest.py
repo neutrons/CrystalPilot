@@ -176,7 +176,7 @@ def test_phase_manager_accepts_explicit_phases():
 
 
 def test_navigate_tab_maps_tabkey_to_dispatcher_int():
-    from exphub.app.view_models.main import _tab_to_int
+    from exphub.app.view_models.app_shell import _tab_to_int
 
     assert _tab_to_int(TabKey.IPTS) == 1
     assert _tab_to_int(TabKey.LIVE) == 2

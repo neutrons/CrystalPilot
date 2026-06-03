@@ -4,15 +4,14 @@ from nova.trame.view.components import InputField
 from nova.trame.view.layouts import HBoxLayout, VBoxLayout
 from trame.widgets import vuetify3 as vuetify
 
-from exphub.app.view_models.main import MainViewModel
-
 from ....core.beamline import active as _active_beamline
+from ..view_models.steering import SingleCrystalSteeringViewModel
 
 
 class DataAnalysisView:
     """View class for Plotly."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
         self.view_model.dataanalysis_bind.connect("model_dataanalysis")
         self.create_ui()

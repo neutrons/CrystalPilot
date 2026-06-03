@@ -1,17 +1,22 @@
 """Module for the Sample Tab 2."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from nova.trame.view.components import InputField, RemoteFileInput
 from nova.trame.view.layouts import GridLayout
 from trame.widgets import vuetify3 as vuetify
 
-from ..view_models.main import MainViewModel
+if TYPE_CHECKING:
+    from ...techniques.single_crystal.view_models.steering import SingleCrystalSteeringViewModel
 
 
 # In your View setup
 class EICControlView:
     """Sample tab 2 view class. Renders text input for user password."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
         self.view_model.eiccontrol_bind.connect("model_eiccontrol")
         self.view_model.experimentinfo_bind.connect("model_experimentinfo")

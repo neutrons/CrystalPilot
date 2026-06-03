@@ -8,13 +8,13 @@ from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import html, plotly
 from trame.widgets import vuetify3 as vuetify
 
-from exphub.app.view_models.main import MainViewModel
+from ..view_models.steering import SingleCrystalSteeringViewModel
 
 
 class AnglePlanView:
     """View class for angle plan."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
         # self.view_model.angleplan_bind.connect("model.angleplan")
         self.view_model.angleplan_bind.connect("model_angleplan")

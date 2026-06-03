@@ -2,7 +2,7 @@
 
 from typing import List
 
-from exphub.app.view_models.main import MainViewModel
+from .steering import SingleCrystalSteeringViewModel
 
 # from ..models.ccs_status import CCSStatusModel
 # from ..models.temporal_analysis import TemporalAnalysisModel
@@ -97,7 +97,7 @@ class MainViewModel:
 '''  # noqa
 
 
-def angleplan_optimize(view_model: MainViewModel) -> List:
+def angleplan_optimize(view_model: SingleCrystalSteeringViewModel) -> List:
     import mantid.simpleapi as mtdapi
     import numpy as np
     from mantid.geometry import PointGroupFactory

@@ -1,26 +1,42 @@
 """Module for the Tab Content panel."""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from nova.trame.view.layouts import VBoxLayout
 from trame.widgets import vuetify3 as vuetify
 from trame_server import Server
 
 from ...core.beamline import active as _active_beamline
-from ..view_models.main import MainViewModel
 from .angle_plan import AnglePlanView
 from .data_analysis import DataAnalysisView
 from .experiment_info import ExperimentInfoView
 from .temporal_analysis import TemporalAnalysisView  # Import the new view
 
+if TYPE_CHECKING:
+    from ...techniques.single_crystal.view_models.steering import SingleCrystalSteeringViewModel
+    from ..view_models.app_shell import AppShellViewModel
+
 logger = logging.getLogger(__name__)
 
 
 class TabContentPanel:
-    """View class to render content for a selected tab."""
+    """View class to render content for a selected tab.
 
-    def __init__(self, server: Server, view_model: MainViewModel) -> None:
+    Tabs 1-3, 5-6 bind to the single-crystal steering VM; the
+    under-development dialog button resolves against the app-shell VM.
+    """
+
+    def __init__(
+        self,
+        server: Server,
+        view_model: SingleCrystalSteeringViewModel,
+        shell_view_model: AppShellViewModel,
+    ) -> None:
         self.view_model = view_model
+        self.shell_view_model = shell_view_model
         self.server = server
         self.ctrl = server.controller
         self.create_ui()
@@ -63,7 +79,7 @@ class TabContentPanel:
                     )
                 with vuetify.VCardActions():
                     vuetify.VBtn(
-                        "OK", click=self.view_model.close_under_development_dialog, color="primary", block=True
+                        "OK", click=self.shell_view_model.close_under_development_dialog, color="primary", block=True
                     )
                     # vuetify.VBtn("OK",  color="primary", block=True)
 

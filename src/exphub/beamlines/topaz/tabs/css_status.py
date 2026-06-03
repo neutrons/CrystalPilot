@@ -19,7 +19,7 @@ from trame.widgets import client, plotly
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets.core import AbstractElement
 
-from ....app.view_models.main import MainViewModel
+from ....techniques.single_crystal.view_models.steering import SingleCrystalSteeringViewModel
 
 
 class _GatedPVPlot:
@@ -220,7 +220,7 @@ class LogPVPlot(_GatedPVPlot):
 class CSSStatusView:
     """View class for Plotly."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
         self.view_model.cssstatus_bind.connect("model_cssstatus")
         self.create_ui()

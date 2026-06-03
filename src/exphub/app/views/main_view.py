@@ -7,7 +7,8 @@ from nova.epics.trame import get_epics_instance
 from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
 from trame.app import get_server
-from trame.widgets import client, vuetify3 as vuetify
+from trame.widgets import client
+from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets import html
 
 # Importing the beamlines package registers every shipped beamline with the
@@ -15,7 +16,6 @@ from trame_client.widgets import html
 from ... import beamlines  # noqa: F401
 from ...core.beamline import BeamlineContext, active
 from ..mvvm_factory import create_viewmodels
-from ..view_models.main import MainViewModel
 from .chat_pane import ChatPaneView
 from .tab_content_panel import TabContentPanel
 from .tabs_panel import TabsPanel
@@ -34,7 +34,6 @@ class MainApp(ThemedApp):
         self.server.state.trame__title = "CrystalPilot"
         self.beamline_ctx = BeamlineContext(active())
         self.view_models = create_viewmodels(binding)
-        self.view_model: MainViewModel = self.view_models["main"]
         self.epics = get_epics_instance()
         self.create_ui()
 
@@ -60,7 +59,7 @@ class MainApp(ThemedApp):
                 )
 
             with layout.pre_content:
-                TabsPanel(self.view_models["main"])
+                TabsPanel(self.view_models["app_shell"])
 
             # Main content + inline chat panel side-by-side so the chat pane
             # squeezes the tab content instead of overlapping it.
@@ -73,7 +72,8 @@ class MainApp(ThemedApp):
                     ):
                         TabContentPanel(
                             self.server,
-                            self.view_models["main"],
+                            self.view_models["steering"],
+                            self.view_models["app_shell"],
                         )
                     ChatPaneView(self.server, self.view_models["chat"])
 

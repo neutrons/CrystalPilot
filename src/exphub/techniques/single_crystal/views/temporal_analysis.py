@@ -10,9 +10,8 @@ from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.widgets import html, plotly
 from trame.widgets import vuetify3 as vuetify
 
-from exphub.app.view_models.main import MainViewModel
-
 from ....core.beamline import active as _active_beamline
+from ..view_models.steering import SingleCrystalSteeringViewModel
 
 # Plotly layout shared across the live-data plots in this view.
 _FIG_MARGIN = {"l": 50, "r": 15, "t": 35, "b": 40}
@@ -34,7 +33,7 @@ def temporal_data_analysis() -> Tuple[List[int], List[int]]:
 class TemporalAnalysisView:
     """View class to render the Temporal Analysis tab."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
         # guards to avoid re-entrant or too-frequent view updates
         self._updating_intensity = False
@@ -45,6 +44,11 @@ class TemporalAnalysisView:
         self._last_uncertainty_time = 0.0
         self._min_interval_uncertainty = 0.5
         self.view_model.temporalanalysis_bind.connect("model_temporalanalysis")
+        # The steering view-state (HKL popover visibility + live-update flag)
+        # is owned by the steering VM and exposed under its own ``steering``
+        # namespace — the app shell owns ``controls``. This view is the only
+        # consumer of those flags, so it connects the bind here.
+        self.view_model.view_state_bind.connect("steering")
         self.view_model.temporalanalysis_updatefigure_intensity_bind.connect(self.update_figure_intensity)
         self.view_model.temporalanalysis_updatefigure_uncertainty_bind.connect(self.update_figure_uncertainty)
         # Allow the view model to push placeholder figures immediately on start
@@ -85,11 +89,11 @@ class TemporalAnalysisView:
                     size="small",
                     variant="outlined",
                     style="cursor: pointer;",
-                    click="controls.hkl_individual_menu = !controls.hkl_individual_menu",
+                    click="steering.hkl_individual_menu = !steering.hkl_individual_menu",
                 )
                 with vuetify.VMenu(
                     activator="#hkl-chip-individual",
-                    v_model=("controls.hkl_individual_menu", False),
+                    v_model=("steering.hkl_individual_menu", False),
                     close_on_content_click=False,
                     location="bottom",
                 ):
@@ -135,11 +139,11 @@ class TemporalAnalysisView:
                     size="small",
                     variant="outlined",
                     style="cursor: pointer;",
-                    click="controls.hkl_peak_ratio_menu = !controls.hkl_peak_ratio_menu",
+                    click="steering.hkl_peak_ratio_menu = !steering.hkl_peak_ratio_menu",
                 )
                 with vuetify.VMenu(
                     activator="#hkl-chip-peak-ratio",
-                    v_model=("controls.hkl_peak_ratio_menu", False),
+                    v_model=("steering.hkl_peak_ratio_menu", False),
                     close_on_content_click=False,
                     location="bottom",
                 ):
@@ -369,13 +373,13 @@ class TemporalAnalysisView:
             vuetify.VBtn(
                 "Start Live Data Monitoring",
                 click=self.view_model.create_auto_update_temporalanalysis_figure,
-                disabled=("controls.is_live_update_running",),
+                disabled=("steering.is_live_update_running",),
                 size="small",
             )
             vuetify.VBtn(
                 "Stop Live Data Monitoring",
                 click=self.view_model.stop_live_update,
-                disabled=("!controls.is_live_update_running",),
+                disabled=("!steering.is_live_update_running",),
                 size="small",
             )
 

@@ -3,13 +3,13 @@
 from nova.trame.view.components import InputField, RemoteFileInput
 from nova.trame.view.layouts import GridLayout
 
-from exphub.app.view_models.main import MainViewModel
+from ..view_models.steering import SingleCrystalSteeringViewModel
 
 
 class ExperimentInfoView:
     """View class to render the System tab."""
 
-    def __init__(self, view_model: MainViewModel) -> None:
+    def __init__(self, view_model: SingleCrystalSteeringViewModel) -> None:
         self.view_model = view_model
 
         self.view_model.experimentinfo_bind.connect("config")

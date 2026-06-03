@@ -4,18 +4,18 @@ from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets import html
 
-from ..view_models.main import MainViewModel
+from ..view_models.app_shell import AppShellViewModel
 
 
 class TabsPanel:
     """Render the tab strip + a beamline selector inline at the same height.
 
-    The selector binds to ``controls.beamline_id``; the MainViewModel's
+    The selector binds to ``controls.beamline_id``; the AppShellViewModel's
     ``on_view_state_change`` callback detects the change and invokes
     ``switch_beamline`` to activate the new spec in the registry.
     """
 
-    def __init__(self, view_model: MainViewModel):
+    def __init__(self, view_model: AppShellViewModel):
         self.view_model = view_model
         self.view_model.view_state_bind.connect("controls")
         self.create_ui()
