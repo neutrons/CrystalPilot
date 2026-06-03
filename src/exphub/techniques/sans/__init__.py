@@ -1,12 +1,12 @@
 """Small-angle neutron scattering (SANS) technique family.
 
-P4 ships this package incrementally. P4.1 adds only the data-model skeleton
-under :mod:`exphub.techniques.sans.models` (sample info, strategy table, I(Q)
-reduction placeholder). The technique *manifest* — which is what
-``get_technique("sans")`` discovers via the import side effect — lands in a
-later P4 step, together with view-models, views, agent phases and prompts.
-
-Until the manifest exists, importing this package is a cheap no-op; it does
-**not** register a technique. ``get_technique("sans")`` therefore still raises
-``KeyError`` (no manifest registered) by design at this point in the refactor.
+Importing this package registers the SANS
+:class:`~exphub.core.beamline.technique.TechniqueManifest`. Triggered lazily by
+``get_technique("sans")`` (the lazy-import side effect), exactly like the
+single-crystal package. The manifest (P4.3) wires the SANS data-models (P4.1),
+view-models + views (P4.2), agent phases, prompt fragment, and EIC row-builder
+into the technique plug-in surface.
 """
+
+from .manifest import SANS  # noqa: F401 — registers on import
+
