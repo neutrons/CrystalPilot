@@ -1,7 +1,52 @@
 """Main Application."""
 
+import logging
 import os
 import sys
+from collections.abc import Mapping
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_startup_beamline(argv: list[str], env: Mapping[str, str]) -> str | None:
+    """Pick the beamline to activate at launch.
+
+    Precedence: a ``--beamline=<id>`` (or ``beamline=<id>``) CLI argument wins,
+    then the ``CRYSTALPILOT_BEAMLINE`` environment variable, else ``None`` to use
+    the registry default (the first-registered beamline).
+
+    This is the restart-time picker the beamline selector's "restart to switch
+    technique families" banner refers to: a beamline of a *different* technique
+    family (e.g. a SANS beamline while a single-crystal beamline is the registry
+    default) can only be entered this way, because live cross-technique switching
+    is gated in v1.
+    """
+    for arg in argv:
+        if arg.startswith("--beamline=") or arg.startswith("beamline="):
+            return arg.split("=", 1)[1].strip() or None
+    return (env.get("CRYSTALPILOT_BEAMLINE") or "").strip() or None
+
+
+def _activate_startup_beamline(argv: list[str], env: Mapping[str, str]) -> None:
+    """Resolve and apply the startup beamline to the registry, if one is set.
+
+    Unknown ids are logged and ignored so launch falls back to the default
+    rather than crashing.
+    """
+    chosen = _resolve_startup_beamline(argv, env)
+    if not chosen:
+        return
+    from ..core.beamline import list_ids, set_active
+
+    try:
+        spec = set_active(chosen)
+        logger.info("Startup beamline set to %r (technique=%s)", spec.id, spec.technique)
+    except KeyError:
+        logger.warning(
+            "Unknown startup beamline %r; known: %s. Using registry default.",
+            chosen,
+            list_ids(),
+        )
 
 
 def main() -> None:
@@ -13,6 +58,11 @@ def main() -> None:
     # partial-message reassembly path that triggers ValueError in
     # chunking.py on the Instrument Status tab.
     os.environ.setdefault("WSLINK_MAX_MSG_SIZE", str(32 * 1024 * 1024))  # 32 MB
+
+    # Select the active beamline BEFORE building the app: MainApp() reads
+    # active() at construction time, so a non-default (e.g. a cross-technique)
+    # beamline must be chosen here, not via the runtime selector.
+    _activate_startup_beamline(sys.argv[1:], os.environ)
 
     kwargs = {}
     from .views.main_view import MainApp

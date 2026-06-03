@@ -31,22 +31,33 @@ class MainApp(ThemedApp):
         super().__init__()
         self.server = get_server(None, client_type="vue3")
         binding = TrameBinding(self.server.state)
-        self.server.state.trame__title = "CrystalPilot"
         self.beamline_ctx = BeamlineContext(active())
+        self.server.state.trame__title = self._title()
         self.view_models = create_viewmodels(binding)
         self.epics = get_epics_instance()
         self.create_ui()
 
+    def _title(self) -> str:
+        """Window/toolbar title showing the active beamline + technique family.
+
+        Makes it obvious which beamline was launched — important now that a
+        non-default (e.g. a cross-technique beamline) is chosen at startup via
+        ``--beamline=`` / ``CRYSTALPILOT_BEAMLINE`` rather than the runtime
+        selector.
+        """
+        ctx = self.beamline_ctx
+        return f"CrystalPilot — {ctx.display_name} [{ctx.spec.technique}]"
+
     def create_ui(self) -> None:
         self.set_theme("CompactTheme")
-        self.state.trame__title = "CrystalPilot"
+        self.state.trame__title = self._title()
 
         # Suppress the NOVA Examples / Tutorial / Documentation buttons that
         # ThemedApp injects when PIXI_ENVIRONMENT_NAME != "production".
         os.environ["PIXI_ENVIRONMENT_NAME"] = "production"
 
         with super().create_ui() as layout:
-            layout.toolbar_title.set_text("CrystalPilot")
+            layout.toolbar_title.set_text(self._title())
 
             # Agent toggle button in toolbar (top-right, next to exit button)
             with layout.actions:
@@ -93,7 +104,7 @@ class MainApp(ThemedApp):
 
             return layout
 
-    def _subscribe_extra_pvs(self, pv_names) -> None:
+    def _subscribe_extra_pvs(self, pv_names: tuple[str, ...]) -> None:
         """Subscribe to PVs not present in the main .bob file.
 
         Mirrors the per-PV ``client.Script`` template that
