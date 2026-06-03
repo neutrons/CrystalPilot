@@ -21,7 +21,6 @@ import pytest
 from exphub.core.beamline import active, list_ids
 from exphub.core.beamline.spec import TabOverrides
 
-
 # ---------- TabOverrides intrinsic shape ----------
 
 def test_tab_overrides_default_all_none():
@@ -50,8 +49,7 @@ def test_tab_overrides_accepts_callable_in_any_slot():
 
 
 def test_tab_overrides_slot_names_are_stable():
-    """Adding/removing/renaming slots is a breaking change for every
-    beamline plug-in and the manifest. Pin the set."""
+    """Adding/removing/renaming slots breaks every beamline plug-in and the manifest; pin the set."""
     assert set(TabOverrides.model_fields) == {
         "experiment_info",
         "angle_plan",
@@ -109,8 +107,8 @@ def _resolve_all_slots(spec):  # type: ignore[no-untyped-def]
     trame UI: beamline override → technique default → opted-in optional default
     → placeholder closure. Returns ``{TabKey: factory}`` (always callable).
     """
-    from exphub.core.beamline import TabKey, get_technique
     from exphub.app.views.placeholder_tab import PlaceholderTab
+    from exphub.core.beamline import TabKey, get_technique
 
     technique = get_technique(spec.technique)
     resolved = {}
@@ -139,6 +137,7 @@ def test_all_five_slots_resolve_to_callable_for_topaz():
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
     import inspect
+
     from exphub.core.beamline import TabKey, get
 
     resolved = _resolve_all_slots(get("topaz"))
@@ -153,8 +152,11 @@ def test_all_five_slots_resolve_to_callable_for_topaz():
 
 
 def test_topaz_slots_route_to_expected_sources():
-    """TOPAZ: tabs 1-3 from technique defaults, STATUS from its css_status
-    override, ANALYSIS from the opted-in optional default."""
+    """TOPAZ slot routing.
+
+    Tabs 1-3 from technique defaults, STATUS from its css_status override,
+    ANALYSIS from the opted-in optional default.
+    """
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
     from exphub.core.beamline import TabKey, get, get_technique
@@ -175,14 +177,14 @@ def test_topaz_slots_route_to_expected_sources():
 
 
 def test_corelli_analysis_resolves_to_real_data_analysis_factory():
-    """CORELLI's ANALYSIS slot (tab 6) must render the real Data Analysis view,
-    not the placeholder.
+    """CORELLI's ANALYSIS slot (tab 6) must render the real Data Analysis view, not the placeholder.
 
     The ANALYSIS slot has no unconditional technique default; CORELLI neither
     opts into the optional default (``optional_tabs``) nor would inherit one,
     so without its own ``tabs.data_analysis`` factory it would fall through to
     the placeholder. Pin that CORELLI ships the factory and that the dispatcher
-    resolves ANALYSIS to it (P3 deliverable 3)."""
+    resolves ANALYSIS to it (P3 deliverable 3).
+    """
     if "corelli" not in list_ids():
         pytest.skip("CORELLI beamline plug-in not registered")
     from exphub.core.beamline import TabKey, get, get_technique
@@ -208,10 +210,12 @@ def test_corelli_analysis_resolves_to_real_data_analysis_factory():
 
 
 def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
-    """Invoking CORELLI's ANALYSIS factory constructs the shared
-    ``DataAnalysisView`` (proves the wrapper wires to the real view, not a
-    placeholder). The view's ``create_ui`` needs a live trame layout context,
-    so we stub it out and only assert the view-model is bound."""
+    """Invoking CORELLI's ANALYSIS factory constructs the shared ``DataAnalysisView``.
+
+    Proves the wrapper wires to the real view, not a placeholder. The view's
+    ``create_ui`` needs a live trame layout context, so we stub it out and only
+    assert the view-model is bound.
+    """
     if "corelli" not in list_ids():
         pytest.skip("CORELLI beamline plug-in not registered")
     from exphub.core.beamline import get
@@ -238,9 +242,9 @@ def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
 
 
 def test_placeholder_fall_through_when_not_opted_in():
-    """A slot with no override, no default, and no opt-in resolves to a
-    callable placeholder closure (not None, not a technique/override factory).
+    """A slot with no override/default/opt-in resolves to a callable placeholder closure.
 
+    The closure is not None and not a technique/override factory.
     The closure builds a ``PlaceholderTab``; we don't invoke it here because
     that requires a live trame server context. We instead assert it is none of
     the real factories, i.e. the placeholder branch was taken.
@@ -277,12 +281,15 @@ def test_placeholder_fall_through_when_not_opted_in():
 # ---------- Future-proofing for the multi-technique dispatcher ----------
 
 def test_topaz_factory_signature_is_one_positional():
-    """Factories receive the active MainViewModel as a single positional
-    argument. The P3 dispatcher relies on this; lock it now so a beamline
-    can't ship a multi-arg factory that the dispatcher fails to call."""
+    """Factories receive the active MainViewModel as a single positional argument.
+
+    The P3 dispatcher relies on this; lock it now so a beamline can't ship a
+    multi-arg factory that the dispatcher fails to call.
+    """
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
     import inspect
+
     from exphub.core.beamline import get
     factory = get("topaz").tabs.css_status
     assert factory is not None
