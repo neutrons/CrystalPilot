@@ -68,7 +68,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # It will shrink across P2's commits and must reach an empty dict before
 # P3 begins.
 BASELINE: dict[str, int] = {
-    "src/exphub/app/models/angle_plan.py": 36,
+    # Shim re-export line carries the ``angle_plan`` token; removed at P2.18.
+    "src/exphub/app/models/angle_plan.py": 1,
     "src/exphub/app/models/eic_control.py": 20,
     # Shim re-export line carries the ``gonio_pvs`` token; removed at P2.18.
     "src/exphub/app/models/gonio_pvs.py": 1,
