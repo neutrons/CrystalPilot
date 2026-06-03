@@ -76,7 +76,8 @@ BASELINE: dict[str, int] = {
     "src/exphub/app/models/main_model.py": 4,
     # Shim re-export line carries the ``temporal_analysis`` token; removed P2.18.
     "src/exphub/app/models/temporal_analysis.py": 1,
-    "src/exphub/app/view_models/angle_plan.py": 12,
+    # Shim re-export line carries the ``angle_plan`` token; removed at P2.18.
+    "src/exphub/app/view_models/angle_plan.py": 1,
     "src/exphub/app/view_models/main.py": 96,
     # View shim re-export lines carry their tokens; removed at P2.18.
     "src/exphub/app/views/angle_plan.py": 1,
