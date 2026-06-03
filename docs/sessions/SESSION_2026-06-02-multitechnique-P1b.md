@@ -1,7 +1,7 @@
-# Session 2026-06-02: Multi-Technique Refactor — Phase 1.b (partial)
+# Session 2026-06-02: Multi-Technique Refactor — Phase 1.b
 
 Branch: `multibeamline`.
-Tests: **131 → 136** all green.
+Tests: **131 → 142** all green.
 Plan: [`MULTI_TECHNIQUE_PLAN.md`](../../MULTI_TECHNIQUE_PLAN.md).
 Predecessor: [`SESSION_2026-06-02-multitechnique-P1a.md`](SESSION_2026-06-02-multitechnique-P1a.md).
 
@@ -9,8 +9,8 @@ Predecessor: [`SESSION_2026-06-02-multitechnique-P1a.md`](SESSION_2026-06-02-mul
 
 P1.b wires the agent's hardcoded single-crystal behaviour to the technique
 manifest introduced in P1.a, so a future SANS/USANS technique needs no
-agent-side patches. This session lands the three highest-value, well-bounded
-items; the agent-tool-surface items are deferred (see "What's left").
+agent-side patches. **All P1.b items landed** (originally split across two
+sittings; the second completed the action-tool surface + plumbing).
 
 ## What changed (3 commits)
 
@@ -51,10 +51,31 @@ beamline-agnostic core identity and the per-beamline context:
   handlers pass `phase.tab` (TabKey) to `nav_fn`.
 - `manifest.phases` populated for single_crystal.
 
+### `e4d47ad` — agent action verbs from `manifest.action_tools`
+
+- `ActionTool` gains `vm_method` + `success_message` (drops the unused
+  `handler`); the single-crystal manifest declares its 5 verbs.
+- `tools.py` no longer hardcodes those 5 `@tool` functions — `_make_action_tool`
+  generates one LangChain tool per spec, calling the resolved callable.
+  `make_tools` / `Agent` gain an `action_tools` param.
+- `chat._build_action_fns(action_tools)` resolves each `spec.vm_method` against
+  the live view-model.
+
+### `0c5d3d1` — `Agent.rebuild_schema` + bind-surface contract test
+
+- `Agent` stores its tool-construction inputs and gains `rebuild_schema()`
+  (rebuilds tools + graph against a new schema). The `switch_beamline` call
+  site lands with P3's selector gating; this is the plumbing it will use.
+- `tests/test_viewmodel_surface.py` pins the steering VM's `*_bind` surface,
+  built on an isolated named trame server (so it doesn't collide with
+  `test_app`'s `MainApp()` on the default singleton server). Locks the
+  contract for P2's VM move.
+
 ## Test gates met
 
-- ✅ 131 → 136 tests green (+5: prompt layer, manifest phases, PhaseManager
-  default/explicit, navigate TabKey shim)
+- ✅ 131 → 142 tests green (prompt layer, manifest phases, PhaseManager
+  default/explicit, navigate TabKey shim, action-tool generation, rebuild
+  plumbing, bind-surface contract)
 - ✅ Technique-coupling ratchet unchanged — `technique.py` in `core/` stays
   at zero SC hits; the moved phases live in `techniques/` (unscanned); no
   app/core code moved
@@ -62,21 +83,20 @@ beamline-agnostic core identity and the per-beamline context:
 - ✅ `mypy` clean on `core/beamline/`; no new mypy/ruff errors in the touched
   agent/app files (verified pre-existing ones against HEAD)
 
-## What's left in P1.b (not started)
+## Deferred to P3 (by design)
 
-1. **Agent action verbs from the manifest** — `tools.py` still hardcodes the
-   5 single-crystal action tools (submit_angle_plan, authenticate_eic,
-   initialize_strategy, upload_strategy, stop_run) and `chat._build_action_fns`
-   maps them to MainViewModel methods. To make them manifest-driven the
-   `ActionTool` contract needs a VM-method reference and `tools.py` must
-   generate the action tools dynamically. This rewrites the LLM-facing tool
-   surface — deferred as its own commit.
-2. **`Agent.rebuild_schema(main_model)`** — additive plumbing for the v1
-   "restart required for cross-technique" gate (called from `switch_beamline`).
-3. **`tests/test_viewmodel_surface.py`** — contract test pinning the SC VM's
-   `*_bind` surface (lands with the bind names locked).
+- The `switch_beamline` → `Agent.rebuild_schema` call site lands with P3's
+  selector gating + `on_deactivate()` lifecycle work. P1.b only adds the
+  method (the plumbing); v1 still requires an app restart to switch technique.
 
 ## What's next
 
-Finish P1.b (items above), then P2 (move single-crystal code under
-`techniques/single_crystal/`, one file per commit + shims; ratchet → 0).
+P1 is complete (P1.a manifest/registry + P1.b agent parametrisation). The
+agent no longer hardcodes single-crystal prompt, phases, bridged sub-models,
+action verbs, or tab numbers — a new technique supplies all of it via its
+manifest.
+
+Next is **P2**: physically move the single-crystal code under
+`techniques/single_crystal/` (one file per commit + re-export shims), driving
+the technique-coupling ratchet to zero. The bind-surface contract test and
+the manifest's lazy view imports keep those moves green at every commit.
