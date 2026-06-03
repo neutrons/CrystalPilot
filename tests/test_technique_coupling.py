@@ -70,7 +70,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 BASELINE: dict[str, int] = {
     "src/exphub/app/models/angle_plan.py": 36,
     "src/exphub/app/models/eic_control.py": 20,
-    "src/exphub/app/models/experiment_info.py": 37,
     "src/exphub/app/models/main_model.py": 4,
     "src/exphub/app/models/temporal_analysis/__init__.py": 1,
     "src/exphub/app/models/temporal_analysis/model.py": 1,
