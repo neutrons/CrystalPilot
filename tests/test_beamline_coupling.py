@@ -31,7 +31,7 @@ ALLOWED_PREFIXES = (
 ALLOWED_FILES = {
     "src/exphub/core/beamline/spec.py",
     # Vendored EIC client — owns a name-normalizer table for every SNS beamline.
-    "src/exphub/app/models/eic_client.py",
+    "src/exphub/core/eic/eic_client.py",
 }
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

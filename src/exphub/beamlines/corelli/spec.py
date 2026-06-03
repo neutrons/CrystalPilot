@@ -69,6 +69,8 @@ CORELLI = BeamlineSpec(
     eic=EICSpec(
         beamline_code="bl9",
         is_simulation_default=False,
+        # Current CORELLI EIC server (matches the EICClient-derived URL for bl9).
+        server_url="https://bl9-dassrv1.sns.gov:8443",
     ),
     external_links={},
     technique_config=SingleCrystalConfig(

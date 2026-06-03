@@ -84,6 +84,11 @@ class EICSpec(BaseModel):
     is_simulation_default: bool = False
     supports_simulation: bool = True
     write_scope: list[str] = Field(default_factory=lambda: ["EIC:write"])
+    # Per-beamline EIC server base URL. Empty string means "let the vendored
+    # EICClient derive the URL from ``beamline_code``" (its current behavior:
+    # e.g. bl12 -> https://bl12-dassrv1.sns.gov:8443). Other techniques (e.g.
+    # SANS/USANS) point at a different EIC server and set this explicitly.
+    server_url: str = ""
 
 
 class AgentSpec(BaseModel):

@@ -270,14 +270,24 @@ class SingleCrystalSteeringViewModel:
 
     def submit_angle_plan(self) -> None:
         # print("submit_angle_plan")
+        from ..agent import eic_row_builder
+
         ipts_number = self.model.experimentinfo.ipts_number
         instrument_name = self.model.experimentinfo.instrument
+        goniometer_type = self.model.angleplan.goniometer_type
+        angle_list = self.model.angleplan.angle_list
         try:
-            self.model.eiccontrol.submit_eic(
-                self.model.angleplan.angle_list,
+            # Build the single-crystal CSV/row payloads here (technique layer);
+            # core/eic stays technique-agnostic and only submits pre-built jobs.
+            try:
+                eic_row_builder.write_strategy_csv(angle_list, ipts_number, goniometer_type)
+            except Exception as e:
+                print(f"Warning: failed to copy strategy to EIC location: {e}")
+            jobs = eic_row_builder.build_jobs(angle_list, goniometer_type=goniometer_type)
+            self.model.eiccontrol.submit_jobs(
+                jobs,
                 ipts_number,
                 instrument_name,
-                goniometer_type=self.model.angleplan.goniometer_type,
             )
             if self.model.eiccontrol.is_simulation:
                 self.model.eiccontrol.eic_status = "job submission simulated"
