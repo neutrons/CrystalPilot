@@ -21,8 +21,15 @@ from ...core.beamline import (
     MantidSpec,
     PathsSpec,
     SingleCrystalConfig,
+    TabOverrides,
     register,
 )
+
+
+def _build_data_analysis(view_model):
+    """Lazy factory — avoids importing the app/view layer during registration."""
+    from .tabs.data_analysis import build_data_analysis
+    return build_data_analysis(view_model)
 
 # A small selection of CORELLI run-info / status PVs that aren't in the main
 # .bob screen (analogous to TOPAZ_USER_PANEL_PVS). Placeholders.
@@ -116,9 +123,16 @@ CORELLI = BeamlineSpec(
         },
         supported_tasks=["experiment_steering", "data_processing", "app_help"],
     ),
-    # No tabs override → falls back to base tabs (e.g. css_status is None,
-    # tab 5 will render the "not configured" placeholder until someone
-    # writes beamlines/corelli/tabs/css_status.py).
+    tabs=TabOverrides(
+        # CORELLI ships its own Data Analysis (tab 6 / ANALYSIS) factory so the
+        # slot renders the real single-crystal launcher instead of regressing to
+        # the placeholder. The ANALYSIS slot has no unconditional technique
+        # default — only an optional one — so a beamline that wants it must
+        # supply this override or opt in via ``optional_tabs``. css_status (tab
+        # 5 / STATUS) is still None → that slot renders the "not configured"
+        # placeholder until someone writes beamlines/corelli/tabs/css_status.py.
+        data_analysis=_build_data_analysis,
+    ),
 )
 
 register(CORELLI)

@@ -174,6 +174,69 @@ def test_topaz_slots_route_to_expected_sources():
     assert resolved[TabKey.ANALYSIS] is technique.optional_tab_defaults[TabKey.ANALYSIS]
 
 
+def test_corelli_analysis_resolves_to_real_data_analysis_factory():
+    """CORELLI's ANALYSIS slot (tab 6) must render the real Data Analysis view,
+    not the placeholder.
+
+    The ANALYSIS slot has no unconditional technique default; CORELLI neither
+    opts into the optional default (``optional_tabs``) nor would inherit one,
+    so without its own ``tabs.data_analysis`` factory it would fall through to
+    the placeholder. Pin that CORELLI ships the factory and that the dispatcher
+    resolves ANALYSIS to it (P3 deliverable 3)."""
+    if "corelli" not in list_ids():
+        pytest.skip("CORELLI beamline plug-in not registered")
+    from exphub.core.beamline import TabKey, get, get_technique
+
+    corelli = get("corelli")
+    technique = get_technique("single_crystal")
+
+    # CORELLI supplies its own ANALYSIS factory via the override slot.
+    assert callable(corelli.tabs.data_analysis), (
+        "CORELLI should ship a data_analysis (ANALYSIS / tab 6) factory so the "
+        "slot does not regress to the placeholder."
+    )
+
+    resolved = _resolve_all_slots(corelli)
+    analysis_factory = resolved[TabKey.ANALYSIS]
+    # Resolves to CORELLI's own override (highest precedence)...
+    assert analysis_factory is corelli.tabs.data_analysis
+    # ...which is the real factory, not the placeholder closure.
+    assert "factory" not in getattr(analysis_factory, "__name__", "")
+    # CORELLI does not rely on the opt-in path for this slot.
+    assert TabKey.ANALYSIS not in corelli.optional_tabs
+    assert analysis_factory is not technique.optional_tab_defaults[TabKey.ANALYSIS]
+
+
+def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
+    """Invoking CORELLI's ANALYSIS factory constructs the shared
+    ``DataAnalysisView`` (proves the wrapper wires to the real view, not a
+    placeholder). The view's ``create_ui`` needs a live trame layout context,
+    so we stub it out and only assert the view-model is bound."""
+    if "corelli" not in list_ids():
+        pytest.skip("CORELLI beamline plug-in not registered")
+    from exphub.core.beamline import get
+    from exphub.techniques.single_crystal.views import data_analysis as da_mod
+
+    built = {}
+
+    class _FakeBind:
+        def connect(self, _name):  # noqa: D401 - test stub
+            built["connected"] = _name
+
+    class _FakeVM:
+        dataanalysis_bind = _FakeBind()
+
+    # The real DataAnalysisView.create_ui requires a trame layout context;
+    # neutralise it so the test runs headless while still exercising __init__.
+    monkeypatch.setattr(da_mod.DataAnalysisView, "create_ui", lambda self: None)
+
+    factory = get("corelli").tabs.data_analysis
+    view = factory(_FakeVM())
+
+    assert isinstance(view, da_mod.DataAnalysisView)
+    assert built.get("connected") == "model_dataanalysis"
+
+
 def test_placeholder_fall_through_when_not_opted_in():
     """A slot with no override, no default, and no opt-in resolves to a
     callable placeholder closure (not None, not a technique/override factory).
