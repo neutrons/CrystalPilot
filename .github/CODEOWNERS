@@ -1,0 +1,40 @@
+# CODEOWNERS — review ownership mapped to the architecture's lanes.
+#
+# Purpose: make the *social* boundary match the *code* boundary so TOPAZ
+# (single-crystal) and USANS (SANS) can be developed in parallel. A change that
+# stays inside one technique/beamline lane is reviewed by that lane's owner; a
+# change to the shared trunk (core/app/agent) or the manifest contract pulls in
+# a framework reviewer automatically.
+#
+# Enforcement of the *import* boundaries that back this up lives in
+# tests/test_import_boundaries.py (CI-blocking).
+#
+# NOTE: the handles below are PLACEHOLDERS. Replace them with real GitHub
+# usernames or @org/team slugs for CODEOWNERS to take effect (GitHub silently
+# ignores unknown owners). Until then this file documents the intended lanes.
+
+# ---- Shared trunk: affects every technique → framework review ----------------
+/src/exphub/core/      @framework-team
+/src/exphub/app/       @framework-team
+/src/exphub/agent/     @framework-team
+
+# The manifest is the agent+shell API between a technique and the framework.
+# Changing it is an API change — always framework-reviewed.
+/src/exphub/core/beamline/technique.py   @framework-team
+
+# ---- Single-crystal lane (TOPAZ, CORELLI) -----------------------------------
+/src/exphub/techniques/single_crystal/   @single-crystal-team
+/src/exphub/beamlines/topaz/             @single-crystal-team
+/src/exphub/beamlines/corelli/           @single-crystal-team
+
+# ---- SANS lane (USANS) ------------------------------------------------------
+/src/exphub/techniques/sans/   @sans-team
+/src/exphub/beamlines/usans/   @sans-team
+
+# ---- Cross-cutting test/process guards → framework review -------------------
+/tests/test_import_boundaries.py     @framework-team
+/tests/test_technique_coupling.py    @framework-team
+/tests/test_beamline_coupling.py     @framework-team
+/tests/test_acceptance.py            @framework-team
+/.github/                            @framework-team
+/pyproject.toml                      @framework-team
