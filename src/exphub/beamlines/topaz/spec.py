@@ -135,7 +135,7 @@ TOPAZ = BeamlineSpec(
         supported_tasks=["experiment_steering", "data_processing", "app_help"],
     ),
     tabs=TabOverrides(
-        css_status=_build_css_status,
+        status=_build_css_status,
     ),
     # Opt into the single-crystal technique's data-analysis launcher for the
     # ANALYSIS tab (tab 6). Without this the slot falls through to a placeholder.

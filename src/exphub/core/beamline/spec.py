@@ -119,7 +119,13 @@ class TabOverrides(BaseModel):
     Each attribute is either ``None`` (use the framework / technique default)
     or a :data:`TabFactory` callable that builds the tab's view. The expected
     usage idiom is the lazy-import closure pattern that
-    ``beamlines/topaz/spec.py`` already uses for ``css_status``.
+    ``beamlines/topaz/spec.py`` already uses for the ``status`` slot.
+
+    The five slots are technique-neutral and aligned with
+    :class:`~exphub.core.beamline.technique.TabKey` (IPTS / LIVE / STEERING /
+    STATUS / ANALYSIS) — the framework carries no technique-specific tab
+    vocabulary. Each technique manifest maps a ``TabKey`` to the slot name it
+    reads via ``tab_override_slots``.
 
     Per the multi-technique plan (see ``MULTI_TECHNIQUE_PLAN.md``), tabs 1-3
     get a technique-level default when the override is ``None``; tabs 4-5
@@ -128,11 +134,11 @@ class TabOverrides(BaseModel):
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    experiment_info: Optional[TabFactory] = None
-    angle_plan: Optional[TabFactory] = None
-    temporal_analysis: Optional[TabFactory] = None
-    css_status: Optional[TabFactory] = None
-    data_analysis: Optional[TabFactory] = None
+    ipts: Optional[TabFactory] = None
+    steering: Optional[TabFactory] = None
+    live: Optional[TabFactory] = None
+    status: Optional[TabFactory] = None
+    analysis: Optional[TabFactory] = None
 
 
 class SingleCrystalConfig(BaseModel):

@@ -148,14 +148,16 @@ SINGLE_CRYSTAL = register_technique(
             TabKey.ANALYSIS: _analysis_tab,
         },
         # Which BeamlineSpec.tabs (TabOverrides) field the dispatcher reads for a
-        # per-beamline override of each slot. Kept here (not in app/) so the
-        # app-shell dispatcher carries no single-crystal slot vocabulary.
+        # per-beamline override of each slot. The slot names are technique-neutral
+        # and TabKey-aligned (ipts/live/steering/status/analysis); the mapping is
+        # kept here (not in app/) so the app-shell dispatcher carries no
+        # technique-specific slot vocabulary.
         tab_override_slots={
-            TabKey.IPTS: "experiment_info",
-            TabKey.LIVE: "temporal_analysis",
-            TabKey.STEERING: "angle_plan",
-            TabKey.STATUS: "css_status",
-            TabKey.ANALYSIS: "data_analysis",
+            TabKey.IPTS: "ipts",
+            TabKey.LIVE: "live",
+            TabKey.STEERING: "steering",
+            TabKey.STATUS: "status",
+            TabKey.ANALYSIS: "analysis",
         },
         tab_labels={
             TabKey.IPTS: "IPTS Info",

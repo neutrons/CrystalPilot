@@ -131,10 +131,10 @@ CORELLI = BeamlineSpec(
         # slot renders the real single-crystal launcher instead of regressing to
         # the placeholder. The ANALYSIS slot has no unconditional technique
         # default — only an optional one — so a beamline that wants it must
-        # supply this override or opt in via ``optional_tabs``. css_status (tab
-        # 5 / STATUS) is still None → that slot renders the "not configured"
+        # supply this override or opt in via ``optional_tabs``. The status (tab
+        # 5 / STATUS) slot is still None → that slot renders the "not configured"
         # placeholder until someone writes beamlines/corelli/tabs/css_status.py.
-        data_analysis=_build_data_analysis,
+        analysis=_build_data_analysis,
     ),
 )
 

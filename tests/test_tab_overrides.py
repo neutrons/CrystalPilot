@@ -9,9 +9,10 @@ Locks the per-beamline tab-factory contract used by
   show the placeholder; else call ``factory(view_model)``.
 
 The multi-technique plan (``MULTI_TECHNIQUE_PLAN.md``) generalises this
-contract across all 5 slots in P3. Until then, only ``css_status`` is
-consulted by the live dispatcher; this test exercises the slot mechanism
-in isolation so the generalisation lands on a covered seam.
+contract across all 5 slots. The slots are technique-neutral and TabKey-aligned
+(``ipts``/``live``/``steering``/``status``/``analysis``); each technique manifest
+maps a ``TabKey`` to the slot name it reads. This test exercises the slot
+mechanism in isolation so the generalisation lands on a covered seam.
 """
 
 from __future__ import annotations
@@ -25,11 +26,11 @@ from exphub.core.beamline.spec import TabOverrides
 
 def test_tab_overrides_default_all_none():
     overrides = TabOverrides()
-    assert overrides.experiment_info is None
-    assert overrides.angle_plan is None
-    assert overrides.temporal_analysis is None
-    assert overrides.css_status is None
-    assert overrides.data_analysis is None
+    assert overrides.ipts is None
+    assert overrides.steering is None
+    assert overrides.live is None
+    assert overrides.status is None
+    assert overrides.analysis is None
 
 
 def test_tab_overrides_accepts_callable_in_any_slot():
@@ -37,25 +38,24 @@ def test_tab_overrides_accepts_callable_in_any_slot():
         return object()
 
     overrides = TabOverrides(
-        experiment_info=factory,
-        angle_plan=factory,
-        temporal_analysis=factory,
-        css_status=factory,
-        data_analysis=factory,
+        ipts=factory,
+        steering=factory,
+        live=factory,
+        status=factory,
+        analysis=factory,
     )
-    for slot in ("experiment_info", "angle_plan", "temporal_analysis",
-                 "css_status", "data_analysis"):
+    for slot in ("ipts", "steering", "live", "status", "analysis"):
         assert callable(getattr(overrides, slot))
 
 
 def test_tab_overrides_slot_names_are_stable():
     """Adding/removing/renaming slots breaks every beamline plug-in and the manifest; pin the set."""
     assert set(TabOverrides.model_fields) == {
-        "experiment_info",
-        "angle_plan",
-        "temporal_analysis",
-        "css_status",
-        "data_analysis",
+        "ipts",
+        "steering",
+        "live",
+        "status",
+        "analysis",
     }
 
 
@@ -67,8 +67,8 @@ def test_topaz_supplies_css_status_factory():
         pytest.skip("TOPAZ beamline plug-in not registered")
     from exphub.core.beamline import get
     topaz = get("topaz")
-    assert callable(topaz.tabs.css_status), (
-        "TOPAZ should ship a css_status factory — the reference impl."
+    assert callable(topaz.tabs.status), (
+        "TOPAZ should ship a status factory — the reference impl."
     )
 
 
@@ -78,8 +78,8 @@ def test_corelli_does_not_supply_css_status_factory():
         pytest.skip("CORELLI beamline plug-in not registered")
     from exphub.core.beamline import get
     corelli = get("corelli")
-    assert corelli.tabs.css_status is None, (
-        "CORELLI should leave css_status as None to exercise the placeholder."
+    assert corelli.tabs.status is None, (
+        "CORELLI should leave status as None to exercise the placeholder."
     )
 
 
@@ -89,8 +89,7 @@ def test_dispatcher_lookup_pattern():
     tabs = spec.tabs
     # The 4 not-yet-dispatched slots must still be readable as either
     # None or callable so the future P3 dispatcher can fan out uniformly.
-    for slot in ("experiment_info", "angle_plan", "temporal_analysis",
-                 "css_status", "data_analysis"):
+    for slot in ("ipts", "steering", "live", "status", "analysis"):
         value = getattr(tabs, slot)
         assert value is None or callable(value), (
             f"TabOverrides.{slot} on {spec.id!r} must be None or callable; "
@@ -154,7 +153,7 @@ def test_all_five_slots_resolve_to_callable_for_topaz():
 def test_topaz_slots_route_to_expected_sources():
     """TOPAZ slot routing.
 
-    Tabs 1-3 from technique defaults, STATUS from its css_status override,
+    Tabs 1-3 from technique defaults, STATUS from its status override,
     ANALYSIS from the opted-in optional default.
     """
     if "topaz" not in list_ids():
@@ -169,8 +168,8 @@ def test_topaz_slots_route_to_expected_sources():
     assert resolved[TabKey.IPTS] is technique.default_tabs[TabKey.IPTS]
     assert resolved[TabKey.LIVE] is technique.default_tabs[TabKey.LIVE]
     assert resolved[TabKey.STEERING] is technique.default_tabs[TabKey.STEERING]
-    # STATUS resolves to TOPAZ's own css_status override.
-    assert resolved[TabKey.STATUS] is topaz.tabs.css_status
+    # STATUS resolves to TOPAZ's own status override.
+    assert resolved[TabKey.STATUS] is topaz.tabs.status
     # ANALYSIS resolves to the opted-in technique optional default.
     assert TabKey.ANALYSIS in topaz.optional_tabs
     assert resolved[TabKey.ANALYSIS] is technique.optional_tab_defaults[TabKey.ANALYSIS]
@@ -181,7 +180,7 @@ def test_corelli_analysis_resolves_to_real_data_analysis_factory():
 
     The ANALYSIS slot has no unconditional technique default; CORELLI neither
     opts into the optional default (``optional_tabs``) nor would inherit one,
-    so without its own ``tabs.data_analysis`` factory it would fall through to
+    so without its own ``tabs.analysis`` factory it would fall through to
     the placeholder. Pin that CORELLI ships the factory and that the dispatcher
     resolves ANALYSIS to it (P3 deliverable 3).
     """
@@ -193,15 +192,15 @@ def test_corelli_analysis_resolves_to_real_data_analysis_factory():
     technique = get_technique("single_crystal")
 
     # CORELLI supplies its own ANALYSIS factory via the override slot.
-    assert callable(corelli.tabs.data_analysis), (
-        "CORELLI should ship a data_analysis (ANALYSIS / tab 6) factory so the "
+    assert callable(corelli.tabs.analysis), (
+        "CORELLI should ship an analysis (ANALYSIS / tab 6) factory so the "
         "slot does not regress to the placeholder."
     )
 
     resolved = _resolve_all_slots(corelli)
     analysis_factory = resolved[TabKey.ANALYSIS]
     # Resolves to CORELLI's own override (highest precedence)...
-    assert analysis_factory is corelli.tabs.data_analysis
+    assert analysis_factory is corelli.tabs.analysis
     # ...which is the real factory, not the placeholder closure.
     assert "factory" not in getattr(analysis_factory, "__name__", "")
     # CORELLI does not rely on the opt-in path for this slot.
@@ -234,7 +233,7 @@ def test_corelli_data_analysis_factory_builds_real_view(monkeypatch):
     # neutralise it so the test runs headless while still exercising __init__.
     monkeypatch.setattr(da_mod.DataAnalysisView, "create_ui", lambda self: None)
 
-    factory = get("corelli").tabs.data_analysis
+    factory = get("corelli").tabs.analysis
     view = factory(_FakeVM())
 
     assert isinstance(view, da_mod.DataAnalysisView)
@@ -291,13 +290,13 @@ def test_topaz_factory_signature_is_one_positional():
     import inspect
 
     from exphub.core.beamline import get
-    factory = get("topaz").tabs.css_status
+    factory = get("topaz").tabs.status
     assert factory is not None
     sig = inspect.signature(factory)
     positional = [p for p in sig.parameters.values()
                   if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
     # Factories take exactly one positional (the view-model); kwargs OK.
     assert len(positional) == 1, (
-        f"TOPAZ css_status factory should take one positional argument "
+        f"TOPAZ status factory should take one positional argument "
         f"(the view-model); got signature {sig}"
     )

@@ -6,7 +6,7 @@ slot has *no* unconditional technique default — the manifest only offers the
 data-analysis launcher as an *optional* default (``optional_tab_defaults``).
 Without an explicit factory here the dispatcher's fall-through would render the
 generic placeholder (see ``app/views/tab_content_panel.py``), so CORELLI ships
-this factory and registers it on ``CORELLI.tabs.data_analysis`` to guarantee the
+this factory and registers it on ``CORELLI.tabs.analysis`` to guarantee the
 real launcher renders.
 
 The shared view already adapts to the active beamline (e.g. it only shows the

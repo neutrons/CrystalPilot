@@ -16,13 +16,13 @@ cross-technique selector banner, the agent reading the active manifest, and
 their own dedicated tests/suites; this file pins the structural end-state and
 the coupling residual so a regression in either is caught immediately.
 
-Plan item 1 ideally returns *zero* single-crystal references. After the
-single-crystal root model moved to ``techniques/single_crystal/models/root.py``
-(``SingleCrystalMainModel``), one file carries the last deferred residual (the
-``TabOverrides`` slot names in ``spec.py``, reshaped next in #1b); see
-``tests/test_technique_coupling.py`` for the per-file ratchet. This test asserts
-the *exact* residual set so the documented residual cannot silently grow, and so
-it flips to "empty == fully clean" once #1b lands.
+Plan item 1 now returns *zero* single-crystal references: the refactor is
+complete. The single-crystal root model moved to
+``techniques/single_crystal/models/root.py`` (``SingleCrystalMainModel``) and the
+shared ``TabOverrides`` slots were renamed to technique-neutral, ``TabKey``-aligned
+names, clearing the last deferred residual. This test asserts the residual set is
+empty (== fully clean) and tracks the ratchet ``BASELINE`` so the two cannot
+disagree.
 """
 
 from __future__ import annotations
@@ -35,11 +35,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src" / "exphub"
 
 # The single-crystal coupling residual in the framework-agnostic dirs (``app/``
-# + ``core/``). After #1a only the TabOverrides slot names in spec.py remain;
-# #1b reshapes them and drops this to empty. Mirrors the ratchet BASELINE.
-EXPECTED_RESIDUAL: dict[str, int] = {
-    "src/exphub/core/beamline/spec.py": 2,
-}
+# + ``core/``). Now empty: plan item 1 is fully satisfied (grep == 0 results).
+# Mirrors the ratchet BASELINE.
+EXPECTED_RESIDUAL: dict[str, int] = {}
 
 
 def test_single_crystal_coupling_matches_documented_residual() -> None:

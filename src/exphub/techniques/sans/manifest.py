@@ -137,16 +137,15 @@ SANS = register_technique(
         # placeholder.
         optional_tab_defaults={},
         # Which BeamlineSpec.tabs (TabOverrides) field the dispatcher reads for a
-        # per-beamline override of each slot. Reuses the shared 5-slot
-        # TabOverrides field names (the model is technique-agnostic; the field
-        # names are single-crystal-shaped today and get reshaped in a later
-        # phase — see the test_technique_coupling note on spec.py).
+        # per-beamline override of each slot. Uses the shared 5-slot
+        # TabOverrides field names, which are technique-neutral and TabKey-aligned
+        # (ipts/live/steering/status/analysis).
         tab_override_slots={
-            TabKey.IPTS: "experiment_info",
-            TabKey.LIVE: "temporal_analysis",
-            TabKey.STEERING: "angle_plan",
-            TabKey.STATUS: "css_status",
-            TabKey.ANALYSIS: "data_analysis",
+            TabKey.IPTS: "ipts",
+            TabKey.LIVE: "live",
+            TabKey.STEERING: "steering",
+            TabKey.STATUS: "status",
+            TabKey.ANALYSIS: "analysis",
         },
         tab_labels={
             TabKey.IPTS: "IPTS Info",

@@ -7,12 +7,15 @@ single-crystal-shaped code (models, view-models, views) out of
 this test acts as a *ratchet*: per-file baselines are recorded below and
 each commit must keep counts at-or-below those baselines.
 
-Baselines drop as each file move lands. The single-crystal root model moved to
-``techniques/single_crystal/models/root.py`` (``SingleCrystalMainModel``) so it
-no longer lives in ``app/``; the only residual left is the ``TabOverrides`` slot
-field names in ``core/beamline/spec.py``, reshaped to technique-neutral names
-next (#1b), which zeroes the ratchet (empty ``BASELINE`` map plus the strict
-assertion).
+Baselines dropped as each file move landed. The refactor is now complete: the
+single-crystal root model moved to ``techniques/single_crystal/models/root.py``
+(``SingleCrystalMainModel``) so it no longer lives in ``app/``, and the shared
+``TabOverrides`` slots were renamed to technique-neutral, ``TabKey``-aligned
+names (``ipts``/``live``/``steering``/``status``/``analysis``) so ``spec.py``
+carries no single-crystal vocabulary. The residual is cleared: ``BASELINE`` is
+now empty and ``INITIAL_CAP`` is 0 — the ratchet-zero gate is met. ``_scan()``
+must return ``{}`` and any new single-crystal coupling in ``app/`` + ``core/``
+fails the suite.
 
 Patterns matched (single-crystal vocabulary that should not live in
 framework-agnostic code once the refactor finishes):
@@ -62,19 +65,18 @@ ALLOWED_FILES: set[str] = set()
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# The single-crystal composite root model moved out of app/ to
-# techniques/single_crystal/models/root.py (``SingleCrystalMainModel``, supplied
-# via each manifest's ``root_model_factory``), so ``main_model.py`` is gone from
-# the scanned dirs. One deferred file remains:
-#   - core/beamline/spec.py (2): the TabOverrides slot field names
-#     ``angle_plan`` / ``temporal_analysis`` are single-crystal-shaped; the
-#     shared 5-slot TabOverrides model is reshaped next (#1b), zeroing the
-#     ratchet.
-# Each commit must keep counts at-or-below these numbers; files not listed must
-# stay at zero.
-BASELINE: dict[str, int] = {
-    "src/exphub/core/beamline/spec.py": 2,
-}
+# The refactor is complete: every single-crystal-shaped module now lives under
+# techniques/single_crystal/, all re-export shims are deleted, the tab dispatcher
+# is manifest-driven, and the EIC client + control model live in core/eic/. The
+# final two deferred files are now clean too:
+#   - the single-crystal composite root model moved out of app/ to
+#     techniques/single_crystal/models/root.py (``SingleCrystalMainModel``,
+#     supplied via each manifest's ``root_model_factory``).
+#   - core/beamline/spec.py ``TabOverrides`` slots were renamed to
+#     technique-neutral, ``TabKey``-aligned names
+#     (``ipts``/``live``/``steering``/``status``/``analysis``).
+# BASELINE is now empty: every file under the scanned prefixes must stay at zero.
+BASELINE: dict[str, int] = {}
 
 
 def _count_matches(path: Path) -> int:
@@ -134,9 +136,9 @@ def test_total_coupling_within_cap() -> None:
     """Track total framework-side single-crystal coupling."""
     counts = _scan()
     total = sum(counts.values())
-    # Cap tightened to the post-#1a residual (only the TabOverrides slot names in
-    # spec.py remain). Reaches 0 in #1b.
-    INITIAL_CAP = 2
+    # Ratchet-zero gate met: the refactor is complete and no single-crystal
+    # vocabulary should remain in app/ + core/.
+    INITIAL_CAP = 0
     assert total <= INITIAL_CAP, (
         f"Total framework-side single-crystal coupling = {total}, "
         f"exceeds cap {INITIAL_CAP}. Move the offending code under "
