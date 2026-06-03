@@ -19,6 +19,7 @@ from ...core.beamline import (
     MantidSpec,
     PathsSpec,
     SingleCrystalConfig,
+    TabKey,
     TabOverrides,
     register,
 )
@@ -134,6 +135,9 @@ TOPAZ = BeamlineSpec(
     tabs=TabOverrides(
         css_status=_build_css_status,
     ),
+    # Opt into the single-crystal technique's data-analysis launcher for the
+    # ANALYSIS tab (tab 6). Without this the slot falls through to a placeholder.
+    optional_tabs={TabKey.ANALYSIS},
 )
 
 register(TOPAZ)

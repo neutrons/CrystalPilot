@@ -213,6 +213,25 @@ class BeamlineSpec(BaseModel):
         default_factory=dict,
         description='Named external URLs. Common keys: "data_reduction", "operator_screen".',
     )
+    placeholder_messages: dict = Field(
+        default_factory=dict,
+        description="Per-tab fall-through message, keyed by TabKey. Shown by the "
+        "PlaceholderTab when a slot has neither a technique default nor a "
+        "beamline factory (typically STATUS / ANALYSIS).",
+    )
+    placeholder_links: dict = Field(
+        default_factory=dict,
+        description="Per-tab fall-through external links, keyed by TabKey, each a "
+        "list of (label, url) pairs rendered as link buttons by PlaceholderTab.",
+    )
+    optional_tabs: set = Field(
+        default_factory=set,
+        description="TabKeys this beamline opts into the technique's "
+        "``optional_tab_defaults`` for (tabs 4-5 'common-useful' defaults). "
+        "A slot with no beamline override that is opted-in here renders the "
+        "technique-supplied default instead of a placeholder. Untyped (set of "
+        "TabKey) to keep core.beamline.spec free of a technique import cycle.",
+    )
     technique_config: SingleCrystalConfig | SansConfig = Field(
         default_factory=SingleCrystalConfig,
         discriminator="kind",

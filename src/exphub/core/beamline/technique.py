@@ -108,6 +108,10 @@ class TechniqueManifest(BaseModel):
     display_name: str
     default_tabs: dict[TabKey, TabFactory] = Field(default_factory=dict)
     optional_tab_defaults: dict[TabKey, TabFactory] = Field(default_factory=dict)
+    # Maps each TabKey to the BeamlineSpec.tabs (TabOverrides) attribute the
+    # dispatcher consults for a per-beamline override of that slot. Lives on the
+    # manifest so the app-shell dispatcher never names technique-shaped slots.
+    tab_override_slots: dict[TabKey, str] = Field(default_factory=dict)
     tab_labels: dict[TabKey, str] = Field(default_factory=dict)
     tab_aliases: dict[str, TabKey] = Field(default_factory=dict)
     bridged_submodels: tuple[str, ...] = ()

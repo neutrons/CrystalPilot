@@ -107,6 +107,12 @@ def _steering_tab(view_model: Any) -> Any:
     return AnglePlanView(view_model)
 
 
+def _analysis_tab(view_model: Any) -> Any:
+    from .views.data_analysis import DataAnalysisView
+
+    return DataAnalysisView(view_model)
+
+
 SINGLE_CRYSTAL = register_technique(
     TechniqueManifest(
         id="single_crystal",
@@ -118,6 +124,24 @@ SINGLE_CRYSTAL = register_technique(
             TabKey.IPTS: _ipts_tab,
             TabKey.LIVE: _live_tab,
             TabKey.STEERING: _steering_tab,
+        },
+        # Tabs 4-5 have no unconditional default. The data-analysis launcher is
+        # a "common-useful" default a single-crystal beamline may opt into via
+        # BeamlineSpec.optional_tabs; otherwise the slot falls through to a
+        # placeholder. STATUS has no shared default — every beamline ships its
+        # own Instrument Status (or a placeholder).
+        optional_tab_defaults={
+            TabKey.ANALYSIS: _analysis_tab,
+        },
+        # Which BeamlineSpec.tabs (TabOverrides) field the dispatcher reads for a
+        # per-beamline override of each slot. Kept here (not in app/) so the
+        # app-shell dispatcher carries no single-crystal slot vocabulary.
+        tab_override_slots={
+            TabKey.IPTS: "experiment_info",
+            TabKey.LIVE: "temporal_analysis",
+            TabKey.STEERING: "angle_plan",
+            TabKey.STATUS: "css_status",
+            TabKey.ANALYSIS: "data_analysis",
         },
         tab_labels={
             TabKey.IPTS: "IPTS Info",
