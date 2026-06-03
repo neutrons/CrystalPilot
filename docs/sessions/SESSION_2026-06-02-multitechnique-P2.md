@@ -81,7 +81,23 @@ anyway. Cleanest is to treat **P2.16 (the decomposition/rename) as the lynchpin
 of this cluster** and do it together with the view/view-model moves in a
 focused, carefully-tested sequence rather than piecemeal.
 
-## What's left in P2
+## Also done (later in the session)
+
+- **P2.11–P2.15** the 5 tab views → `techniques/single_crystal/views/`
+  (commit `61748d4`). Each imported only `MainViewModel` (annotation) + core;
+  repointed `MainViewModel` to absolute `exphub.app.view_models.main` (P2.16
+  rewrites this), fixed core depth, shims at `app/views/`. Ratchet: dropped the
+  `experiment_info` view row; `angle_plan` / `temporal_analysis` view shims
+  carry their token (3 → 1 each).
+
+## What's left in P2 — see top-level `MULTI_TECHNIQUE_P2_REMAINING.md`
+
+The remainder is one coupled cluster (everything hangs off `MainViewModel`):
+P2.10 (`view_models/angle_plan.py`), **P2.16** (decompose `main.py` →
+`AppShellViewModel` + `SingleCrystalSteeringViewModel`, the hard one), P2.17
+(fixtures), P2.18 (delete all shims, ratchet → `{}`). A detailed, actionable
+execution plan + the eic_control/ratchet-zero decision live in
+**`MULTI_TECHNIQUE_P2_REMAINING.md`** at the repo root. Original move list:
 
 - **P2.10** `app/view_models/angle_plan.py` → `techniques/single_crystal/view_models/`
 - **P2.11–P2.15** the 5 views (`experiment_info`, `angle_plan`,
