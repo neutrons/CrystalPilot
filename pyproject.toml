@@ -57,7 +57,12 @@ sphinxcontrib-napoleon ="*"
 tomli = "*"
 
 [tool.pixi.tasks]
-app = "python -m src.exphub.app"
+# Launch by the package's canonical name. Running it as ``src.exphub.app``
+# imports a SECOND copy of the package (separate module state from the
+# ``exphub`` the code imports absolutely), so registry/technique discovery
+# populated one copy while the app read the other — beamline selection at
+# startup silently failed. ``exphub.app`` keeps everything on one copy.
+app = "python -m exphub.app"
 init-repo = "python -m scripts.git_utils"
 deploy-production = "python -m scripts.xml_utils"
 deploy-prototype = "python -m scripts.xml_utils_prototype"

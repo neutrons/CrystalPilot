@@ -50,6 +50,19 @@ def _activate_startup_beamline(argv: list[str], env: Mapping[str, str]) -> None:
 
 
 def main() -> None:
+    # Fail loud if launched under a non-canonical package name (e.g.
+    # ``python -m src.exphub.app``). That imports a SECOND copy of the package
+    # with separate module state, so registry/technique discovery populates one
+    # copy while the running code reads the other — beamline selection silently
+    # breaks. Always launch as ``python -m exphub.app`` (what ``pixi run app`` does).
+    if __package__ and not __package__.startswith("exphub"):
+        logger.warning(
+            "CrystalPilot launched as %r, not 'exphub.app' — this double-imports "
+            "the package and breaks beamline/technique discovery. "
+            "Run 'python -m exphub.app' (or 'pixi run app').",
+            __package__,
+        )
+
     # Must be set before wslink is imported (it reads MAX_MSG_SIZE at module
     # level).  Large 2D detector PVs (e.g. a 1105×1105 heatmap) produce
     # ~5-8 MB trame state flushes; wslink's default 4 MB chunk limit splits
