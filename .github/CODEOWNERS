@@ -26,10 +26,12 @@
 /src/exphub/techniques/single_crystal/   @single-crystal-team
 /src/exphub/beamlines/topaz/             @single-crystal-team
 /src/exphub/beamlines/corelli/           @single-crystal-team
+/tests/techniques/single_crystal/        @single-crystal-team
 
 # ---- SANS lane (USANS) ------------------------------------------------------
 /src/exphub/techniques/sans/   @sans-team
 /src/exphub/beamlines/usans/   @sans-team
+/tests/techniques/sans/        @sans-team
 
 # ---- Cross-cutting test/process guards → framework review -------------------
 /tests/test_import_boundaries.py     @framework-team
