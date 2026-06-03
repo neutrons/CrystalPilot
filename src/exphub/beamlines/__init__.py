@@ -15,5 +15,6 @@ from __future__ import annotations
 # so keep TOPAZ at the top until a launcher / selector overrides at runtime.
 from . import topaz  # noqa: F401
 from . import corelli  # noqa: F401
+from . import usans  # noqa: F401
 
-__all__ = ["topaz", "corelli"]
+__all__ = ["topaz", "corelli", "usans"]

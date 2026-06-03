@@ -81,18 +81,24 @@ class BeamlineContext:
 
     @property
     def bob_screen(self) -> Path | None:
-        path = self.spec.single_crystal.bob_screen_path
+        cfg = self.spec.technique_config
+        path = getattr(cfg, "bob_screen_path", None)
         if path is None:
             return None
         return self.spec.resolve(path)
 
     @property
     def bob_macros(self) -> Path | None:
-        path = self.spec.single_crystal.bob_macros_path
+        cfg = self.spec.technique_config
+        path = getattr(cfg, "bob_macros_path", None)
         if path is None:
             return None
         return self.spec.resolve(path)
 
     @property
     def extra_subscribe_pvs(self) -> tuple[str, ...]:
-        return tuple(self.spec.single_crystal.extra_subscribe_pvs)
+        # Phoebus operator-screen assets are a single-crystal concern; a SANS
+        # (or any non-single-crystal) technique_config has no such field, so the
+        # app subscribes to nothing extra rather than crashing on access.
+        cfg = self.spec.technique_config
+        return tuple(getattr(cfg, "extra_subscribe_pvs", ()))

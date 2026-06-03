@@ -1,63 +1,55 @@
-"""End-to-end multi-technique gate (P4.4).
+"""End-to-end multi-technique gate (P4.4, updated P5).
 
-See ``MULTI_TECHNIQUE_PLAN.md`` — the P4 test gate pins the three behaviours
-that make "one app, several technique families" real:
+See ``MULTI_TECHNIQUE_PLAN.md`` — this gate pins the behaviours that make "one
+app, several technique families" real:
 
 - ``set_active("topaz")`` (a single-crystal beamline) → the tab-1 (IPTS-Info)
   model carries ``crystalsystem`` (crystallography surface present).
-- ``set_active("<usans-stub>")`` (a ``technique="sans"`` beamline) → the tab-1
+- ``set_active("usans")`` (the real ``technique="sans"`` beamline) → the tab-1
   model has **no** ``crystalsystem`` (no reciprocal-lattice machinery).
 - Cross-technique switching is gated to a restart: the app-shell beamline
   selector grays out cross-technique options and ``switch_beamline`` refuses a
   programmatic cross-technique switch with the restart banner.
+- ``MainApp()`` constructs from a clean env with the USANS (SANS) beamline
+  active — the whole composition root (root model + steering VM + tabs) resolves
+  through the SANS manifest, not a hardcoded single-crystal path.
 
-The real USANS beamline spec lands in P5; here we register a *minimal in-test
-stub* spec (``technique_config=SansConfig()``) so the gate exercises the SANS
-technique manifest + root model that P4 already shipped. The whole flow runs
-through the production seams (technique registry → ``root_model_factory`` →
-agent bridge snapshot → app-shell selector), so this is a true end-to-end
-check, not a shape assertion against a hand-built model.
+P4 used an in-test SANS stub spec; P5 ships the real USANS beamline plug-in
+(``beamlines/usans/``), so this gate now drives the production spec. The whole
+flow runs through the production seams (beamline registry → technique manifest →
+``root_model_factory`` → agent bridge snapshot → app-shell selector → mvvm
+factory), so this is a true end-to-end check, not a shape assertion against a
+hand-built model.
 """
 
 from __future__ import annotations
 
 import pytest
 
-import exphub.beamlines  # noqa: F401 — registers TOPAZ + CORELLI
+import exphub.beamlines  # noqa: F401 — registers TOPAZ + CORELLI + USANS
 from exphub.agent.bridge import bridged_submodels, snapshot_models
 from exphub.app.models.main_model import MainModel
 from exphub.core.beamline import (
-    BeamlineSpec,
-    SansConfig,
     active,
     active_technique,
-    register,
     set_active,
 )
-from exphub.core.beamline.registry import _REGISTRY
 
-# Id of the throwaway SANS beamline used as the USANS stand-in until P5.
-_USANS_STUB_ID = "_usans_stub"
+# Id of the real USANS beamline plug-in (the first technique="sans" beamline).
+_USANS_ID = "usans"
 
 
 @pytest.fixture
-def usans_stub():
-    """Register a minimal ``technique="sans"`` beamline, then deregister it.
+def usans():
+    """Activate the real USANS beamline, restoring TOPAZ afterwards.
 
-    Stands in for the real USANS spec (P5). A bare ``SansConfig()`` is enough to
-    route the registry/technique layer to the SANS manifest + ``SansMainModel``;
-    no PVs/paths are needed for the tab-shape + gating assertions here.
+    USANS is a registered plug-in (no in-test registration needed since P5); the
+    fixture only resets ``active`` back to a single-crystal default so a test
+    that flips the active technique does not leak into the next test.
     """
-    spec = BeamlineSpec(
-        id=_USANS_STUB_ID,
-        display_name="USANS (stub)",
-        technique_config=SansConfig(),
-    )
-    register(spec)
     try:
-        yield spec
+        yield set_active(_USANS_ID)
     finally:
-        _REGISTRY.pop(_USANS_STUB_ID, None)
         set_active("topaz")
 
 
@@ -102,9 +94,9 @@ def test_single_crystal_tab1_has_crystalsystem():
     assert "crystalsystem" in _active_tab1_snapshot()
 
 
-def test_sans_tab1_has_no_crystalsystem(usans_stub):
+def test_sans_tab1_has_no_crystalsystem(usans):
     """A ``technique="sans"`` beamline drops all crystallography from tab 1."""
-    set_active(_USANS_STUB_ID)
+    set_active(_USANS_ID)
     assert active().technique == "sans"
     assert active_technique().id == "sans"
 
@@ -119,12 +111,12 @@ def test_sans_tab1_has_no_crystalsystem(usans_stub):
     assert "crystalsystem" not in _active_tab1_snapshot()
 
 
-def test_techniques_differ_on_the_same_tab_slot(usans_stub):
+def test_techniques_differ_on_the_same_tab_slot(usans):
     """The same tab slot resolves to differently-shaped models per technique."""
     set_active("topaz")
     sc_fields = set(type(_active_tab1_model()).model_fields)
 
-    set_active(_USANS_STUB_ID)
+    set_active(_USANS_ID)
     sans_fields = set(type(_active_tab1_model()).model_fields)
 
     # Both keep the shared experiment-identity surface...
@@ -138,7 +130,7 @@ def test_techniques_differ_on_the_same_tab_slot(usans_stub):
 # --------------------------- cross-technique gating --------------------------
 
 
-def test_cross_technique_selector_option_disabled(usans_stub):
+def test_cross_technique_selector_option_disabled(usans):
     """With single-crystal active, the SANS beamline's selector option is gated."""
     from exphub.app.view_models.app_shell import _default_beamline_options
 
@@ -149,10 +141,10 @@ def test_cross_technique_selector_option_disabled(usans_stub):
     assert by_id["topaz"]["disabled"] is False
     assert by_id["corelli"]["disabled"] is False
     # The cross-technique (SANS) beamline is grayed out.
-    assert by_id[_USANS_STUB_ID]["disabled"] is True
+    assert by_id[_USANS_ID]["disabled"] is True
 
 
-def test_cross_technique_switch_refused_with_banner(usans_stub):
+def test_cross_technique_switch_refused_with_banner(usans):
     """``switch_beamline`` refuses a cross-technique switch and surfaces the banner."""
     from nova.mvvm.trame_binding import TrameBinding
     from trame.app import get_server
@@ -163,7 +155,7 @@ def test_cross_technique_switch_refused_with_banner(usans_stub):
     server = get_server("test_multi_technique_refuse", client_type="vue3")
     shell = AppShellViewModel(TrameBinding(server.state))
 
-    shell.switch_beamline(_USANS_STUB_ID)
+    shell.switch_beamline(_USANS_ID)
 
     # Registry unchanged, selector rolled back, restart banner surfaced.
     assert active().id == "topaz"
@@ -174,7 +166,7 @@ def test_cross_technique_switch_refused_with_banner(usans_stub):
     )
 
 
-def test_same_technique_switch_not_gated(usans_stub):
+def test_same_technique_switch_not_gated(usans):
     """Sanity: an inside-technique switch (TOPAZ→CORELLI) is *not* gated."""
     from exphub.app.view_models.app_shell import _default_beamline_options
 
@@ -182,3 +174,38 @@ def test_same_technique_switch_not_gated(usans_stub):
     by_id = {o["value"]: o for o in _default_beamline_options()}
     # CORELLI is single-crystal like TOPAZ — selectable, not grayed out.
     assert by_id["corelli"]["disabled"] is False
+
+
+# --------------------------- app construction (P5) ---------------------------
+
+
+def test_mainapp_constructs_with_usans_active(usans):
+    """``MainApp()`` builds end-to-end from a clean env with USANS (SANS) active.
+
+    Exercises the composition root under a ``technique="sans"`` beamline: the
+    root model, steering VM, and tab panel must all resolve through the SANS
+    manifest rather than the hardcoded single-crystal path. A construction that
+    does not raise is the assertion (the gate is "MainApp() constructs").
+
+    ``MainApp()`` uses the default singleton trame server and the process-global
+    ``bindings_map``; ``test_app`` also builds a ``MainApp()`` there, so we clear
+    the global binding map first to isolate this construction (two MainApps on
+    the same server otherwise collide on the ``controls`` bind — see
+    ``test_viewmodel_surface``'s module docstring).
+    """
+    from nova.mvvm.bindings_map import bindings_map
+
+    from exphub.app.views.main_view import MainApp
+
+    set_active(_USANS_ID)
+    assert active().id == _USANS_ID
+    assert active().technique == "sans"
+
+    bindings_map.clear()
+    app = MainApp()
+    assert app is not None
+    # The shell's beamline selector reflects the active USANS beamline.
+    assert app.view_models["app_shell"].view_state.beamline_id == _USANS_ID
+    # The steering VM resolved to the SANS shape (carries the SANS sub-model
+    # binds, not the single-crystal angle-plan ones).
+    assert hasattr(app.view_models["steering"], "iptsinfo_bind")

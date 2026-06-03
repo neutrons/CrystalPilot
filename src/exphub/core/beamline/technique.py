@@ -129,6 +129,14 @@ class TechniqueManifest(BaseModel):
     # builder instance without validating its method signatures.
     eic_row_builder: EICRowBuilder | None = None
     root_model_factory: Callable[[], Any] | None = None
+    # Per-technique steering view-model factory (P5 composition seam). Called by
+    # ``app/mvvm_factory.create_viewmodels`` as ``factory(root_model, binding,
+    # notify_fn=...)`` to build the technique's orchestration VM — the object
+    # whose ``*_bind`` attributes back the technique's tabs and whose
+    # ``on_deactivate`` the shell calls on an inside-technique switch. ``None``
+    # means the app falls back to the single-crystal steering VM (the historical
+    # default), so existing single-crystal beamlines need no manifest change.
+    steering_vm_factory: Callable[..., Any] | None = None
 
 
 # ---------------------------------------------------------------------------

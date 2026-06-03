@@ -107,6 +107,18 @@ def _steering_tab(view_model: Any) -> Any:
     return SansStrategyView(view_model)
 
 
+def _build_steering_vm(model: Any, binding: Any, notify_fn: Any = None) -> Any:
+    """Lazy factory for the SANS steering VM (manifest stays import-cheap).
+
+    Called by ``app/mvvm_factory.create_viewmodels`` so the app shell builds the
+    SANS orchestration VM without naming any SANS class. Signature mirrors the
+    single-crystal steering VM: ``(root_model, binding, notify_fn=...)``.
+    """
+    from .view_models.steering import SansSteeringViewModel
+
+    return SansSteeringViewModel(model, binding, notify_fn=notify_fn)
+
+
 SANS = register_technique(
     TechniqueManifest(
         id="sans",
@@ -174,5 +186,7 @@ SANS = register_technique(
         eic_row_builder=SANS_EIC_ROW_BUILDER,
         # Contributes the SANS technique sub-model to the composite root.
         root_model_factory=SansMainModel,
+        # Builds the SANS steering VM the app shell wires its tabs / chat to.
+        steering_vm_factory=_build_steering_vm,
     )
 )
