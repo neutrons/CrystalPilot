@@ -3,6 +3,18 @@
 This document provides guidelines and instructions for setting up and contributing to
 the CrystalPilot project.
 
+## Architecture & parallel development
+
+- [`docs/architecture/`](docs/architecture/) — the layered design (core /
+  techniques / beamlines / app / agent).
+- [`docs/parallel_development.md`](docs/parallel_development.md) — **read this
+  before working on a technique.** How TOPAZ (single-crystal) and USANS (SANS)
+  are developed in parallel: the lanes, the CI-enforced import/coupling
+  boundaries, the manifest contract, branching model, and the per-lane test
+  homes (`tests/techniques/<id>/`).
+- [`docs/adding_a_technique.md`](docs/adding_a_technique.md) /
+  [`docs/adding_a_beamline.md`](docs/adding_a_beamline.md) — onboarding guides.
+
 ## Starting from the template
 
 - Add other Python dependencies you project need with [`pixi add`](https://pixi.sh/dev/reference/cli/pixi/add/).

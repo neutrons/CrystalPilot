@@ -12,6 +12,11 @@ by editing the framework. Five layers, each documented on its own page:
 | app | [app.md](app.md) | Trame shell, MVVM wiring, manifest-driven tab dispatcher |
 | agent | [agent.md](agent.md) | LLM chat, schema/tools, phase machine, prompt composer, RAG |
 
+Working two techniques at once? See
+[`../parallel_development.md`](../parallel_development.md) — the lanes, the
+CI-enforced boundaries, and the branching model that keep TOPAZ and USANS
+development from colliding.
+
 ## How the layers stack
 
 ```
