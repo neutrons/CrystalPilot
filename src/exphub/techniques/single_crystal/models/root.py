@@ -1,17 +1,26 @@
-"""Module for the main model."""
+"""Single-crystal technique root model.
+
+Composes the single-crystal sub-models (experiment info, angle plan, EIC
+control, CSS status, temporal analysis, data analysis) into a single Pydantic
+root, mirroring the role :class:`~exphub.techniques.sans.models.root.SansMainModel`
+plays for SANS. Wired as the single-crystal manifest's ``root_model_factory``.
+
+Moved out of ``app/models/main_model.py`` and renamed ``MainModel`` →
+``SingleCrystalMainModel`` during the multi-technique refactor.
+"""
 
 from pydantic import BaseModel, Field
 
-from ...core.eic import EICControlModel
-from ...techniques.single_crystal.models.angle_plan import AnglePlanModel
-from ...techniques.single_crystal.models.css_status import CSSStatusModel
-from ...techniques.single_crystal.models.data_analysis import DataAnalysisModel
-from ...techniques.single_crystal.models.experiment_info import ExperimentInfoModel
-from ...techniques.single_crystal.models.newtabtemplate import NewTabTemplateModel
-from ...techniques.single_crystal.models.temporal_analysis import TemporalAnalysisModel
+from ....core.eic import EICControlModel
+from .angle_plan import AnglePlanModel
+from .css_status import CSSStatusModel
+from .data_analysis import DataAnalysisModel
+from .experiment_info import ExperimentInfoModel
+from .newtabtemplate import NewTabTemplateModel
+from .temporal_analysis import TemporalAnalysisModel
 
 
-class MainModel(BaseModel):
+class SingleCrystalMainModel(BaseModel):
     """
     A model class.
 

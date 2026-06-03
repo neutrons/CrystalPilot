@@ -196,9 +196,9 @@ class MantidWorkflow:
     # ---------- experiment info & filenames ----------
 
     def update_experiment_info(self, _models: Any) -> None:
-        from exphub.app.models.main_model import MainModel
+        from exphub.techniques.single_crystal.models.root import SingleCrystalMainModel
 
-        models: MainModel = _models
+        models: SingleCrystalMainModel = _models
 
         self.ipts = int(models.experimentinfo.ipts_number)
         self.cell_type = models.experimentinfo.crystalsystem

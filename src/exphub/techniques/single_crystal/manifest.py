@@ -20,6 +20,7 @@ from ...core.beamline.technique import (
 )
 from .agent.eic_row_builder import SINGLE_CRYSTAL_EIC_ROW_BUILDER
 from .agent.phases import SINGLE_CRYSTAL_PHASES
+from .models.root import SingleCrystalMainModel
 
 # UI-action verbs the agent can trigger. ``vm_method`` is resolved against the
 # live view-model by the chat VM (these are MainViewModel methods today; they
@@ -114,6 +115,18 @@ def _analysis_tab(view_model: Any) -> Any:
     return DataAnalysisView(view_model)
 
 
+def _build_steering_vm(model: Any, binding: Any, notify_fn: Any = None) -> Any:
+    """Lazy factory for the single-crystal steering VM (manifest stays import-cheap).
+
+    Called by ``app/mvvm_factory.create_viewmodels`` so the app shell builds the
+    single-crystal orchestration VM without naming the class. Signature mirrors
+    the SANS steering VM: ``(root_model, binding, notify_fn=...)``.
+    """
+    from .view_models.steering import SingleCrystalSteeringViewModel
+
+    return SingleCrystalSteeringViewModel(model, binding, notify_fn=notify_fn)
+
+
 SINGLE_CRYSTAL = register_technique(
     TechniqueManifest(
         id="single_crystal",
@@ -180,7 +193,10 @@ SINGLE_CRYSTAL = register_technique(
         # via active_technique().eic_row_builder to turn the angle plan into
         # EIC table-scan jobs, keeping core/eic technique-agnostic.
         eic_row_builder=SINGLE_CRYSTAL_EIC_ROW_BUILDER,
-        # knowledge_dir / root_model_factory are wired to their consumers in
-        # later steps (P1.b RAG).
+        # Contributes the single-crystal composite root to the app shell.
+        root_model_factory=SingleCrystalMainModel,
+        # Builds the single-crystal steering VM the app shell wires its tabs /
+        # chat to (mirrors the SANS manifest).
+        steering_vm_factory=_build_steering_vm,
     )
 )

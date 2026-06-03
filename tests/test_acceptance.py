@@ -16,13 +16,13 @@ cross-technique selector banner, the agent reading the active manifest, and
 their own dedicated tests/suites; this file pins the structural end-state and
 the coupling residual so a regression in either is caught immediately.
 
-Plan item 1 ideally returns *zero* single-crystal references. Two files carry
-a small, deliberately-deferred residual (6 tokens total) that later phases
-remove (root_model_factory for ``main_model.py`` and the TabOverrides reshape
-for ``spec.py``); see ``tests/test_technique_coupling.py`` for the per-file
-ratchet. This test asserts the *exact* residual set so the documented residual
-cannot silently grow, and so it flips to "empty == fully clean" for free once
-those phases land.
+Plan item 1 ideally returns *zero* single-crystal references. After the
+single-crystal root model moved to ``techniques/single_crystal/models/root.py``
+(``SingleCrystalMainModel``), one file carries the last deferred residual (the
+``TabOverrides`` slot names in ``spec.py``, reshaped next in #1b); see
+``tests/test_technique_coupling.py`` for the per-file ratchet. This test asserts
+the *exact* residual set so the documented residual cannot silently grow, and so
+it flips to "empty == fully clean" once #1b lands.
 """
 
 from __future__ import annotations
@@ -34,11 +34,10 @@ from test_technique_coupling import BASELINE, _scan
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src" / "exphub"
 
-# The documented, deliberately-deferred single-crystal coupling residual in the
-# framework-agnostic dirs (``app/`` + ``core/``). Mirrors the ratchet BASELINE.
-# Empty would mean "plan item 1 fully satisfied (grep == 0 results)".
+# The single-crystal coupling residual in the framework-agnostic dirs (``app/``
+# + ``core/``). After #1a only the TabOverrides slot names in spec.py remain;
+# #1b reshapes them and drops this to empty. Mirrors the ratchet BASELINE.
 EXPECTED_RESIDUAL: dict[str, int] = {
-    "src/exphub/app/models/main_model.py": 4,
     "src/exphub/core/beamline/spec.py": 2,
 }
 

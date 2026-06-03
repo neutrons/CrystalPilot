@@ -28,7 +28,6 @@ import pytest
 
 import exphub.beamlines  # noqa: F401 — registers TOPAZ + CORELLI + USANS
 from exphub.agent.bridge import bridged_submodels, snapshot_models
-from exphub.app.models.main_model import MainModel
 from exphub.core.beamline import (
     active,
     active_technique,
@@ -57,12 +56,12 @@ def _active_tab1_model():
     """Build the active technique's tab-1 (IPTS-Info) model via production seams.
 
     Resolves the technique's root model through the manifest's
-    ``root_model_factory`` (single-crystal leaves it ``None`` and is served by
-    the app's ``MainModel``), then returns the *first* bridged sub-model — the
-    IPTS-Info / sample-info model that backs tab 1 for every technique.
+    ``root_model_factory`` (every technique supplies one), then returns the
+    *first* bridged sub-model — the IPTS-Info / sample-info model that backs tab
+    1 for every technique.
     """
     manifest = active_technique()
-    factory = manifest.root_model_factory or MainModel
+    factory = manifest.root_model_factory
     root = factory()
     tab1_field = bridged_submodels()[0]
     return getattr(root, tab1_field)
@@ -76,7 +75,7 @@ def _active_tab1_snapshot() -> dict:
     it" — the behaviour the gate actually cares about.
     """
     manifest = active_technique()
-    factory = manifest.root_model_factory or MainModel
+    factory = manifest.root_model_factory
     return snapshot_models(factory())
 
 

@@ -107,10 +107,10 @@ def test_tab_aliases_resolve_to_valid_tab_keys():
 
 
 def test_bridged_submodels_exist_on_main_model():
-    from exphub.app.models.main_model import MainModel
+    from exphub.techniques.single_crystal.models.root import SingleCrystalMainModel
 
     manifest = get_technique("single_crystal")
-    model = MainModel()
+    model = SingleCrystalMainModel()
     for name in manifest.bridged_submodels:
         assert hasattr(model, name), name
 

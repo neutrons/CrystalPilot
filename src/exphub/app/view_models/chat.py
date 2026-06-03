@@ -17,6 +17,7 @@ from functools import partial
 from typing import Any, Dict
 
 from nova.mvvm.interface import BindingInterface
+from pydantic import BaseModel
 
 from ...agent.agent import Agent
 from ...agent.bridge import apply_agent_config, bridged_submodels, snapshot_models, write_single_field
@@ -27,7 +28,6 @@ from ...agent.utils import pretty_name
 from ...agent.workflow import PhaseManager
 from ...core.beamline import active_technique
 from ..models.chat import ChatModel
-from ..models.main_model import MainModel
 from ..views.md_render import md_to_html
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class ChatViewModel:
     def __init__(
         self,
         chat_model: ChatModel,
-        main_model: MainModel,
+        main_model: BaseModel,
         binding: BindingInterface,
         main_bindings: Dict[str, Any],
         nav_fn=None,

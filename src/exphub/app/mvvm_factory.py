@@ -7,7 +7,6 @@ from nova.mvvm.interface import BindingInterface
 from ..agent.bridge import bridged_submodels
 from ..core.beamline import active_technique
 from .models.chat import ChatModel
-from .models.main_model import MainModel
 from .view_models.app_shell import AppShellViewModel
 from .view_models.chat import ChatViewModel
 
@@ -18,12 +17,12 @@ def _build_steering(
     """Resolve and build the active technique's steering VM + root model.
 
     The steering VM and root model both come from the active technique manifest
-    (``steering_vm_factory`` / ``root_model_factory``). Single-crystal leaves
-    both ``None`` and is served by the historical defaults
-    (``SingleCrystalSteeringViewModel`` + ``app.models.MainModel``), so its
-    composition is unchanged; SANS (and any future technique) supplies its own
-    pair, which is how ``MainApp()`` constructs under a ``technique="sans"``
-    beamline such as USANS.
+    (``steering_vm_factory`` / ``root_model_factory``). Every shipped technique
+    supplies its own pair: single-crystal points at ``SingleCrystalMainModel`` +
+    ``SingleCrystalSteeringViewModel`` (now living under
+    ``techniques/single_crystal/``), SANS at its SANS analogues. A technique that
+    leaves ``steering_vm_factory`` ``None`` still falls back to the single-crystal
+    steering VM here, but both shipped manifests set it explicitly.
     """
     manifest = active_technique()
     factory = manifest.steering_vm_factory
@@ -37,10 +36,17 @@ def _build_steering(
 
 
 def create_viewmodels(binding: BindingInterface) -> dict:
-    # Root model is the active technique's composite (single-crystal falls back
-    # to the app-level MainModel); the steering VM is resolved the same way so
-    # the shell never names a technique class.
-    root_factory = active_technique().root_model_factory or MainModel
+    # Root model is the active technique's composite, supplied by its manifest's
+    # ``root_model_factory``; the steering VM is resolved the same way so the
+    # shell never names a technique class. Both shipped techniques set the
+    # factory, so a missing one is a manifest wiring bug, not a fallback case.
+    root_factory = active_technique().root_model_factory
+    if root_factory is None:
+        raise RuntimeError(
+            f"Active technique {active_technique().id!r} has no "
+            "root_model_factory; every technique manifest must supply one "
+            "(see techniques/*/manifest.py)."
+        )
     model = root_factory()
     vm: dict = {}
     # The technique-agnostic shell owns tab navigation, the beamline

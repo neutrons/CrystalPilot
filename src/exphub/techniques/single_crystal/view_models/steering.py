@@ -42,7 +42,7 @@ import plotly.graph_objects as go
 from nova.mvvm.interface import BindingInterface
 from pydantic import BaseModel, Field
 
-from ....app.models.main_model import MainModel
+from ..models.root import SingleCrystalMainModel
 
 
 class SingleCrystalSteeringViewState(BaseModel):
@@ -59,7 +59,7 @@ class SingleCrystalSteeringViewModel:
 
     def __init__(
         self,
-        model: MainModel,
+        model: SingleCrystalMainModel,
         binding: BindingInterface,
         notify_fn: Optional[Callable[[str], None]] = None,
     ):

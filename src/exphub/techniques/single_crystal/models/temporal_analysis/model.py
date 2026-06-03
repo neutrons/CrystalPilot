@@ -140,9 +140,9 @@ class TemporalAnalysisModel(BaseModel):
 
     def set_parent(self, parent: Any) -> None:
         """Set a back-reference to the owning MainModel."""
-        from exphub.app.models.main_model import MainModel
+        from exphub.techniques.single_crystal.models.root import SingleCrystalMainModel
 
-        self._parent: MainModel = parent
+        self._parent: SingleCrystalMainModel = parent
 
     def get_models(self) -> Any:
         """Return the parent MainModel (or None) without importing it here."""
