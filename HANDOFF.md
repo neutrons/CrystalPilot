@@ -1,6 +1,6 @@
 # CrystalPilot — Session Handoff (continue here)
 
-**Last updated:** 2026-06-03 · **Branch:** `multibeamline` · **Tests:** 180 passing · **Technique-coupling ratchet:** 0
+**Last updated:** 2026-06-03 · **Branch:** `multibeamline` · **Tests:** 183 passing · **mypy:** 0 (CI gate green) · **Technique-coupling ratchet:** 0
 
 This document is self-contained: read it top to bottom and you can continue the
 work in a fresh session without re-deriving context. Canonical plan is
@@ -175,15 +175,27 @@ ownership (placeholder handles — see §6).
 Ordered by leverage. Each is independent enough to do in its own session.
 
 ### A. Make the quality gates bite (cheap, high value)
-- **Drive `mypy` to 0, then make it CI-blocking.** Today: **55 errors / 13 files**
-  (`mypy .` is already a CI step, so it's red-and-ignored). Most are
-  `union-attr` — `Optional` values dereferenced without a guard (latent
-  `None`-crashes), e.g. `SingleCrystalSteeringViewModel._live_update_task` /
-  `MantidWorkflow | None`. Also 1 `no-untyped-def` in `beamlines/topaz/spec.py`,
-  `D101` in `EICSpec`, etc. Fix them, then add a "no new `print` / no new
-  `# noqa` / no new `type: ignore`" ratchet (same pattern as
-  `test_technique_coupling`). There are currently **348 `print(`** calls and
-  10 `type: ignore`.
+- ✅ **`mypy` is now 0 — DONE** (commit `11282ee`, `#5`). `mypy .` went **253 → 0**
+  (the HANDOFF's "55 errors" counted `mypy src` only; CI runs `mypy .`, which
+  also flags ~198 `no-untyped-def` in tests/scripts). The CI step is now green,
+  so it bites. Fixes: Optional guards/asserts (`MantidWorkflow | None` in the
+  temporal model + steering live loop, `Agent | None` in the chat VM), LangChain
+  `str | list` message-content narrowing + `next_to_ask` in agent state,
+  `type[BaseModel]` in `bridge`, canonical `api_key`/`base_url` in `llm`, dynamic
+  `importlib` for optional `sentence_transformers`/`chromadb`, a pyproject
+  `ignore_missing_imports` override for the optional `mcp` SDK (its names are
+  used in annotations + `isinstance`), and bulk `-> None`/fixture annotations.
+- ✅ **Hygiene ratchet added — DONE**: `tests/test_hygiene_ratchet.py` caps
+  `print(` in `src/` (348) and `type: ignore` (14) / `# noqa` (31) across
+  src+tests+scripts so the now-green mypy gate and the lint gate can't be quietly
+  bypassed. **Ratchet down only** — lower a cap in the same commit when you
+  delete debt; never raise one.
+- ⚠️ **STILL RED: `ruff check` (74 errors) + `ruff format --check` (57 files).**
+  These were already failing at HEAD *before* this work (verified — identical
+  counts), so the overall `build-and-test` job is **not** green until they're
+  fixed. `ruff check --fix` clears 13 automatically (review the rest; 2 are
+  unsafe-fix-only); `ruff format` reformats the 57. This is the next
+  cheap/high-value gate to make bite — same idea as mypy.
 
 ### B. Behavioral test fakes + golden path (the biggest risk-reducer)
 - The suite is structural ("constructs", "ratchet", "golden rows"); the actual
@@ -250,10 +262,11 @@ Ordered by leverage. Each is independent enough to do in its own session.
 ## 8. First moves in a new session
 
 1. `git -C <repo> log --oneline -8` and `git status` to confirm you're on
-   `multibeamline`, clean, at `208a76f` (or later).
-2. `.pixi/envs/default/bin/python -m pytest -q` → expect **180 passed**.
-3. Confirm the ratchet is still 0:
+   `multibeamline`, clean, at `11282ee` (or later).
+2. `.pixi/envs/default/bin/python -m pytest -q` → expect **183 passed**.
+3. Confirm both ratchets are still green: technique-coupling
    `.pixi/envs/default/bin/python -c "import sys;sys.path.insert(0,'tests');import test_technique_coupling as t;print(t._scan())"`
-   → `{}`.
-4. Pick an item from §6 (suggested order: A → B → C). Keep the full suite green
-   per commit; don't push without asking.
+   → `{}`; and `.pixi/envs/default/bin/mypy .` → **Success: no issues found**.
+4. Pick an item from §6. **§6A's mypy + hygiene ratchet are now DONE**; the
+   cheapest remaining gate is the still-red `ruff` (see §6A). Then B → C. Keep
+   the full suite green (and `mypy .` at 0) per commit; don't push without asking.
