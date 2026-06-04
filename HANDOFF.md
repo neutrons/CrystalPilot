@@ -241,8 +241,10 @@ Ordered by leverage. Each is independent enough to do in its own session.
   are faked in tests.
 
 ### E. Land the branch — ⏭ **needs human sign-off** (outward-facing)
-- `multibeamline` is ~37 commits ahead of `main`, unreviewed-by-human, unpushed.
-  Review → merge → tag. **Confirm with the user before pushing / opening a PR.**
+- `multibeamline` is **142 commits** ahead of `main` (185 files, +28.8k/−3.7k —
+  the whole multi-beamline + multi-technique refactor), unreviewed-by-human,
+  unpushed. Review → merge → tag. **Confirm with the user before pushing /
+  opening a PR.**
 
 ### F. Loose ends / provisional items
 - ✅ Reworded the stale "residual"/"in flight" ratchet doc comments (commit `f6f73ca`).
