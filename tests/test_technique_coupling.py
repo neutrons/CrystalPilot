@@ -1,21 +1,20 @@
 """Technique-coupling regression ratchet.
 
-The multi-technique refactor (see ``MULTI_TECHNIQUE_PLAN.md``) is moving
+The multi-technique refactor (see ``MULTI_TECHNIQUE_PLAN.md``) moved
 single-crystal-shaped code (models, view-models, views) out of
 ``src/exphub/app/`` and ``src/exphub/core/`` into a per-technique package
-``src/exphub/techniques/single_crystal/``. While the move is in flight,
-this test acts as a *ratchet*: per-file baselines are recorded below and
-each commit must keep counts at-or-below those baselines.
+``src/exphub/techniques/single_crystal/``. That move is complete; this test now
+acts as a *zero-floor ratchet*: ``app/`` and ``core/`` must stay
+single-crystal-free, so any newly introduced coupling fails the suite.
 
-Baselines dropped as each file move landed. The refactor is now complete: the
-single-crystal root model moved to ``techniques/single_crystal/models/root.py``
-(``SingleCrystalMainModel``) so it no longer lives in ``app/``, and the shared
-``TabOverrides`` slots were renamed to technique-neutral, ``TabKey``-aligned
-names (``ipts``/``live``/``steering``/``status``/``analysis``) so ``spec.py``
-carries no single-crystal vocabulary. The residual is cleared: ``BASELINE`` is
-now empty and ``INITIAL_CAP`` is 0 — the ratchet-zero gate is met. ``_scan()``
-must return ``{}`` and any new single-crystal coupling in ``app/`` + ``core/``
-fails the suite.
+The last two files to clear: the single-crystal root model moved to
+``techniques/single_crystal/models/root.py`` (``SingleCrystalMainModel``) so it
+no longer lives in ``app/``, and the shared ``TabOverrides`` slots were renamed
+to technique-neutral, ``TabKey``-aligned names
+(``ipts``/``live``/``steering``/``status``/``analysis``) so ``spec.py`` carries
+no single-crystal vocabulary. ``BASELINE`` is now empty and ``INITIAL_CAP`` is 0
+— the ratchet-zero gate is met. ``_scan()`` must return ``{}`` and any new
+single-crystal coupling in ``app/`` + ``core/`` fails the suite.
 
 Patterns matched (single-crystal vocabulary that should not live in
 framework-agnostic code once the refactor finishes):
@@ -125,8 +124,8 @@ def test_technique_coupling_does_not_regress() -> None:
     assert not regressions, (
         "Single-crystal coupling regressed in:\n"
         + "\n".join(f"  {path}  baseline={b}  now={a}" for path, b, a in regressions)
-        + "\n\nEither bring the count back down or update BASELINE if the "
-        "increase is intentional. The end state of P2 is BASELINE == {}."
+        + "\n\nBring the count back down — BASELINE is {} and must stay empty "
+        "(app/ + core/ are technique-neutral; move the code under techniques/<id>/)."
     )
 
 
