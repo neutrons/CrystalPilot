@@ -27,15 +27,23 @@ def _default_beamline_code() -> str:
 
 
 def _default_beamline_database() -> Dict[str, str]:
-    """Instrument name (Mantid) → EIC beamline code, from every registered beamline."""
-    try:
-        return {
-            _get_beamline(bid).single_crystal.mantid.instrument_name: _get_beamline(bid).eic.beamline_code
-            for bid in _beamline_ids()
-            if _get_beamline(bid).single_crystal.mantid.instrument_name
-        }
-    except Exception:
-        return {}
+    """Mantid instrument name → EIC beamline code, across all registered beamlines.
+
+    Technique-neutral (reads :attr:`BeamlineSpec.mantid_instrument_name`, not a
+    single-crystal-specific path) and resilient: each beamline is resolved
+    independently so one mis-configured or other-technique beamline can't blank
+    the whole map — a bug that previously left *every* technique unable to submit.
+    """
+    db: Dict[str, str] = {}
+    for bid in _beamline_ids():
+        try:
+            spec = _get_beamline(bid)
+            name = spec.mantid_instrument_name
+            if name:
+                db[name] = spec.eic.beamline_code
+        except Exception:
+            continue
+    return db
 
 
 class SubmittedJob(BaseModel):

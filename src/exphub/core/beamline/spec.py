@@ -278,6 +278,23 @@ class BeamlineSpec(BaseModel):
             )
         return cfg
 
+    @property
+    def mantid_instrument_name(self) -> str:
+        """Mantid facility instrument name, resolved technique-neutrally.
+
+        Each technique config stores the instrument name in its own field
+        (single-crystal under ``mantid.instrument_name``, SANS under
+        ``mantid_instrument_name``); this property hides that shape difference so
+        framework code can map instruments without reaching into a specific
+        technique. Returns ``""`` when unset.
+        """
+        cfg = self.technique_config
+        if isinstance(cfg, SingleCrystalConfig):
+            return cfg.mantid.instrument_name or ""
+        if isinstance(cfg, SansConfig):
+            return cfg.mantid_instrument_name or ""
+        return ""
+
     def resolve(self, relative: Path) -> Path:
         """Resolve a path declared in this spec against the beamline package root."""
         if relative.is_absolute() or self.package_path is None:
