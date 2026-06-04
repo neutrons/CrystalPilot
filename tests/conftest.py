@@ -15,9 +15,10 @@ names; real channel access lives only in the (untested) trame view layer.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import pytest
+from langchain_core.messages import AIMessage
 
 
 class FakeEICClient:
@@ -161,3 +162,56 @@ def fake_mantid_workflow(monkeypatch: pytest.MonkeyPatch) -> type[FakeMantidWork
         FakeMantidWorkflow,
     )
     return FakeMantidWorkflow
+
+
+# --------------------------------------------------------------------------- agent eval harness
+
+
+class ScriptedChatModel:
+    """Deterministic stand-in for the configured chat model (agent eval harness).
+
+    Replays pre-scripted ``AIMessage`` objects on successive ``invoke`` calls so
+    the agent's graph (tool dispatch -> execution -> validation -> reply) can be
+    evaluated without a real LLM or network. ``bind_tools`` is a no-op — the
+    script, not the model, decides which tools are "called".
+    """
+
+    def __init__(self, responses: list[AIMessage]) -> None:
+        self._responses = list(responses)
+        self._i = 0
+        self.invocations = 0
+
+    def bind_tools(self, tools: Any, **kwargs: Any) -> "ScriptedChatModel":
+        return self
+
+    def invoke(self, messages: Any, **kwargs: Any) -> AIMessage:
+        self.invocations += 1
+        if self._i >= len(self._responses):
+            return AIMessage(content="")  # script underflow -> end the turn
+        resp = self._responses[self._i]
+        self._i += 1
+        return resp
+
+
+@pytest.fixture
+def scripted_agent_llm(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[AIMessage]], ScriptedChatModel]:
+    """Make ``Agent.invoke`` deterministic: scripted LLM + disabled RAG.
+
+    Returns an installer: pass a list of ``AIMessage`` objects and it patches the
+    agent's LLM seam so the SAME scripted model is replayed across every graph
+    round in the turn. Build the messages with the test module's small
+    ``ai_tool_call`` / ``ai_reply`` helpers.
+    """
+
+    class _NoRag:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise RuntimeError("RAG disabled in the agent eval harness")
+
+    monkeypatch.setattr("exphub.agent.agent.BeamlineKnowledgeBase", _NoRag)
+
+    def _install(responses: list[AIMessage]) -> ScriptedChatModel:
+        model = ScriptedChatModel(responses)
+        monkeypatch.setattr("exphub.agent.agent.get_configured_chat_model", lambda: model)
+        return model
+
+    return _install
