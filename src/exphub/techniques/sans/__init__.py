@@ -9,4 +9,3 @@ into the technique plug-in surface.
 """
 
 from .manifest import SANS  # noqa: F401 — registers on import
-

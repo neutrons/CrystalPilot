@@ -59,9 +59,7 @@ def detect_goniometer_type(columns: list[str]) -> str:
         return CRYOGENIC
     if "BL9:Mot:Sample:omega" in columns or "BL9:Mot:Sample:phi" in columns:
         return AMBIENT
-    raise ValueError(
-        f"Could not detect CORELLI goniometer type from columns: {columns}."
-    )
+    raise ValueError(f"Could not detect CORELLI goniometer type from columns: {columns}.")
 
 
 def ramp_value(row: dict, key: str) -> str:

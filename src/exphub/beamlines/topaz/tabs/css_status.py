@@ -112,11 +112,7 @@ def _pv_string_expr(pv_name: str) -> str:
     display as plain text.
     """
     key = f"epics.pv_data['{pv_name}']"
-    return (
-        f"(Array.isArray({key}) "
-        f"? String.fromCharCode.apply(null, {key}.filter(c => c)) "
-        f": ({key} ?? ''))"
-    )
+    return f"(Array.isArray({key}) ? String.fromCharCode.apply(null, {key}.filter(c => c)) : ({key} ?? ''))"
 
 
 class PVStringInput(InputField):

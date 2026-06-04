@@ -35,6 +35,7 @@ def _default_angle_list_read() -> List[Dict]:
     except Exception:
         return [{"Title": "", "Comment": "", "Wait For": "PCharge", "Value": 10, "Or Time": ""}]
 
+
 # Headers for the experiment-run-strategy table. The cryogenic stage drives
 # only one rotation (CryoOmega), so its header omits phi; the ambient stage
 # carries both omega and phi.
@@ -88,8 +89,21 @@ class AnglePlanModel(BaseModel):
     # active rendering builds headers from the beamline context at runtime.
     angle_keys: List[str] = Field(
         default=[
-            "id", "title", "comment", "chi", "phi", "omega", "wait_for", "value", "or_time",
-            "step_type", "ramp_start", "ramp_end", "ramp_rate", "ramp_soak", "ramp_run",
+            "id",
+            "title",
+            "comment",
+            "chi",
+            "phi",
+            "omega",
+            "wait_for",
+            "value",
+            "or_time",
+            "step_type",
+            "ramp_start",
+            "ramp_end",
+            "ramp_rate",
+            "ramp_soak",
+            "ramp_run",
         ]
     )
     angle_list_headers: List[Dict] = Field(default_factory=lambda: list(_AMBIENT_HEADERS))
@@ -105,14 +119,11 @@ class AnglePlanModel(BaseModel):
     @model_validator(mode="after")
     def sync_headers_with_goniometer_type(self) -> "AnglePlanModel":
         """Keep `angle_list_headers` aligned with the selected goniometer."""
-        target = (
-            list(_CRYOGENIC_HEADERS)
-            if self.goniometer_type == "Cryogenic goniometer"
-            else list(_AMBIENT_HEADERS)
-        )
+        target = list(_CRYOGENIC_HEADERS) if self.goniometer_type == "Cryogenic goniometer" else list(_AMBIENT_HEADERS)
         if self.angle_list_headers != target:
             self.angle_list_headers = target
         return self
+
     show_coverage: bool = Field(
         default=False, title="Show Coverage", description="Flag to indicate if coverage is shown"
     )
@@ -240,7 +251,11 @@ class AnglePlanModel(BaseModel):
         exclude=True,
     )
 
-    instrument: str = Field(default_factory=_default_instrument_name, title="Instrument Name", description="Name of the instrument")
+    instrument: str = Field(
+        default_factory=_default_instrument_name,
+        title="Instrument Name",
+        description="Name of the instrument",
+    )
     wavelength: float = Field(default=1.0, title="Wavelength", description="Wavelength of the beam")
     axes: List = Field(default=[[0, 1, 0]], title="Axes", description="List of axes to be used for the angle plan")
     limits: List = Field(default=[0, 360], title="Limits", description="Limits of the axes")
@@ -338,9 +353,7 @@ class AnglePlanModel(BaseModel):
                 new_row["Or Time"] = ""
             else:
                 new_row["step_type"] = "angle"
-                wait_for_key = next(
-                    (key for key in row.keys() if key.startswith("Wait For")), None
-                )
+                wait_for_key = next((key for key in row.keys() if key.startswith("Wait For")), None)
                 wait_for = row[wait_for_key] if wait_for_key else "PCharge"
                 if "PCharge" in wait_for:
                     wait_for = "PCharge"
@@ -458,9 +471,7 @@ class AnglePlanModel(BaseModel):
                     row["Value"] = ""
                 else:
                     wait_for = angle.get("wait_for", "PCharge")
-                    row["Wait For"] = (
-                        gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
-                    )
+                    row["Wait For"] = gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
                     row["Value"] = angle.get("value", 10)
                 writer.writerow(row)
         print(f"Exported {len(self.angle_list)} rows to {file_path}")

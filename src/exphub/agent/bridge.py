@@ -110,9 +110,10 @@ def snapshot_models(main_model: BaseModel) -> Dict[str, Any]:
                 else:
                     # No explicit owner — first-write wins; log warning.
                     logger.debug(
-                        "snapshot: field %r exists in both %s and %s — "
-                        "keeping value from %s",
-                        field_name, _source[field_name], attr_name,
+                        "snapshot: field %r exists in both %s and %s — keeping value from %s",
+                        field_name,
+                        _source[field_name],
+                        attr_name,
                         _source[field_name],
                     )
             else:

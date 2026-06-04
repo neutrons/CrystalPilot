@@ -68,9 +68,7 @@ def _parse_table(block: str) -> str:
     rows_html: list[str] = []
     for line in lines[2:]:
         cells = _split_row(line)
-        tds = "".join(
-            f"<td{_style(i)}>{_inline_fmt(c)}</td>" for i, c in enumerate(cells)
-        )
+        tds = "".join(f"<td{_style(i)}>{_inline_fmt(c)}</td>" for i, c in enumerate(cells))
         rows_html.append(f"<tr>{tds}</tr>")
     tbody = f"<tbody>{''.join(rows_html)}</tbody>"
 

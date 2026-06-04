@@ -75,9 +75,7 @@ def test_switch_beamline_refuses_cross_technique(sans_stub: BeamlineSpec) -> Non
     assert active().id == "topaz"
     assert shell.view_state.beamline_id == "topaz"
     assert shell.view_state.beamline_switch_visible is True
-    assert "Restart CrystalPilot to switch technique families" in (
-        shell.view_state.beamline_switch_notice
-    )
+    assert "Restart CrystalPilot to switch technique families" in (shell.view_state.beamline_switch_notice)
 
 
 # --------------------------- on_deactivate -----------------------------------

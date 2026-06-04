@@ -95,5 +95,3 @@ def get_configured_chat_model() -> BaseChatModel:
         google_api_key=api_key,
         temperature=0.2,
     )
-
-

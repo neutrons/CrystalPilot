@@ -125,14 +125,10 @@ def build_intensity_figure(
             y_range = np.zeros_like(x_range) + np.array(intensity_data)[-1]
         else:
             x_range = np.linspace(max(time_steps), max(time_steps) + 2000, 100)
-            y_range = slope * x_range ** 0.5 + intercept
+            y_range = slope * x_range**0.5 + intercept
 
-        fig.add_trace(
-            go.Scatter(x=x_range, y=y_range, mode="lines", name="Prediction Line", line={"dash": "dash"})
-        )
-        fig.add_trace(
-            go.Scatter(x=time_steps, y=intensity_data, mode="lines+markers", name="History Data")
-        )
+        fig.add_trace(go.Scatter(x=x_range, y=y_range, mode="lines", name="Prediction Line", line={"dash": "dash"}))
+        fig.add_trace(go.Scatter(x=time_steps, y=intensity_data, mode="lines+markers", name="History Data"))
         fig.update_layout(
             title={"text": title, "x": 0.5, "xanchor": "center"},
             xaxis_title="Time Steps (s)",
@@ -183,7 +179,7 @@ def build_uncertainty_figure(
         x_pre = np.array(ts_arr[nozero_mask]).reshape(-1, 1)
         y_pre = np.array(un_arr[nozero_mask])
         if len(y_pre) > 0:
-            x_transformed_pre = 1 / x_pre ** 0.5
+            x_transformed_pre = 1 / x_pre**0.5
             trace("X_transformed")
             trace(x_transformed_pre)
             trace("y")
@@ -198,7 +194,7 @@ def build_uncertainty_figure(
         ts_arr = np.array(time_steps)
         x = np.array(ts_arr).reshape(-1, 1)
         y = np.array(un_arr) ** -1
-        x_transformed = x ** 0.5
+        x_transformed = x**0.5
         trace("X_transformed")
         trace(x_transformed)
         trace("y")
@@ -211,11 +207,9 @@ def build_uncertainty_figure(
         trace(f"Slope: {slope}, Intercept: {intercept}")
 
         x_range = np.linspace(max(ts_arr), max(ts_arr) + 2000, 100)
-        y_range = (slope * (x_range ** 0.5) + intercept) ** -1
+        y_range = (slope * (x_range**0.5) + intercept) ** -1
 
-        fig.add_trace(
-            go.Scatter(x=x_range, y=y_range, mode="lines", name="Fitted Line", line={"dash": "dash"})
-        )
+        fig.add_trace(go.Scatter(x=x_range, y=y_range, mode="lines", name="Fitted Line", line={"dash": "dash"}))
         print("============================================================================================")
         trace("time_steps")
         trace(ts_arr)
@@ -239,6 +233,7 @@ def build_uncertainty_figure(
 
 
 # ---------- snapshot persistence ----------
+
 
 def save_figure_snapshot(
     output_dir: str,

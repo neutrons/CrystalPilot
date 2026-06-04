@@ -33,10 +33,15 @@ def get_experiment_presets() -> dict[str, dict]:
 # Tab navigation mappings
 # ---------------------------------------------------------------------------
 TAB_MAP: dict[str, int] = {
-    "ipts_info": 1, "ipts": 1,
-    "live_data_processing": 2, "live_data": 2, "temporal_analysis": 2,
-    "experiment_steering": 3, "angle_plan": 3,
-    "instrument_status": 5, "css_status": 5,
+    "ipts_info": 1,
+    "ipts": 1,
+    "live_data_processing": 2,
+    "live_data": 2,
+    "temporal_analysis": 2,
+    "experiment_steering": 3,
+    "angle_plan": 3,
+    "instrument_status": 5,
+    "css_status": 5,
     "data_analysis": 6,
 }
 

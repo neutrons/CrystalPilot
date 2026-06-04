@@ -52,14 +52,12 @@ def _load_system_prompt(beamline_id: str | None = None, task: str | None = None)
     can't find any fragments. See :mod:`exphub.agent.prompts.composer`.
     """
     from .prompts.composer import compose_system_prompt
+
     try:
         return compose_system_prompt(beamline_id=beamline_id, task=task)
     except Exception as exc:
         logger.warning("Prompt composer failed (%s) — using fallback", exc)
-        return (
-            "You are an AI helper for single-crystal neutron diffraction "
-            "experiments. Be concise and helpful."
-        )
+        return "You are an AI helper for single-crystal neutron diffraction experiments. Be concise and helpful."
 
 
 # Default at import time; an Agent instance will recompute with the active
@@ -181,11 +179,30 @@ class Agent:
 
     # ------------------------------------------------------------------ helpers
 
-    _QUESTION_WORDS = frozenset({
-        "what", "why", "how", "when", "where", "which", "who",
-        "explain", "describe", "tell", "define", "clarify",
-        "can", "could", "does", "do", "is", "are", "should", "would",
-    })
+    _QUESTION_WORDS = frozenset(
+        {
+            "what",
+            "why",
+            "how",
+            "when",
+            "where",
+            "which",
+            "who",
+            "explain",
+            "describe",
+            "tell",
+            "define",
+            "clarify",
+            "can",
+            "could",
+            "does",
+            "do",
+            "is",
+            "are",
+            "should",
+            "would",
+        }
+    )
 
     @staticmethod
     def _looks_like_question(text: str) -> bool:
@@ -215,31 +232,28 @@ class Agent:
         # Stamp current beamline + task so the LLM (and debug logs) always know
         # which beamline this conversation is steering.
         from .prompts.composer import describe_active_context
-        msgs.append(SystemMessage(
-            content=describe_active_context(beamline_id=self._beamline_id, task=self._task)
-        ))
+
+        msgs.append(SystemMessage(content=describe_active_context(beamline_id=self._beamline_id, task=self._task)))
 
         # Inject current phase context if a PhaseManager is available
         if self._phase_manager is not None:
             phase = self._phase_manager.current
             scoped = self._phase_manager.get_phase_fields(self.schema_properties)
-            param_lines = ", ".join(
-                f"`{k}` ({v.get('title', k)})" for k, v in scoped.items()
-            )
-            msgs.append(SystemMessage(
-                content=(
-                    f"CURRENT PHASE: {phase.tab_name} — {phase.description}. "
-                    f"PHASE PARAMETERS (use these exact names with set_parameter): {param_lines}"
+            param_lines = ", ".join(f"`{k}` ({v.get('title', k)})" for k, v in scoped.items())
+            msgs.append(
+                SystemMessage(
+                    content=(
+                        f"CURRENT PHASE: {phase.tab_name} — {phase.description}. "
+                        f"PHASE PARAMETERS (use these exact names with set_parameter): {param_lines}"
+                    )
                 )
-            ))
+            )
         else:
             # No phase manager — show all parameters
-            param_lines = ", ".join(
-                f"`{k}` ({v.get('title', k)})" for k, v in self.schema_properties.items()
+            param_lines = ", ".join(f"`{k}` ({v.get('title', k)})" for k, v in self.schema_properties.items())
+            msgs.append(
+                SystemMessage(content=f"AVAILABLE PARAMETERS (use these exact names with set_parameter): {param_lines}")
             )
-            msgs.append(SystemMessage(
-                content=f"AVAILABLE PARAMETERS (use these exact names with set_parameter): {param_lines}"
-            ))
 
         if state.get("in_config_mode"):
             cfg = state.get("config_state", {})
@@ -254,13 +268,15 @@ class Agent:
                 last_user = content.strip() if isinstance(content, str) else str(content).strip()
                 break
         if last_user and self._looks_like_question(last_user) and state.get("tool_rounds", 0) == 0:
-            msgs.append(SystemMessage(
-                content=(
-                    "HINT: The user appears to be asking a knowledge question. "
-                    "You MUST call `retrieve_docs` to search the knowledge base "
-                    "before answering. Do NOT answer from memory alone."
+            msgs.append(
+                SystemMessage(
+                    content=(
+                        "HINT: The user appears to be asking a knowledge question. "
+                        "You MUST call `retrieve_docs` to search the knowledge base "
+                        "before answering. Do NOT answer from memory alone."
+                    )
                 )
-            ))
+            )
 
         msgs.extend(state["messages"][-20:])
 
@@ -350,8 +366,11 @@ class Agent:
             )
 
         elif tool_msg.name in (
-            "submit_angle_plan", "authenticate_eic",
-            "initialize_strategy", "upload_strategy", "stop_current_run",
+            "submit_angle_plan",
+            "authenticate_eic",
+            "initialize_strategy",
+            "upload_strategy",
+            "stop_current_run",
         ):
             # Action tools return {"status": ...} or {"error": ...}
             if isinstance(tool_output, dict):
@@ -464,10 +483,7 @@ class Agent:
         if preset_name:
             parts.append(f"Applied preset **{preset_name}**.")
         if validated:
-            fields = ", ".join(
-                f"**{pretty_name(k, self.schema_properties)}** = `{v}`"
-                for k, v in validated.items()
-            )
+            fields = ", ".join(f"**{pretty_name(k, self.schema_properties)}** = `{v}`" for k, v in validated.items())
             parts.append(f"Set {len(validated)} parameter(s): {fields}.")
         if errors:
             errs = ", ".join(f"**{k}**: {v}" for k, v in errors.items())
@@ -484,7 +500,7 @@ class Agent:
         if not tool_output:
             return "The angle plan table is currently empty."
         header = "| # | Title | phi | omega | Wait For | Value | Or Time |"
-        sep    = "|---|-------|-----|-------|----------|-------|---------|"
+        sep = "|---|-------|-----|-------|----------|-------|---------|"
         rows = [
             f"| {r.get('_index', i)} | {r.get('title', '')} | {r.get('phi', 0)} "
             f"| {r.get('omega', 0)} | {r.get('wait_for', '')} | {r.get('value', 0)} | {r.get('or_time', 0)} |"
@@ -494,10 +510,12 @@ class Agent:
 
     def _validate_list_parameters(self, state: AgentState, tool_output: Any) -> str:
         if isinstance(tool_output, list):
-            lines = [f"- **{p['title']}** (`{p['name']}`)" +
-                     (f": {p['description']}" if p.get("description") else "") +
-                     (f" — options: {', '.join(p['options'])}" if p.get("options") else "")
-                     for p in tool_output]
+            lines = [
+                f"- **{p['title']}** (`{p['name']}`)"
+                + (f": {p['description']}" if p.get("description") else "")
+                + (f" — options: {', '.join(p['options'])}" if p.get("options") else "")
+                for p in tool_output
+            ]
             return "**Available parameters:**\n" + "\n".join(lines)
         return str(tool_output)
 
@@ -612,10 +630,12 @@ class Agent:
         messages: list = []
         if bridge_errors:
             lines = "\n".join(f"- `{k}`: {v}" for k, v in bridge_errors.items())
-            messages.append(HumanMessage(
-                content=f"[SYSTEM] The following parameter writes were rejected by the UI:\n{lines}\n"
-                        "Please inform the user and suggest corrections."
-            ))
+            messages.append(
+                HumanMessage(
+                    content=f"[SYSTEM] The following parameter writes were rejected by the UI:\n{lines}\n"
+                    "Please inform the user and suggest corrections."
+                )
+            )
         messages.append(HumanMessage(content=user_text))
 
         initial_state: AgentState = {

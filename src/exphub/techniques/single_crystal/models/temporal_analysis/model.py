@@ -67,9 +67,8 @@ class TemporalAnalysisModel(BaseModel):
     @property
     def peak_ratio_hkl_b(self) -> tuple[int, int, int]:
         return (self.peak_ratio_b_h, self.peak_ratio_b_k, self.peak_ratio_b_l)
-    time_steps: List[float] = Field(
-        default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps"
-    )
+
+    time_steps: List[float] = Field(default=[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0], title="Time Steps")
     intensity_data: List[float] = Field(
         default=[0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0, 64.0, 81.0], title="Intensity Data"
     )
@@ -367,6 +366,7 @@ class TemporalAnalysisModel(BaseModel):
             fig_u = self.get_figure_uncertainty()
             bl_id = active().id
             import time as _time
+
             timestamp = _time.strftime("%Y%m%d-%H%M%S")
             run = getattr(wf, "current_run", "na")
             prefix = f"live_{bl_id}-ipts-{wf.ipts}_run-{run}_{timestamp}"

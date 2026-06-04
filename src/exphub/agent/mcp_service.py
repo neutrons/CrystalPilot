@@ -18,7 +18,8 @@ from typing import Any, Dict, List, Optional
 try:
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
-    from mcp.types import Tool, TextContent
+    from mcp.types import TextContent, Tool
+
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
@@ -101,9 +102,7 @@ class MCPService:
 
             # Load tools
             try:
-                await asyncio.wait_for(
-                    self._load_tools_from_server(config.name, session), timeout=10.0
-                )
+                await asyncio.wait_for(self._load_tools_from_server(config.name, session), timeout=10.0)
             except Exception as exc:
                 logger.warning("Tool loading failed for %s: %s", config.name, exc)
 
@@ -125,14 +124,13 @@ class MCPService:
 
     def _mcp_tool_to_langchain(self, server_name: str, mcp_tool: Tool) -> Optional[BaseTool]:
         try:
+
             async def mcp_tool_wrapper(**kwargs: Any) -> str:
                 server_info = self.servers.get(server_name)
                 if not server_info:
                     return json.dumps({"error": f"Server {server_name} not connected"})
                 try:
-                    result = await server_info["session"].call_tool(
-                        mcp_tool.name, arguments=kwargs
-                    )
+                    result = await server_info["session"].call_tool(mcp_tool.name, arguments=kwargs)
                     if result.content:
                         parts = []
                         for content in result.content:

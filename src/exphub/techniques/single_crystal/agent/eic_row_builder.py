@@ -96,9 +96,7 @@ class SingleCrystalEICRowBuilder:
                     row["Value"] = ""
                 else:
                     wait_for = angle.get("wait_for", "PCharge")
-                    row["Wait For"] = (
-                        gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
-                    )
+                    row["Wait For"] = gonio_pvs.WAIT_FOR_PCHARGE_PV if wait_for == "PCharge" else wait_for
                     row["Value"] = angle.get("value", 10)
                 writer.writerow(row)
         print(f"Copied experiment strategy to {destination_path}")
@@ -199,9 +197,7 @@ def write_strategy_csv(
     goniometer_type: str = gonio_pvs.AMBIENT,
 ) -> str:
     """Module-level delegator to :meth:`SingleCrystalEICRowBuilder.write_strategy_csv`."""
-    return SINGLE_CRYSTAL_EIC_ROW_BUILDER.write_strategy_csv(
-        angleplan, ipts_number, goniometer_type
-    )
+    return SINGLE_CRYSTAL_EIC_ROW_BUILDER.write_strategy_csv(angleplan, ipts_number, goniometer_type)
 
 
 def build_jobs(
@@ -209,6 +205,4 @@ def build_jobs(
     goniometer_type: str = gonio_pvs.AMBIENT,
 ) -> List[Dict[str, Any]]:
     """Module-level delegator to :meth:`SingleCrystalEICRowBuilder.build_jobs`."""
-    return SINGLE_CRYSTAL_EIC_ROW_BUILDER.build_jobs(
-        angleplan, goniometer_type=goniometer_type
-    )
+    return SINGLE_CRYSTAL_EIC_ROW_BUILDER.build_jobs(angleplan, goniometer_type=goniometer_type)

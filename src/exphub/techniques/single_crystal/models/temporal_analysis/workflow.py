@@ -144,9 +144,7 @@ class MantidWorkflow:
             print(f"get_latest_ub: could not read UB from {workspace_name}: {e}")
             return None
 
-    def get_latest_lattice(
-        self, workspace_name: str = "live_predict_peaks_ws"
-    ) -> Optional[Dict[str, float]]:
+    def get_latest_lattice(self, workspace_name: str = "live_predict_peaks_ws") -> Optional[Dict[str, float]]:
         """Return lattice constants (a,b,c Å — α,β,γ deg — V Å³)."""
         try:
             ws = mtdapi.mtd[workspace_name]
@@ -266,9 +264,7 @@ class MantidWorkflow:
                 PreserveEvents=True,
                 OutputWorkspace="live_event_ws",
             )
-            self.monitor_start_time = (
-                mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
-            )
+            self.monitor_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
             time.sleep(1)
         except RuntimeError as e:
             if "Another MonitorLiveData thread is running" in str(e):
@@ -286,9 +282,7 @@ class MantidWorkflow:
         if not mtdapi.mtd.doesExist("live_event_ws"):
             raise RuntimeError("Live data workspace 'live_event_ws' does not exist after StartLiveData.")
         self.initial_run = mtdapi.mtd["live_event_ws"].getRunNumber()
-        self.initial_run_start_time = (
-            mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
-        )
+        self.initial_run_start_time = mtdapi.mtd["live_event_ws"].getRun().startTime().totalNanoseconds() * 1e-9
         print(f"initial run: {self.initial_run}")
 
         self.current_run = self.initial_run

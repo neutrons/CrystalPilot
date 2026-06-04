@@ -22,17 +22,17 @@ import logging
 import math
 import re
 from pathlib import Path
-from typing import Any, Sequence, cast
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
 _KNOWLEDGE_DIR = Path(__file__).parent / "knowledge"
 _CHROMA_DIR = _KNOWLEDGE_DIR / "chroma_db"
 _COLLECTION_NAME = "crystalpilot_docs"
-_CHUNK_SIZE = 150    # words per chunk
-_OVERLAP = 25        # word overlap between adjacent chunks
-_DEFAULT_K = 3       # passages returned by default
-_RERANK_K = 60       # candidates fetched for reranking
+_CHUNK_SIZE = 150  # words per chunk
+_OVERLAP = 25  # word overlap between adjacent chunks
+_DEFAULT_K = 3  # passages returned by default
+_RERANK_K = 60  # candidates fetched for reranking
 _CONTEXT_TOKEN_LIMIT = 3000  # max tokens fed to the synthesis LLM
 
 
@@ -41,8 +41,27 @@ _CONTEXT_TOKEN_LIMIT = 3000  # max tokens fed to the synthesis LLM
 # ---------------------------------------------------------------------------
 
 _STOP_WORDS = frozenset(
-    {"the", "a", "an", "of", "in", "on", "at", "to", "by", "for",
-     "with", "and", "or", "from", "is", "it", "this", "that", "are"}
+    {
+        "the",
+        "a",
+        "an",
+        "of",
+        "in",
+        "on",
+        "at",
+        "to",
+        "by",
+        "for",
+        "with",
+        "and",
+        "or",
+        "from",
+        "is",
+        "it",
+        "this",
+        "that",
+        "are",
+    }
 )
 
 
@@ -64,6 +83,7 @@ def _estimate_tokens(text: str) -> int:
 # ---------------------------------------------------------------------------
 # Chunking helpers (heading-aware, then word-window)
 # ---------------------------------------------------------------------------
+
 
 def _load_and_chunk(knowledge_dir: Path) -> tuple[list[str], list[dict]]:
     """Load all .md and .txt files and return (texts, metadatas)."""
@@ -128,6 +148,7 @@ def _content_hash(chunks: list[str]) -> str:
 # Embedding function with lazy model loading
 # ---------------------------------------------------------------------------
 
+
 class _LazyEmbeddingFunction:
     """ChromaDB-compatible embedding function with lazy SentenceTransformer loading."""
 
@@ -136,11 +157,9 @@ class _LazyEmbeddingFunction:
     @classmethod
     def _get_model(cls) -> Any:
         if cls._model is None:
-            SentenceTransformer = importlib.import_module(
-                "sentence_transformers"
-            ).SentenceTransformer
+            model_cls = importlib.import_module("sentence_transformers").SentenceTransformer
             logger.info("Loading SentenceTransformer model (first use)…")
-            cls._model = SentenceTransformer("all-MiniLM-L6-v2")
+            cls._model = model_cls("all-MiniLM-L6-v2")
             logger.info("SentenceTransformer model loaded.")
         return cls._model
 
@@ -152,6 +171,7 @@ class _LazyEmbeddingFunction:
 # ---------------------------------------------------------------------------
 # Knowledge base
 # ---------------------------------------------------------------------------
+
 
 class BeamlineKnowledgeBase:
     """Semantic retriever over local knowledge files.
@@ -204,9 +224,7 @@ class BeamlineKnowledgeBase:
 
             # Check if collection already exists and is up to date
             try:
-                collection = client.get_collection(
-                    _COLLECTION_NAME, embedding_function=embedding_fn
-                )
+                collection = client.get_collection(_COLLECTION_NAME, embedding_function=embedding_fn)
                 stored_hash = collection.metadata.get("content_hash", "")
                 if stored_hash == content_hash and collection.count() == len(texts):
                     self._collection = collection
@@ -243,8 +261,11 @@ class BeamlineKnowledgeBase:
         """Build a TF-IDF index as fallback."""
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
+
             self._fallback_vectorizer = TfidfVectorizer(
-                stop_words="english", max_features=30_000, ngram_range=(1, 2),
+                stop_words="english",
+                max_features=30_000,
+                ngram_range=(1, 2),
             )
             self._fallback_matrix = self._fallback_vectorizer.fit_transform(texts)
         except ImportError:
@@ -299,14 +320,11 @@ class BeamlineKnowledgeBase:
 
         try:
             from .llm import get_configured_chat_model
+
             llm = get_configured_chat_model()
             logger.info("RAG: calling synthesis LLM…")
             result = llm.invoke(prompt)
-            answer = (
-                cast(str, result.content).strip()
-                if hasattr(result, "content")
-                else str(result).strip()
-            )
+            answer = cast(str, result.content).strip() if hasattr(result, "content") else str(result).strip()
             logger.info("RAG: synthesis answer (first 120 chars): %s", answer[:120])
             return answer
         except Exception as exc:
@@ -367,6 +385,7 @@ class BeamlineKnowledgeBase:
     def _retrieve_tfidf(self, query: str, k: int) -> list[str]:
         """Retrieve using TF-IDF cosine similarity (fallback)."""
         from sklearn.metrics.pairwise import cosine_similarity
+
         q_vec = self._fallback_vectorizer.transform([query])
         scores = cosine_similarity(q_vec, self._fallback_matrix).flatten()
         n = min(k, len(scores))

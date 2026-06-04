@@ -15,7 +15,6 @@ from trame_server import Server
 
 from ..view_models.chat import ChatViewModel
 
-
 # ── CSS for chat bubbles (injected via trame client.Style) ─────────────
 _CHAT_RESIZE_JS = """
 window._chatResizeStart = function(event) {

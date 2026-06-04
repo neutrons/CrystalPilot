@@ -30,10 +30,7 @@ def test_resolve_precedence_cli_over_env() -> None:
     assert _resolve_startup_beamline(["beamline=corelli"], {}) == "corelli"
     assert _resolve_startup_beamline([], {"CRYSTALPILOT_BEAMLINE": "usans"}) == "usans"
     # CLI wins over env.
-    assert (
-        _resolve_startup_beamline(["--beamline=corelli"], {"CRYSTALPILOT_BEAMLINE": "usans"})
-        == "corelli"
-    )
+    assert _resolve_startup_beamline(["--beamline=corelli"], {"CRYSTALPILOT_BEAMLINE": "usans"}) == "corelli"
 
 
 def test_resolve_none_when_unset() -> None:

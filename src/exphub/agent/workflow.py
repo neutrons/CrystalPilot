@@ -27,17 +27,19 @@ logger = logging.getLogger(__name__)
 # Phase state (runtime, per-phase)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PhaseState:
     """Runtime state for a single phase."""
 
-    status: str = "pending"    # pending | active | complete
+    status: str = "pending"  # pending | active | complete
     pending_confirm: bool = False  # waiting for user to confirm advancing
 
 
 # ---------------------------------------------------------------------------
 # PhaseManager
 # ---------------------------------------------------------------------------
+
 
 class PhaseManager:
     """Tracks the current experiment phase and manages transitions.
@@ -55,9 +57,7 @@ class PhaseManager:
         self._phase_names: list[str] = [p.name for p in self._phases]
         self._phase_map: dict[str, PhaseDefinition] = {p.name: p for p in self._phases}
         self._current_idx: int = 0
-        self._states: dict[str, PhaseState] = {
-            name: PhaseState() for name in self._phase_names
-        }
+        self._states: dict[str, PhaseState] = {name: PhaseState() for name in self._phase_names}
         if self._phase_names:
             self._states[self._phase_names[0]].status = "active"
 
@@ -118,10 +118,7 @@ class PhaseManager:
         self._current_idx += 1
         self.current_state.status = "active"
         phase = self.current
-        return (
-            f"Now in **{phase.label}** phase: {phase.description}. "
-            f"Navigate to tab **{phase.label}** to proceed."
-        )
+        return f"Now in **{phase.label}** phase: {phase.description}. Navigate to tab **{phase.label}** to proceed."
 
     def go_to_phase(self, phase_name: str) -> str | None:
         """Jump to a specific phase by name. Returns message or None if invalid."""

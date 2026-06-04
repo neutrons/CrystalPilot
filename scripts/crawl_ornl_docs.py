@@ -17,7 +17,6 @@ Adapted from NeuDiff-Agent's web_crawler.py.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
@@ -39,8 +38,8 @@ ROOT_URLS = [
 ]
 
 OUTPUT_DIR = Path(__file__).parent.parent / "src" / "exphub" / "agent" / "knowledge" / "crawled"
-MAX_DEPTH = 1          # only follow links one level deep
-CRAWL_DELAY = 0.5      # seconds between requests
+MAX_DEPTH = 1  # only follow links one level deep
+CRAWL_DELAY = 0.5  # seconds between requests
 MAX_RETRIES = 2
 REQUEST_TIMEOUT = 15
 
@@ -49,13 +48,16 @@ REQUEST_TIMEOUT = 15
 # Crawling
 # ---------------------------------------------------------------------------
 
+
 def _fetch_page(url: str) -> str | None:
     """Fetch a URL and return its HTML content, or None on failure."""
     import requests
+
     for attempt in range(MAX_RETRIES + 1):
         try:
-            resp = requests.get(url, timeout=REQUEST_TIMEOUT,
-                                headers={"User-Agent": "CrystalPilot-KnowledgeCrawler/1.0"})
+            resp = requests.get(
+                url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": "CrystalPilot-KnowledgeCrawler/1.0"}
+            )
             resp.raise_for_status()
             return resp.text
         except Exception as exc:
@@ -70,8 +72,9 @@ def _fetch_page(url: str) -> str | None:
 def _extract_text(html: str) -> str:
     """Extract readable text from HTML, removing scripts and styles."""
     import importlib
-    BeautifulSoup = importlib.import_module("bs4").BeautifulSoup
-    soup = BeautifulSoup(html, "html.parser")
+
+    bs_cls = importlib.import_module("bs4").BeautifulSoup
+    soup = bs_cls(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
     text = soup.get_text(separator="\n")
@@ -83,17 +86,20 @@ def _extract_text(html: str) -> str:
 def _extract_links(html: str, base_url: str) -> list[str]:
     """Extract same-domain links from HTML."""
     import importlib
-    BeautifulSoup = importlib.import_module("bs4").BeautifulSoup
-    soup = BeautifulSoup(html, "html.parser")
+
+    bs_cls = importlib.import_module("bs4").BeautifulSoup
+    soup = bs_cls(html, "html.parser")
     base_domain = urlparse(base_url).netloc
     links = []
     for a in soup.find_all("a", href=True):
         href = urljoin(base_url, a["href"])
         parsed = urlparse(href)
         # Same domain, no fragments, no file downloads
-        if (parsed.netloc == base_domain
-                and not parsed.fragment
-                and not any(href.endswith(ext) for ext in (".pdf", ".zip", ".gz", ".tar", ".png", ".jpg"))):
+        if (
+            parsed.netloc == base_domain
+            and not parsed.fragment
+            and not any(href.endswith(ext) for ext in (".pdf", ".zip", ".gz", ".tar", ".png", ".jpg"))
+        ):
             links.append(href.split("#")[0].split("?")[0])
     return list(set(links))
 
@@ -141,9 +147,11 @@ def pages_to_markdown(pages: list[dict], domain: str) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     try:
         import importlib
+
         importlib.import_module("requests")
         importlib.import_module("bs4")
     except ImportError:
@@ -168,9 +176,7 @@ def main() -> None:
         out_path.write_text(md, encoding="utf-8")
         logger.info("Wrote %d pages → %s", len(pages), out_path)
 
-    logger.info(
-        "\nDone! Delete src/exphub/agent/knowledge/chroma_db/ to force RAG rebuild."
-    )
+    logger.info("\nDone! Delete src/exphub/agent/knowledge/chroma_db/ to force RAG rebuild.")
 
 
 if __name__ == "__main__":

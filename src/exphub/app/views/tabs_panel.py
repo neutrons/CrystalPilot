@@ -21,9 +21,7 @@ class TabsPanel:
         self.create_ui()
 
     def create_ui(self) -> None:
-        with html.Div(
-            style="display: flex; align-items: center; gap: 1rem; padding-right: 1rem; width: 100%;"
-        ):
+        with html.Div(style="display: flex; align-items: center; gap: 1rem; padding-right: 1rem; width: 100%;"):
             with client.DeepReactive("controls"):
                 with vuetify.VTabs(
                     v_model="controls.active_tab",

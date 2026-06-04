@@ -44,10 +44,7 @@ SANS_PARAM_COLUMNS: List[str] = [
 _SANS_HEADERS: List[Dict] = [
     {"title": "Title", "value": "title", "sortable": True, "align": "center"},
     {"title": "Comment", "value": "comment", "sortable": True, "align": "center"},
-    *[
-        {"title": col, "value": col, "sortable": True, "align": "center"}
-        for col in SANS_PARAM_COLUMNS
-    ],
+    *[{"title": col, "value": col, "sortable": True, "align": "center"} for col in SANS_PARAM_COLUMNS],
     {"title": "Wait For", "value": "wait_for", "sortable": True, "align": "center"},
     {"title": "Value", "value": "value", "sortable": True, "align": "center"},
     {"title": "Action", "value": "actions", "sortable": False, "align": "center"},

@@ -20,6 +20,7 @@ def _default_instrument_list() -> List[str]:
     try:
         names = []
         from ....core.beamline import get as _get
+
         for bid in _beamline_ids():
             inst = _get(bid).single_crystal.mantid.instrument_name
             if inst:

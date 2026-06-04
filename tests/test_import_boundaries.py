@@ -97,13 +97,9 @@ def _violations() -> list[str]:
     bad: list[str] = []
     for importer, target in _edges():
         # 1. technique independence
-        if importer.startswith("exphub.techniques.single_crystal") and target.startswith(
-            "exphub.techniques.sans"
-        ):
+        if importer.startswith("exphub.techniques.single_crystal") and target.startswith("exphub.techniques.sans"):
             bad.append(f"single_crystal -> sans: {importer} imports {target}")
-        if importer.startswith("exphub.techniques.sans") and target.startswith(
-            "exphub.techniques.single_crystal"
-        ):
+        if importer.startswith("exphub.techniques.sans") and target.startswith("exphub.techniques.single_crystal"):
             bad.append(f"sans -> single_crystal: {importer} imports {target}")
         # 2. core is the bottom layer
         if importer.startswith("exphub.core") and target.startswith(

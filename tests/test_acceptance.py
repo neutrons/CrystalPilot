@@ -73,9 +73,7 @@ def test_ships_single_crystal_and_sans_techniques() -> None:
     for tech_id in ("single_crystal", "sans"):
         pkg = SRC / "techniques" / tech_id
         assert (pkg / "__init__.py").is_file(), f"missing techniques/{tech_id}/"
-        assert (pkg / "manifest.py").is_file(), (
-            f"missing techniques/{tech_id}/manifest.py"
-        )
+        assert (pkg / "manifest.py").is_file(), f"missing techniques/{tech_id}/manifest.py"
 
 
 def test_techniques_register_their_manifests() -> None:
@@ -111,9 +109,7 @@ def test_beamlines_register_and_bind_to_techniques() -> None:
     from exphub.core.beamline import registry
 
     ids = set(registry.list_ids())
-    assert {"topaz", "corelli", "usans"} <= ids, (
-        f"expected topaz/corelli/usans registered; got {sorted(ids)}"
-    )
+    assert {"topaz", "corelli", "usans"} <= ids, f"expected topaz/corelli/usans registered; got {sorted(ids)}"
     assert registry.get("topaz").technique == "single_crystal"
     assert registry.get("corelli").technique == "single_crystal"
     assert registry.get("usans").technique == "sans"

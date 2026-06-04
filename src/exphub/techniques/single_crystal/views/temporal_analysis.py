@@ -158,15 +158,21 @@ class TemporalAnalysisView:
                                     with GridLayout(columns=3, gap="0.3em"):
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_a_h",
-                                            type="number", label="h", density="compact",
+                                            type="number",
+                                            label="h",
+                                            density="compact",
                                         )
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_a_k",
-                                            type="number", label="k", density="compact",
+                                            type="number",
+                                            label="k",
+                                            density="compact",
                                         )
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_a_l",
-                                            type="number", label="l", density="compact",
+                                            type="number",
+                                            label="l",
+                                            density="compact",
                                         )
                             with html.Div(
                                 style="display: flex; align-items: center; gap: 0.5em;",
@@ -176,15 +182,21 @@ class TemporalAnalysisView:
                                     with GridLayout(columns=3, gap="0.3em"):
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_b_h",
-                                            type="number", label="h", density="compact",
+                                            type="number",
+                                            label="h",
+                                            density="compact",
                                         )
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_b_k",
-                                            type="number", label="k", density="compact",
+                                            type="number",
+                                            label="k",
+                                            density="compact",
                                         )
                                         InputField(
                                             v_model="model_temporalanalysis.peak_ratio_b_l",
-                                            type="number", label="l", density="compact",
+                                            type="number",
+                                            label="l",
+                                            density="compact",
                                         )
                         with vuetify.VCardActions():
                             vuetify.VBtn(
@@ -247,14 +259,7 @@ class TemporalAnalysisView:
         #    self.figure_uncertainty
 
         # Figures own the lion's share of vertical space.
-        with html.Div(
-            style=(
-                "flex: 4 1 0;"
-                "min-height: 0;"
-                "display: flex;"
-                "flex-direction: column;"
-            )
-        ):
+        with html.Div(style=("flex: 4 1 0;min-height: 0;display: flex;flex-direction: column;")):
             with GridLayout(columns=2, gap="0.5em", stretch=True):
                 self.figure_intensity = plotly.Figure()
                 self.figure_intensity.update(fig_i)
@@ -331,9 +336,7 @@ class TemporalAnalysisView:
                             for key, unit, prec in lattice_cells:
                                 vuetify.VLabel(
                                     "{{ (model_temporalanalysis.latest_lattice && "
-                                    "model_temporalanalysis.latest_lattice['"
-                                    + key
-                                    + "'] != null)"
+                                    "model_temporalanalysis.latest_lattice['" + key + "'] != null)"
                                     " ? Number(model_temporalanalysis.latest_lattice['"
                                     + key
                                     + "']).toFixed("

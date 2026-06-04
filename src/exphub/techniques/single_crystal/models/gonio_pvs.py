@@ -33,6 +33,7 @@ def _empty_stub() -> SimpleNamespace:
     structures instead of strings; downstream code that iterates the dict
     sees an empty plan rather than crashing the app at startup.
     """
+
     def _angle_columns(_goniometer_type: str) -> list[str]:
         return []
 
@@ -64,9 +65,7 @@ def _empty_stub() -> SimpleNamespace:
 
 
 try:
-    _gonio: Any = importlib.import_module(
-        f"exphub.beamlines.{_active_beamline().id}.gonio"
-    )
+    _gonio: Any = importlib.import_module(f"exphub.beamlines.{_active_beamline().id}.gonio")
 except ModuleNotFoundError:
     _log.info(
         "Active beamline %r has no gonio module — using empty stubs. "

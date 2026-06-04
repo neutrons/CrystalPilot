@@ -14,7 +14,6 @@ Use :func:`resolver_for` to construct one from the active beamline.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Optional
 
 from ..beamline import BeamlineContext, BeamlineSpec, active
@@ -96,8 +95,11 @@ class PathResolver:
     # ----- convenience ------------------------------------------------------
 
     def ensure_dir(self, path: str) -> str:
-        """``mkdir -p`` and return the path. Convenience for autoreduce / live-monitor
-        directories that callers were previously creating ad hoc."""
+        """``mkdir -p`` and return the path.
+
+        Convenience for autoreduce / live-monitor directories that callers were
+        previously creating ad hoc.
+        """
         os.makedirs(path, exist_ok=True)
         return path
 
@@ -108,5 +110,6 @@ def resolver_for(ipts: int | str | None = None, beamline_id: str | None = None) 
         spec = active()
     else:
         from ..beamline import get  # local import to avoid cycle at module load
+
         spec = get(beamline_id)
     return PathResolver(BeamlineContext(spec), ipts=ipts)

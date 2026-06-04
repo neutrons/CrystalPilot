@@ -9,9 +9,8 @@ The handler chain is evaluated in ``HANDLERS`` order by ``run_handlers()``.
 
 from __future__ import annotations
 
-import json
 import re
-from typing import Any, Callable
+from typing import Callable
 
 from ..core.beamline import TabKey
 from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
@@ -33,6 +32,7 @@ def _normalize(text: str) -> str:
 # Individual handlers
 # ---------------------------------------------------------------------------
 
+
 def handle_show_config(
     user_text: str,
     snapshot_fn: Callable[[], dict] | None,
@@ -41,20 +41,25 @@ def handle_show_config(
 ) -> str | None:
     """Handle "show config" / "current settings" requests."""
     norm = _normalize(user_text)
-    triggers = ("show config", "current config", "current settings", "show settings",
-                "show parameters", "current parameters", "show current")
+    triggers = (
+        "show config",
+        "current config",
+        "current settings",
+        "show settings",
+        "show parameters",
+        "current parameters",
+        "show current",
+    )
     if not any(t in norm for t in triggers):
         return None
     if snapshot_fn is None:
         return "Configuration snapshot is not available."
     snap = snapshot_fn()
     # Filter to only fields that exist in schema (skip internal/list fields)
-    config = {k: v for k, v in snap.items() if k in schema_props and v is not None
-              and not isinstance(v, list)}
+    config = {k: v for k, v in snap.items() if k in schema_props and v is not None and not isinstance(v, list)}
     if not config:
         return "No configuration values are currently set."
-    lines = [f"- **{schema_props.get(k, {}).get('title', k)}**: `{v}`"
-             for k, v in sorted(config.items())]
+    lines = [f"- **{schema_props.get(k, {}).get('title', k)}**: `{v}`" for k, v in sorted(config.items())]
     return "**Current Configuration:**\n" + "\n".join(lines)
 
 
@@ -66,8 +71,7 @@ def handle_list_presets(
 ) -> str | None:
     """Handle "list presets" / "what presets" requests."""
     norm = _normalize(user_text)
-    if not any(t in norm for t in ("list preset", "show preset", "what preset",
-                                    "available preset")):
+    if not any(t in norm for t in ("list preset", "show preset", "what preset", "available preset")):
         return None
     presets = get_experiment_presets()
     if not presets:
@@ -77,8 +81,11 @@ def handle_list_presets(
         fields = ", ".join(f"`{k}`=`{v}`" for k, v in params.items())
         lines.append(f"- **{name}**: {fields}")
     example = next(iter(presets))
-    return "**Available Presets:**\n" + "\n".join(lines) + \
-           f"\n\nUse `apply_preset` or say e.g. *apply {example}* to apply one."
+    return (
+        "**Available Presets:**\n"
+        + "\n".join(lines)
+        + f"\n\nUse `apply_preset` or say e.g. *apply {example}* to apply one."
+    )
 
 
 def handle_navigate(
@@ -111,8 +118,7 @@ def handle_help(
 ) -> str | None:
     """Handle "help" / "what can you do" requests."""
     norm = _normalize(user_text)
-    if norm not in ("help", "what can you do", "what can you do?",
-                    "commands", "capabilities"):
+    if norm not in ("help", "what can you do", "what can you do?", "commands", "capabilities"):
         return None
     presets = get_experiment_presets()
     if presets:
@@ -141,9 +147,16 @@ def handle_help(
 # ---------------------------------------------------------------------------
 
 _INTENT_START = (
-    "start experiment", "new experiment", "begin experiment",
-    "start setup", "begin setup", "set up experiment",
-    "let's start", "lets start", "let's begin", "lets begin",
+    "start experiment",
+    "new experiment",
+    "begin experiment",
+    "start setup",
+    "begin setup",
+    "set up experiment",
+    "let's start",
+    "lets start",
+    "let's begin",
+    "lets begin",
 )
 
 _INTENT_PHASE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -225,6 +238,7 @@ def handle_phase_confirm(
 # ---------------------------------------------------------------------------
 # Workflow status
 # ---------------------------------------------------------------------------
+
 
 def handle_workflow_status(
     user_text: str,

@@ -71,9 +71,7 @@ def test_bare_spec_defaults_to_single_crystal() -> None:
 
 
 def test_technique_field_synced_from_payload() -> None:
-    spec = BeamlineSpec(
-        id="s", display_name="S", technique_config=SansConfig()
-    )
+    spec = BeamlineSpec(id="s", display_name="S", technique_config=SansConfig())
     # ``technique`` is derived from ``technique_config.kind``.
     assert spec.technique == "sans"
 

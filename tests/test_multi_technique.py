@@ -166,9 +166,7 @@ def test_cross_technique_switch_refused_with_banner(usans: BeamlineSpec) -> None
     assert active().id == "topaz"
     assert shell.view_state.beamline_id == "topaz"
     assert shell.view_state.beamline_switch_visible is True
-    assert "Restart CrystalPilot to switch technique families" in (
-        shell.view_state.beamline_switch_notice
-    )
+    assert "Restart CrystalPilot to switch technique families" in (shell.view_state.beamline_switch_notice)
 
 
 def test_same_technique_switch_not_gated(usans: BeamlineSpec) -> None:

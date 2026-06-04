@@ -33,7 +33,10 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
         label="IPTS Info",
         description="Enter experiment metadata: IPTS, instrument, sample info",
         field_prefixes=(
-            "ipts_number", "exp_name", "instrument", "molecular_formula",
+            "ipts_number",
+            "exp_name",
+            "instrument",
+            "molecular_formula",
             "sample_environment",
         ),
     ),
@@ -43,7 +46,10 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
         label="I(Q) Reduction",
         description="Configure the I(Q) reduction Q-range and binning",
         field_prefixes=(
-            "q_min", "q_max", "n_q_bins", "prediction_model",
+            "q_min",
+            "q_max",
+            "n_q_bins",
+            "prediction_model",
         ),
     ),
     PhaseDefinition(
@@ -52,8 +58,11 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
         label="Experiment Steering",
         description="Build or load the SANS instrument-configuration strategy",
         field_prefixes=(
-            "plan_name", "plan_file",
-            "sample_aperture", "detector_distance", "attenuator",
+            "plan_name",
+            "plan_file",
+            "sample_aperture",
+            "detector_distance",
+            "attenuator",
             "wavelength_spread",
         ),
     ),

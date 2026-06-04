@@ -90,10 +90,7 @@ def compose_system_prompt(
     legacy = _read(_LEGACY_PROMPT)
     if legacy:
         return legacy
-    return (
-        "You are an AI helper for neutron-diffraction experiments. "
-        "Be concise and helpful."
-    )
+    return "You are an AI helper for neutron-diffraction experiments. Be concise and helpful."
 
 
 def _layered_pieces(beamline_id: str | None, task: str | None) -> Iterable[str]:
@@ -104,8 +101,9 @@ def _layered_pieces(beamline_id: str | None, task: str | None) -> Iterable[str]:
 
 
 def describe_active_context(beamline_id: str | None = None, task: str | None = None) -> str:
-    """A single line summarising the active beamline + task. For per-turn logging
-    and to inject into the LLM's first SystemMessage.
+    """A single line summarising the active beamline + task.
+
+    For per-turn logging and to inject into the LLM's first SystemMessage.
     """
     try:
         spec = active_spec(beamline_id)

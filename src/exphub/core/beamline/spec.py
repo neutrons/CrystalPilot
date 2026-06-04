@@ -80,6 +80,8 @@ class PathsSpec(BaseModel):
 
 
 class EICSpec(BaseModel):
+    """Per-beamline EIC (Experiment Interface Controller) connection settings."""
+
     beamline_code: str = ""
     is_simulation_default: bool = False
     supports_simulation: bool = True
@@ -98,9 +100,7 @@ class AgentSpec(BaseModel):
     context_prompt: Path | None = None
     knowledge_dir: Path | None = None
     presets: dict[str, dict[str, Any]] = Field(default_factory=dict)
-    supported_tasks: list[str] = Field(
-        default_factory=lambda: ["experiment_steering", "app_help"]
-    )
+    supported_tasks: list[str] = Field(default_factory=lambda: ["experiment_steering", "app_help"])
 
 
 TabFactory = Callable[[Any], Any]
@@ -206,8 +206,7 @@ class BeamlineSpec(BaseModel):
     target_station: str | None = None
     package_path: Path | None = Field(
         default=None,
-        description="Filesystem root of this beamline's plug-in package; "
-        "resolved automatically when registered.",
+        description="Filesystem root of this beamline's plug-in package; resolved automatically when registered.",
     )
     technique: Literal["single_crystal", "sans"] = Field(
         default="single_crystal",

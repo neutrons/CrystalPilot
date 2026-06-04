@@ -30,7 +30,9 @@ from ...core.beamline import (
 def _build_data_analysis(view_model: Any) -> Any:
     """Lazy factory — avoids importing the app/view layer during registration."""
     from .tabs.data_analysis import build_data_analysis
+
     return build_data_analysis(view_model)
+
 
 # A small selection of CORELLI run-info / status PVs that aren't in the main
 # .bob screen (analogous to TOPAZ_USER_PANEL_PVS). Placeholders.

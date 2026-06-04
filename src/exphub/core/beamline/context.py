@@ -36,17 +36,14 @@ class BeamlineContext:
             return gonio.angle_pvs[axis]
         except KeyError as exc:
             raise KeyError(
-                f"Beamline {self.id!r} has no angle PV for axis {axis!r}. "
-                f"Known axes: {sorted(gonio.angle_pvs)}"
+                f"Beamline {self.id!r} has no angle PV for axis {axis!r}. Known axes: {sorted(gonio.angle_pvs)}"
             ) from exc
 
     def ramp_pv(self, key: str) -> str:
         try:
             return self.spec.single_crystal.goniometer.ramp_pvs[key]
         except KeyError as exc:
-            raise KeyError(
-                f"Beamline {self.id!r} has no ramp PV for {key!r}."
-            ) from exc
+            raise KeyError(f"Beamline {self.id!r} has no ramp PV for {key!r}.") from exc
 
     @property
     def charge_pv(self) -> str:

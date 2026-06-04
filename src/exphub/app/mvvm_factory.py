@@ -11,9 +11,7 @@ from .view_models.app_shell import AppShellViewModel
 from .view_models.chat import ChatViewModel
 
 
-def _build_steering(
-    model: Any, binding: BindingInterface, notify_fn: Optional[Callable[[str], None]]
-) -> Any:
+def _build_steering(model: Any, binding: BindingInterface, notify_fn: Optional[Callable[[str], None]]) -> Any:
     """Resolve and build the active technique's steering VM + root model.
 
     The steering VM and root model both come from the active technique manifest
@@ -68,7 +66,10 @@ def create_viewmodels(binding: BindingInterface) -> dict:
     chat_model = ChatModel()
     main_bindings = {name: getattr(steering_vm, f"{name}_bind") for name in bridged_submodels()}
     vm["chat"] = ChatViewModel(
-        chat_model, model, binding, main_bindings,
+        chat_model,
+        model,
+        binding,
+        main_bindings,
         nav_fn=shell_vm.navigate_to_tab,
         main_vm=steering_vm,
     )

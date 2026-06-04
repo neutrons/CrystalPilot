@@ -165,8 +165,7 @@ def get_technique(technique_id: str) -> TechniqueManifest:
             importlib.import_module(f"exphub.techniques.{technique_id}")
         except ModuleNotFoundError as exc:
             raise KeyError(
-                f"Technique {technique_id!r} not registered and "
-                f"exphub.techniques.{technique_id} is not importable."
+                f"Technique {technique_id!r} not registered and exphub.techniques.{technique_id} is not importable."
             ) from exc
     if technique_id not in _TECHNIQUE_REGISTRY:
         raise KeyError(

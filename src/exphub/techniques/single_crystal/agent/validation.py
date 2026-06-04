@@ -29,22 +29,53 @@ CRYSTAL_SYSTEM_POINT_GROUP_MAP: dict[str, list[str]] = {
 }
 
 POINT_GROUP_CENTERING_MAP: dict[str, list[str]] = {
-    "1": ["P"], "-1": ["P"],
-    "2": ["P", "C"], "m": ["P", "C"], "2/m": ["P", "C"],
-    "112": ["P", "C"], "11m": ["P", "C"], "112/m": ["P", "C"],
-    "222": ["P", "I", "C", "A", "B"], "mm2": ["P", "I", "C", "A", "B"], "mmm": ["P", "I", "C", "A", "B"],
-    "4": ["P", "I"], "-4": ["P", "I"], "4/m": ["P", "I"],
-    "422": ["P", "I"], "4mm": ["P", "I"], "-42m": ["P", "I"], "-4m2": ["P", "I"], "4/mmm": ["P", "I"],
-    "3 r": ["R"], "-3 r": ["R"], "32 r": ["R"], "3m r": ["R"], "-3m r": ["R"],
-    "3": ["Robv", "Rrev"], "-3": ["Robv", "Rrev"],
-    "312": ["Robv", "Rrev"], "31m": ["Robv", "Rrev"],
-    "32": ["Robv", "Rrev"], "321": ["Robv", "Rrev"],
-    "3m": ["Robv", "Rrev"], "-31m": ["Robv", "Rrev"],
-    "-3m": ["Robv", "Rrev"], "-3m1": ["Robv", "Rrev"],
-    "6": ["P"], "-6": ["P"], "6/m": ["P"],
-    "622": ["P"], "6mm": ["P"], "-62m": ["P"], "-6m2": ["P"], "6/mmm": ["P"],
-    "23": ["P", "I", "F"], "m-3": ["P", "I", "F"],
-    "432": ["P", "I", "F"], "-43m": ["P", "I", "F"], "m-3m": ["P", "I", "F"],
+    "1": ["P"],
+    "-1": ["P"],
+    "2": ["P", "C"],
+    "m": ["P", "C"],
+    "2/m": ["P", "C"],
+    "112": ["P", "C"],
+    "11m": ["P", "C"],
+    "112/m": ["P", "C"],
+    "222": ["P", "I", "C", "A", "B"],
+    "mm2": ["P", "I", "C", "A", "B"],
+    "mmm": ["P", "I", "C", "A", "B"],
+    "4": ["P", "I"],
+    "-4": ["P", "I"],
+    "4/m": ["P", "I"],
+    "422": ["P", "I"],
+    "4mm": ["P", "I"],
+    "-42m": ["P", "I"],
+    "-4m2": ["P", "I"],
+    "4/mmm": ["P", "I"],
+    "3 r": ["R"],
+    "-3 r": ["R"],
+    "32 r": ["R"],
+    "3m r": ["R"],
+    "-3m r": ["R"],
+    "3": ["Robv", "Rrev"],
+    "-3": ["Robv", "Rrev"],
+    "312": ["Robv", "Rrev"],
+    "31m": ["Robv", "Rrev"],
+    "32": ["Robv", "Rrev"],
+    "321": ["Robv", "Rrev"],
+    "3m": ["Robv", "Rrev"],
+    "-31m": ["Robv", "Rrev"],
+    "-3m": ["Robv", "Rrev"],
+    "-3m1": ["Robv", "Rrev"],
+    "6": ["P"],
+    "-6": ["P"],
+    "6/m": ["P"],
+    "622": ["P"],
+    "6mm": ["P"],
+    "-62m": ["P"],
+    "-6m2": ["P"],
+    "6/mmm": ["P"],
+    "23": ["P", "I", "F"],
+    "m-3": ["P", "I", "F"],
+    "432": ["P", "I", "F"],
+    "-43m": ["P", "I", "F"],
+    "m-3m": ["P", "I", "F"],
 }
 
 
@@ -58,8 +89,7 @@ def validate_point_group(point_group: str, crystal_system: str | None) -> str | 
     if point_group not in valid:
         opts = ", ".join(valid)
         return (
-            f"Point group **{point_group}** is not valid for crystal system "
-            f"**{crystal_system}**. Valid options: {opts}"
+            f"Point group **{point_group}** is not valid for crystal system **{crystal_system}**. Valid options: {opts}"
         )
     return None
 
@@ -73,10 +103,7 @@ def validate_centering(centering: str, point_group: str | None) -> str | None:
         return None  # unknown point group — skip validation
     if centering not in valid:
         opts = ", ".join(valid)
-        return (
-            f"Centering **{centering}** is not valid for point group "
-            f"**{point_group}**. Valid options: {opts}"
-        )
+        return f"Centering **{centering}** is not valid for point group **{point_group}**. Valid options: {opts}"
     return None
 
 
@@ -96,6 +123,7 @@ def dependent_fields_to_reset(changed_key: str) -> list[str]:
 # ---------------------------------------------------------------------------
 # Unit cell volume sanity check
 # ---------------------------------------------------------------------------
+
 
 def _count_atoms(formula: str) -> int:
     """Count total atoms in a chemical formula, e.g. 'C6H12O6' → 24."""

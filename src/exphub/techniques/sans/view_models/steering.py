@@ -181,9 +181,7 @@ class SansSteeringViewModel:
 
     def remove_run(self, run_id: int) -> None:
         _trace("remove_run", run_id)
-        self.model.strategy.strategy_list = [
-            r for r in self.model.strategy.strategy_list if r["id"] != run_id
-        ]
+        self.model.strategy.strategy_list = [r for r in self.model.strategy.strategy_list if r["id"] != run_id]
         self._push_strategy()
 
     # ------------------------------------------------------------------ #

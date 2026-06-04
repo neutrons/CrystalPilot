@@ -37,9 +37,9 @@ def resolve_param_name(name: str, schema_props: dict[str, dict]) -> tuple[str, d
             return prop_key, prop_info
     # Unique prefix/substring fallback (only if exactly one candidate)
     candidates = [
-        (k, v) for k, v in schema_props.items()
-        if norm in k.lower().replace("_", "")
-        or norm in v.get("title", "").lower().replace(" ", "").replace("_", "")
+        (k, v)
+        for k, v in schema_props.items()
+        if norm in k.lower().replace("_", "") or norm in v.get("title", "").lower().replace(" ", "").replace("_", "")
     ]
     if len(candidates) == 1:
         return candidates[0]
@@ -342,15 +342,17 @@ def make_tools(
         current = snapshot_fn() if snapshot_fn is not None else {}
         rows = current.get("angle_list_pd", [])
         serialized = [r.model_dump() if hasattr(r, "model_dump") else dict(r) for r in rows]
-        serialized.append({
-            "title": title,
-            "comment": comment,
-            "phi": phi,
-            "omega": omega,
-            "wait_for": wait_for,
-            "value": value,
-            "or_time": or_time,
-        })
+        serialized.append(
+            {
+                "title": title,
+                "comment": comment,
+                "phi": phi,
+                "omega": omega,
+                "wait_for": wait_for,
+                "value": value,
+                "or_time": or_time,
+            }
+        )
         return {"parameter_name": "angle_list_pd", "parameter_value": serialized}
 
     @tool
@@ -376,7 +378,10 @@ def make_tools(
         current = snapshot_fn() if snapshot_fn is not None else {}
         rows = current.get("angle_list_pd", [])
         if row_index < 0 or row_index >= len(rows):
-            return {"error": f"Row index {row_index} is out of range (table has {len(rows)} rows, indices 0–{len(rows)-1})."}
+            return {
+                "error": f"Row index {row_index} is out of range "
+                f"(table has {len(rows)} rows, indices 0–{len(rows) - 1})."
+            }
 
         serialized = []
         for i, row in enumerate(rows):
@@ -414,7 +419,10 @@ def make_tools(
         current = snapshot_fn() if snapshot_fn is not None else {}
         rows = current.get("angle_list_pd", [])
         if row_index < 0 or row_index >= len(rows):
-            return {"error": f"Row index {row_index} is out of range (table has {len(rows)} rows, indices 0–{len(rows)-1})."}
+            return {
+                "error": f"Row index {row_index} is out of range "
+                f"(table has {len(rows)} rows, indices 0–{len(rows) - 1})."
+            }
         serialized = []
         for i, row in enumerate(rows):
             if i == row_index:
@@ -477,17 +485,27 @@ def make_tools(
     # ------------------------------------------------------------------ tools
 
     all_tools = [
-        set_parameter, get_default_value, explain_parameter,
-        get_parameter, list_parameters, refresh_schema,
-        set_multiple_parameters, apply_preset, list_presets,
-        get_angle_plan, append_run, edit_run, delete_run,
-        navigate_to_tab, retrieve_docs,
+        set_parameter,
+        get_default_value,
+        explain_parameter,
+        get_parameter,
+        list_parameters,
+        refresh_schema,
+        set_multiple_parameters,
+        apply_preset,
+        list_presets,
+        get_angle_plan,
+        append_run,
+        edit_run,
+        delete_run,
+        navigate_to_tab,
+        retrieve_docs,
     ]
 
     # Technique-specific UI-action tools (submit/authenticate/...): generated
     # from the active technique's manifest rather than hardcoded here, so a new
     # technique declares its own verbs without editing tools.py.
-    for spec in (action_tools or []):
+    for spec in action_tools or []:
         all_tools.append(_make_action_tool(spec, _actions.get(spec.name)))
 
     return all_tools

@@ -44,10 +44,7 @@ def get(beamline_id: str) -> BeamlineSpec:
     if beamline_id not in _REGISTRY:
         _discover()
     if beamline_id not in _REGISTRY:
-        raise KeyError(
-            f"Beamline {beamline_id!r} not registered. "
-            f"Known: {sorted(_REGISTRY)}"
-        )
+        raise KeyError(f"Beamline {beamline_id!r} not registered. Known: {sorted(_REGISTRY)}")
     return _REGISTRY[beamline_id]
 
 
@@ -81,9 +78,7 @@ def active() -> BeamlineSpec:
     if not _REGISTRY:
         _discover()
     if not _REGISTRY:
-        raise RuntimeError(
-            "No beamlines registered. Import exphub.beamlines first."
-        )
+        raise RuntimeError("No beamlines registered. Import exphub.beamlines first.")
     return next(iter(_REGISTRY.values()))
 
 

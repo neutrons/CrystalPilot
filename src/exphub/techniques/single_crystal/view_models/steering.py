@@ -20,6 +20,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
+import plotly.graph_objects as go
+from nova.mvvm.interface import BindingInterface
+from pydantic import BaseModel, Field
+
+from ..models.root import SingleCrystalMainModel
+
 # Verbose tracing for ViewModel actions; off by default. Used to gate the
 # (~100) print statements scattered across this module which previously
 # spammed stdout on every UI interaction and per-second on the live-update
@@ -36,13 +42,6 @@ def _trace(*args: Any) -> None:
 def _load_optimizer_fallback_angles() -> dict[str, list[list[float]]]:
     fixture = Path(__file__).parent.parent / "fixtures" / "optimizer_fallback_angles.json"
     return json.loads(fixture.read_text())
-
-
-import plotly.graph_objects as go
-from nova.mvvm.interface import BindingInterface
-from pydantic import BaseModel, Field
-
-from ..models.root import SingleCrystalMainModel
 
 
 class SingleCrystalSteeringViewState(BaseModel):
@@ -100,9 +99,7 @@ class SingleCrystalSteeringViewModel:
         # view connects this bind to its own ``steering`` namespace. No
         # reactive logic is needed beyond the explicit apply_* / live-update
         # methods, so a plain logging callback suffices.
-        self.view_state_bind = binding.new_bind(
-            self.view_state, callback_after_update=self.change_callback
-        )
+        self.view_state_bind = binding.new_bind(self.view_state, callback_after_update=self.change_callback)
 
         # self.experimentinfo_bind = binding.new_bind(self.model.experimentinfo, callback_after_update=self.change_callback)#noqa
         self.experimentinfo_bind = binding.new_bind(
@@ -165,14 +162,14 @@ class SingleCrystalSteeringViewModel:
         if results["error"]:
             print(f"error in fields {results['errored']}, model not changed")
         else:
-            _trace("model fields updated:", results['updated'])
+            _trace("model fields updated:", results["updated"])
         # time.sleep(7)
 
     def change_callback(self, results: Dict[str, Any]) -> None:
         if results["error"]:
             print(f"error in fields {results['errored']}, model not changed")
         else:
-            _trace("model fields updated:", results['updated'])
+            _trace("model fields updated:", results["updated"])
 
     def _handle_plot_definition_change(self, reason: str) -> None:
         """User changed something that invalidates the plotted time series.
@@ -207,7 +204,6 @@ class SingleCrystalSteeringViewModel:
             return
         new_sel = self.model.temporalanalysis.data_selection
         if new_sel != self._last_data_selection:
-            old_sel = self._last_data_selection
             self._last_data_selection = new_sel
             self._handle_plot_definition_change(f"Peak selection changed to '{new_sel}'")
 
@@ -215,8 +211,7 @@ class SingleCrystalSteeringViewModel:
         """User clicked Apply in the Individual-peak HKL popover."""
         ta = self.model.temporalanalysis
         self._handle_plot_definition_change(
-            f"Individual peak HKL set to "
-            f"({ta.individual_peak_h}, {ta.individual_peak_k}, {ta.individual_peak_l})"
+            f"Individual peak HKL set to ({ta.individual_peak_h}, {ta.individual_peak_k}, {ta.individual_peak_l})"
         )
         self.view_state.hkl_individual_menu = False
         self.view_state_bind.update_in_view(self.view_state)
@@ -233,8 +228,10 @@ class SingleCrystalSteeringViewModel:
         self.view_state_bind.update_in_view(self.view_state)
 
     def update_angleplan_after_change(self, results: Dict[str, Any]) -> None:
-        """Angleplan post-validators (goniometer_type → angle_list_headers) mutate fields
-        the user did not edit directly. Re-push the model so the view re-renders.
+        """Angleplan post-validators (goniometer_type → angle_list_headers) mutate fields.
+
+        These are fields the user did not edit directly. Re-push the model so the
+        view re-renders.
         """
         self.change_callback(results)
         self.angleplan_bind.update_in_view(self.model.angleplan)
@@ -474,9 +471,7 @@ class SingleCrystalSteeringViewModel:
                 wf.update_experiment_info(models)
                 # live_data_reduction runs the full Mantid pipeline; offload to thread pool
                 # so the event loop (and GUI) stays responsive during the reduction.
-                await loop.run_in_executor(
-                    None, wf.live_data_reduction
-                )
+                await loop.run_in_executor(None, wf.live_data_reduction)
                 _trace("get_live_mtd_data done")
                 print("============================================================================================")
                 # Pull the latest UB out of the workflow so the side-table in the view refreshes.
@@ -490,19 +485,14 @@ class SingleCrystalSteeringViewModel:
                 # .mat file. Cheap (HTML write + small CSV); offload anyway
                 # so the event loop stays responsive on slow filesystems.
                 try:
-                    await loop.run_in_executor(
-                        None, self.model.temporalanalysis.save_latest_figure_snapshot
-                    )
+                    await loop.run_in_executor(None, self.model.temporalanalysis.save_latest_figure_snapshot)
                 except Exception as e:
                     print(f"save_latest_figure_snapshot failed: {e}")
                 if (
                     self.model.eiccontrol.eic_auto_stop_strategy == "By Uncertainty"
                     and len(wf.temporal_poisson_uncertainty) > 0
                 ):
-                    if (
-                        wf.temporal_poisson_uncertainty[-1]
-                        < self.model.eiccontrol.eic_auto_stop_uncertainty_threshold
-                    ):
+                    if wf.temporal_poisson_uncertainty[-1] < self.model.eiccontrol.eic_auto_stop_uncertainty_threshold:
                         print("stop_run")
                         self.stoprun()
                         wf.temporal_poisson_uncertainty = []
@@ -643,9 +633,7 @@ class SingleCrystalSteeringViewModel:
         _code_dir = os.path.dirname(os.path.abspath(__file__))
         # Walk up from view_models/ to CrystalPilot/, then go to sibling
         _project_root = os.path.normpath(os.path.join(_code_dir, "../../../.."))
-        nxv_python = os.path.join(
-            os.path.dirname(_project_root), "NeuXtalViz-tools", "src", "NeuXtalViz.py"
-        )
+        nxv_python = os.path.join(os.path.dirname(_project_root), "NeuXtalViz-tools", "src", "NeuXtalViz.py")
         nxv_conda_env = "nxv"
         nxv_activate = os.path.expanduser("~/.miniforge/bin/activate")
 
@@ -662,9 +650,7 @@ class SingleCrystalSteeringViewModel:
 
         # Launch NXV as a subprocess and wait for it asynchronously
         self._nxv_plan_csv = plan_csv
-        self._nxv_proc = subprocess.Popen(
-            shell_cmd, shell=True, executable="/bin/bash"
-        )
+        self._nxv_proc = subprocess.Popen(shell_cmd, shell=True, executable="/bin/bash")
         print(f"show_cov: NXV launched (pid={self._nxv_proc.pid}), plan at {plan_csv}")
 
         # Schedule async reimport when NXV exits

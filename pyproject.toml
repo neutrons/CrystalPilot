@@ -104,6 +104,12 @@ ignore = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 '__init__.py' = ['D104'] # Missing docstring in public package
+# Test fakes mimic external camelCase APIs (e.g. Mantid IPeak.getIntMNP); test
+# classes need no docstrings (D102/D103 are already globally ignored).
+'tests/**' = ['D101', 'N802']
+# Crystallographic notation: h,k,l are Miller indices and I is intensity —
+# canonical in the field; renaming would hurt readability for crystallographers.
+'src/exphub/techniques/single_crystal/models/temporal_analysis/selectors.py' = ['E741', 'N806']
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

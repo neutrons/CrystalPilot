@@ -109,8 +109,8 @@ def test_no_unrecorded_technique_coupling() -> None:
         "Single-crystal coupling found in files outside BASELINE:\n"
         + "\n".join(f"  {counts[f]:5d}  {f}" for f in new_files)
         + "\n\nEither move the code under techniques/single_crystal/ "
-          "(preferred) or add the file path to BASELINE with the current "
-          "count (only if migration is in progress and the plan calls for it)."
+        "(preferred) or add the file path to BASELINE with the current "
+        "count (only if migration is in progress and the plan calls for it)."
     )
 
 
@@ -124,11 +124,9 @@ def test_technique_coupling_does_not_regress() -> None:
             regressions.append((path, baseline, actual))
     assert not regressions, (
         "Single-crystal coupling regressed in:\n"
-        + "\n".join(
-            f"  {path}  baseline={b}  now={a}" for path, b, a in regressions
-        )
+        + "\n".join(f"  {path}  baseline={b}  now={a}" for path, b, a in regressions)
         + "\n\nEither bring the count back down or update BASELINE if the "
-          "increase is intentional. The end state of P2 is BASELINE == {}."
+        "increase is intentional. The end state of P2 is BASELINE == {}."
     )
 
 
@@ -138,9 +136,9 @@ def test_total_coupling_within_cap() -> None:
     total = sum(counts.values())
     # Ratchet-zero gate met: the refactor is complete and no single-crystal
     # vocabulary should remain in app/ + core/.
-    INITIAL_CAP = 0
-    assert total <= INITIAL_CAP, (
+    initial_cap = 0
+    assert total <= initial_cap, (
         f"Total framework-side single-crystal coupling = {total}, "
-        f"exceeds cap {INITIAL_CAP}. Move the offending code under "
+        f"exceeds cap {initial_cap}. Move the offending code under "
         "techniques/<id>/ — app/ and core/ must stay technique-neutral."
     )

@@ -24,6 +24,7 @@ from exphub.core.beamline.spec import TabOverrides
 
 # ---------- TabOverrides intrinsic shape ----------
 
+
 def test_tab_overrides_default_all_none() -> None:
     overrides = TabOverrides()
     assert overrides.ipts is None
@@ -61,15 +62,15 @@ def test_tab_overrides_slot_names_are_stable() -> None:
 
 # ---------- Registered-beamline behaviour ----------
 
+
 def test_topaz_supplies_css_status_factory() -> None:
     """TOPAZ is the reference per-beamline tab implementation."""
     if "topaz" not in list_ids():
         pytest.skip("TOPAZ beamline plug-in not registered")
     from exphub.core.beamline import get
+
     topaz = get("topaz")
-    assert callable(topaz.tabs.status), (
-        "TOPAZ should ship a status factory — the reference impl."
-    )
+    assert callable(topaz.tabs.status), "TOPAZ should ship a status factory — the reference impl."
 
 
 def test_corelli_does_not_supply_css_status_factory() -> None:
@@ -77,10 +78,9 @@ def test_corelli_does_not_supply_css_status_factory() -> None:
     if "corelli" not in list_ids():
         pytest.skip("CORELLI beamline plug-in not registered")
     from exphub.core.beamline import get
+
     corelli = get("corelli")
-    assert corelli.tabs.status is None, (
-        "CORELLI should leave status as None to exercise the placeholder."
-    )
+    assert corelli.tabs.status is None, "CORELLI should leave status as None to exercise the placeholder."
 
 
 def test_dispatcher_lookup_pattern() -> None:
@@ -92,12 +92,12 @@ def test_dispatcher_lookup_pattern() -> None:
     for slot in ("ipts", "steering", "live", "status", "analysis"):
         value = getattr(tabs, slot)
         assert value is None or callable(value), (
-            f"TabOverrides.{slot} on {spec.id!r} must be None or callable; "
-            f"got {type(value).__name__}"
+            f"TabOverrides.{slot} on {spec.id!r} must be None or callable; got {type(value).__name__}"
         )
 
 
 # ---------- Manifest-driven dispatcher resolution (P3.1) ----------
+
 
 def _resolve_all_slots(spec):  # type: ignore[no-untyped-def]
     """Resolve every tab slot exactly as ``TabContentPanel`` does.
@@ -144,7 +144,8 @@ def test_all_five_slots_resolve_to_callable_for_topaz() -> None:
     for key, factory in resolved.items():
         assert callable(factory), key
         positional = [
-            p for p in inspect.signature(factory).parameters.values()
+            p
+            for p in inspect.signature(factory).parameters.values()
             if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
         assert len(positional) == 1, key
@@ -193,8 +194,7 @@ def test_corelli_analysis_resolves_to_real_data_analysis_factory() -> None:
 
     # CORELLI supplies its own ANALYSIS factory via the override slot.
     assert callable(corelli.tabs.analysis), (
-        "CORELLI should ship an analysis (ANALYSIS / tab 6) factory so the "
-        "slot does not regress to the placeholder."
+        "CORELLI should ship an analysis (ANALYSIS / tab 6) factory so the slot does not regress to the placeholder."
     )
 
     resolved = _resolve_all_slots(corelli)
@@ -282,6 +282,7 @@ def test_placeholder_fall_through_when_not_opted_in() -> None:
 
 # ---------- Future-proofing for the multi-technique dispatcher ----------
 
+
 def test_topaz_factory_signature_is_one_positional() -> None:
     """Factories receive the active MainViewModel as a single positional argument.
 
@@ -293,13 +294,12 @@ def test_topaz_factory_signature_is_one_positional() -> None:
     import inspect
 
     from exphub.core.beamline import get
+
     factory = get("topaz").tabs.status
     assert factory is not None
     sig = inspect.signature(factory)
-    positional = [p for p in sig.parameters.values()
-                  if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+    positional = [p for p in sig.parameters.values() if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
     # Factories take exactly one positional (the view-model); kwargs OK.
     assert len(positional) == 1, (
-        f"TOPAZ status factory should take one positional argument "
-        f"(the view-model); got signature {sig}"
+        f"TOPAZ status factory should take one positional argument (the view-model); got signature {sig}"
     )

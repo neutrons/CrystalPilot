@@ -12,7 +12,6 @@ No real LLM API calls are made anywhere in this file.
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 from unittest.mock import MagicMock
@@ -23,6 +22,7 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 # Minimal Pydantic fixtures used by bridge / schema_gen tests
 # ---------------------------------------------------------------------------
+
 
 class _ItemModel(BaseModel):
     phi: float = 0.0
@@ -38,6 +38,7 @@ class _SubModel(BaseModel):
 
 class _FakeMainModel(BaseModel):
     """Minimal main model exposing one bridged sub-model."""
+
     experimentinfo: _SubModel = Field(default_factory=_SubModel)
 
 
@@ -50,9 +51,11 @@ _FAKE_BRIDGED = ("experimentinfo",)
 # bridge.py
 # ---------------------------------------------------------------------------
 
+
 class TestSnapshotModels:
     def test_returns_flat_dict(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
@@ -65,6 +68,7 @@ class TestSnapshotModels:
 
     def test_list_field_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
@@ -76,6 +80,7 @@ class TestSnapshotModels:
 
     def test_missing_submodel_skipped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: ("nonexistent",))
 
         model = _FakeMainModel()
@@ -91,13 +96,12 @@ class TestApplyAgentConfig:
 
     def test_writes_scalar_field(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         bindings = self._make_bindings()
-        changed, errors = bridge.apply_agent_config(
-            {"ipts_number": "IPTS-1234"}, model, bindings
-        )
+        changed, errors = bridge.apply_agent_config({"ipts_number": "IPTS-1234"}, model, bindings)
 
         assert "ipts_number" in changed
         assert model.experimentinfo.ipts_number == "IPTS-1234"
@@ -105,18 +109,18 @@ class TestApplyAgentConfig:
 
     def test_no_change_when_value_identical(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
         bindings = self._make_bindings()
-        changed, errors = bridge.apply_agent_config(
-            {"ipts_number": "IPTS-0000"}, model, bindings
-        )
+        changed, errors = bridge.apply_agent_config({"ipts_number": "IPTS-0000"}, model, bindings)
 
         assert changed == []
 
     def test_returns_error_on_validation_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         # Pass a list containing an invalid dict for a List[_ItemModel] field.
@@ -135,6 +139,7 @@ class TestApplyAgentConfig:
 
     def test_pushes_binding_when_dirty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from exphub.agent import bridge
+
         monkeypatch.setattr(bridge, "bridged_submodels", lambda: _FAKE_BRIDGED)
 
         model = _FakeMainModel()
@@ -148,9 +153,7 @@ class TestCoerceListField:
     def test_list_of_base_models_from_dicts(self) -> None:
         from exphub.agent.bridge import _coerce_list_field
 
-        result = _coerce_list_field(
-            _SubModel, "angle_list_pd", [{"phi": 5.0, "omega": 10.0}]
-        )
+        result = _coerce_list_field(_SubModel, "angle_list_pd", [{"phi": 5.0, "omega": 10.0}])
         assert len(result) == 1
         assert isinstance(result[0], _ItemModel)
         assert result[0].phi == 5.0
@@ -171,6 +174,7 @@ class TestCoerceListField:
 # ---------------------------------------------------------------------------
 # schema_gen.py
 # ---------------------------------------------------------------------------
+
 
 class TestSchemaFromModelInstance:
     def test_returns_dict(self) -> None:
@@ -241,6 +245,7 @@ class TestEnrichSchemaWithOptions:
 # tools.py  (make_tools factory)
 # ---------------------------------------------------------------------------
 
+
 def _make_schema() -> dict[str, dict[str, object]]:
     return {
         "ipts_number": {"title": "IPTS Number", "type": "string"},
@@ -258,9 +263,7 @@ class TestSetParameter:
         from exphub.agent.tools import make_tools
 
         tools = {t.name: t for t in make_tools(_make_schema())}
-        result = tools["set_parameter"].invoke(
-            {"parameter_name": "ipts_number", "parameter_value": "IPTS-5678"}
-        )
+        result = tools["set_parameter"].invoke({"parameter_name": "ipts_number", "parameter_value": "IPTS-5678"})
         assert result["parameter_name"] == "ipts_number"
         assert result["parameter_value"] == "IPTS-5678"
 
@@ -337,6 +340,7 @@ class TestNavigateToTab:
 # ---------------------------------------------------------------------------
 # rag.py
 # ---------------------------------------------------------------------------
+
 
 class TestBeamlineKnowledgeBase:
     @pytest.fixture()
@@ -441,6 +445,7 @@ class TestBeamlineKnowledgeBase:
 # workflow.py
 # ---------------------------------------------------------------------------
 
+
 class TestPhaseManager:
     def test_initial_phase_is_setup(self) -> None:
         from exphub.agent.workflow import PhaseManager
@@ -467,7 +472,7 @@ class TestPhaseManager:
 
         pm = PhaseManager()
         # Advance directly (skipping complete_current)
-        msg = pm.advance()
+        pm.advance()
         assert pm.current_name == "monitor"
 
     def test_go_to_phase(self) -> None:
@@ -532,6 +537,7 @@ class TestPhaseManager:
 # ---------------------------------------------------------------------------
 # handlers.py — intent & phase handlers
 # ---------------------------------------------------------------------------
+
 
 class TestHandleIntent:
     def test_start_experiment_enters_setup(self) -> None:

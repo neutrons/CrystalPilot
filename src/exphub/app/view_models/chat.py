@@ -89,6 +89,7 @@ class ChatViewModel:
             schema_props = enrich_schema_with_options(schema_props, live_snapshot)
             # snapshot_fn lets the get_parameter / list_parameters tools read live UI state
             snapshot_fn = partial(snapshot_models, self.main_model)
+
             # Write-through callback: lets the agent push individual field
             # changes to the live model immediately during its turn, so
             # subsequent tool calls (e.g. refresh_schema) see fresh state.
@@ -181,10 +182,7 @@ class ChatViewModel:
             # changed relative to the snapshot taken at the start of the
             # turn. This prevents overwriting user edits made in the UI
             # while the agent was processing.
-            diff_config = {
-                k: v for k, v in new_config.items()
-                if v != current_state.get(k)
-            }
+            diff_config = {k: v for k, v in new_config.items() if v != current_state.get(k)}
             print(f"[CrystalPilot Agent] Config diff keys: {set(diff_config) or '(none)'}")
             self.chat_model.agent_status = "Applying configuration…"
             self._push_chat()
@@ -207,18 +205,14 @@ class ChatViewModel:
                     "Please check and correct these fields."
                 )
 
-            self.chat_model.messages.append(
-                {"role": "assistant", "content": reply, "html": md_to_html(reply)}
-            )
+            self.chat_model.messages.append({"role": "assistant", "content": reply, "html": md_to_html(reply)})
 
         except Exception as exc:
             print(f"[CrystalPilot Agent] Error: {exc}")
             logger.exception("Agent error")
             self._pending_bridge_errors = {}
             err_msg = f"Error: {exc}"
-            self.chat_model.messages.append(
-                {"role": "assistant", "content": err_msg, "html": md_to_html(err_msg)}
-            )
+            self.chat_model.messages.append({"role": "assistant", "content": err_msg, "html": md_to_html(err_msg)})
 
         self.chat_model.is_thinking = False
         self.chat_model.agent_status = ""

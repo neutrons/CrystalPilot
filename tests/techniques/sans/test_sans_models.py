@@ -22,9 +22,7 @@ def test_sans_ipts_has_no_single_crystal_fields() -> None:
     """The SANS tab-1 model is genuinely a different shape, not single-crystal."""
     ipts = SansMainModel().iptsinfo
     for sc_field in ("crystalsystem", "point_group", "centering", "UBFileName"):
-        assert not hasattr(ipts, sc_field), (
-            f"SANS ipts model unexpectedly carries single-crystal field {sc_field!r}"
-        )
+        assert not hasattr(ipts, sc_field), f"SANS ipts model unexpectedly carries single-crystal field {sc_field!r}"
 
 
 def test_sans_root_has_no_single_crystal_submodels() -> None:

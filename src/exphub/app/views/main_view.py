@@ -95,8 +95,7 @@ class MainApp(ThemedApp):
                     self.epics.connect(xml_file.read(), macros_file.read(), 6)
             else:
                 logger.warning(
-                    "Active beamline %r has no .bob screen configured; "
-                    "skipping EPICS connect()",
+                    "Active beamline %r has no .bob screen configured; skipping EPICS connect()",
                     self.beamline_ctx.id,
                 )
 

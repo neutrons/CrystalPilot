@@ -47,12 +47,8 @@ def run_change_checkpoint(wf: "MantidWorkflow") -> None:
             header="",
             comments="",
         )
-        mtdapi.SaveIsawPeaks(
-            Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname
-        )
-        mtdapi.SaveIsawUB(
-            Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname
-        )
+        mtdapi.SaveIsawPeaks(Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname)
+        mtdapi.SaveIsawUB(Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname)
 
         wf.current_run = current_run
         wf.current_run_start_time = current_run_start_time
@@ -141,9 +137,7 @@ def refine_ub(wf: "MantidWorkflow") -> None:
     except ValueError as ub_error:
         print("Warning: FindUBUsingFFT error - Four or more indexed peaks needed to find UB")
         print("Error message: ", ub_error)
-        wf.current_run_end_time = (
-            mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
-        )
+        wf.current_run_end_time = mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
         wf.measure_time = wf.current_run_end_time - wf.initial_run_start_time
         if wf.measure_time > 100000:
             print("Please check if neutron beam is on, or if the crystal is diffracting.")
@@ -205,9 +199,7 @@ def integrate_and_predict(wf: "MantidWorkflow") -> None:
         OutputWorkspace="live_predict_peaks_ws",
     )
     mtdapi.IndexPeaks(PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, CommonUBForAll=True)
-    mtdapi.FindUBUsingIndexedPeaks(
-        PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, CommonUBForAll=True
-    )
+    mtdapi.FindUBUsingIndexedPeaks(PeaksWorkspace="live_predict_peaks_ws", Tolerance=0.12, CommonUBForAll=True)
     mtdapi.IndexPeaks(
         PeaksWorkspace="live_predict_peaks_ws",
         Tolerance=0.12,
@@ -218,9 +210,7 @@ def integrate_and_predict(wf: "MantidWorkflow") -> None:
     wf.proton_charge = mtdapi.mtd["live_event_ws"].getRun().getProtonCharge() * 0.0036
     print("\n", wf.current_run, " has integrated proton charge x 0.0036 of", wf.proton_charge, "C \n")
 
-    wf.current_run_end_time = (
-        mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
-    )
+    wf.current_run_end_time = mtdapi.mtd["live_event_ws"].getRun().endTime().totalNanoseconds() * 1e-9
     wf.measure_time = wf.current_run_end_time - wf.current_run_start_time
     trace("8 filterbytime")
     trace("=" * 60)
@@ -303,11 +293,7 @@ def check_peaks(wf: "MantidWorkflow") -> None:
     statistics = statistics_table.row(0)
 
     first_peak = sorted_ws.getPeak(0)
-    print(
-        "HKL of first peak in table {} {} {}".format(
-            first_peak.getH(), first_peak.getK(), first_peak.getL()
-        )
-    )
+    print("HKL of first peak in table {} {} {}".format(first_peak.getH(), first_peak.getK(), first_peak.getL()))
     print("Multiplicity = %.2f" % statistics["Multiplicity"])
     print("Resolution Min = %.2f" % statistics["Resolution Min"])
     print("Resolution Max = %.2f" % statistics["Resolution Max"])
@@ -316,12 +302,8 @@ def check_peaks(wf: "MantidWorkflow") -> None:
     print("Rmerge = %.2f" % statistics["Rmerge"])
     print("Rpim = %.2f" % statistics["Rpim"])
 
-    mtdapi.SaveIsawPeaks(
-        Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname
-    )
-    mtdapi.SaveIsawUB(
-        Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_ub_fname
-    )
+    mtdapi.SaveIsawPeaks(Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_fname)
+    mtdapi.SaveIsawUB(Inputworkspace="live_predict_peaks_ws", Filename=wf.output_path + wf.live_peaks_ub_fname)
 
     wf.latest_ub = wf.get_latest_ub("live_predict_peaks_ws")
     wf.latest_lattice = wf.get_latest_lattice("live_predict_peaks_ws")

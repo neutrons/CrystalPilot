@@ -83,11 +83,7 @@ def test_default_tab_factories_take_one_positional_arg() -> None:
     for key, factory in manifest.default_tabs.items():
         assert callable(factory), key
         params = list(inspect.signature(factory).parameters.values())
-        positional = [
-            p
-            for p in params
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        ]
+        positional = [p for p in params if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
         assert len(positional) == 1, key
 
 
@@ -134,9 +130,7 @@ def test_composed_prompt_includes_technique_layer() -> None:
     assert "Technique: Single-Crystal Diffraction" in prompt
     assert "TOPAZ is a single-crystal" in prompt
     # technique fragment precedes the beamline fragment.
-    assert prompt.index("Technique: Single-Crystal Diffraction") < prompt.index(
-        "TOPAZ is a single-crystal"
-    )
+    assert prompt.index("Technique: Single-Crystal Diffraction") < prompt.index("TOPAZ is a single-crystal")
 
 
 # ---------- PhaseManager sourced from the manifest ----------
@@ -146,7 +140,13 @@ def test_manifest_carries_single_crystal_phases() -> None:
     manifest = get_technique("single_crystal")
     names = [p.name for p in manifest.phases]
     assert names == [
-        "setup", "monitor", "plan", "refine_plan", "submit", "observe", "analyse",
+        "setup",
+        "monitor",
+        "plan",
+        "refine_plan",
+        "submit",
+        "observe",
+        "analyse",
     ]
 
 
@@ -194,8 +194,11 @@ def test_manifest_declares_action_tools() -> None:
     manifest = get_technique("single_crystal")
     names = {a.name for a in manifest.action_tools}
     assert names == {
-        "submit_angle_plan", "authenticate_eic", "initialize_strategy",
-        "upload_strategy", "stop_current_run",
+        "submit_angle_plan",
+        "authenticate_eic",
+        "initialize_strategy",
+        "upload_strategy",
+        "stop_current_run",
     }
     for spec in manifest.action_tools:
         assert spec.vm_method
@@ -208,10 +211,7 @@ def test_make_tools_generates_action_tools_from_manifest() -> None:
     manifest = get_technique("single_crystal")
     calls = []
     fns = {s.name: (lambda s=s: calls.append(s.name)) for s in manifest.action_tools}
-    tools = {
-        t.name: t
-        for t in make_tools({}, action_tools=manifest.action_tools, action_fns=fns)
-    }
+    tools = {t.name: t for t in make_tools({}, action_tools=manifest.action_tools, action_fns=fns)}
     assert "submit_angle_plan" in tools
     out = tools["submit_angle_plan"].invoke({})
     assert out["status"] == "ok"
@@ -222,10 +222,7 @@ def test_action_tool_reports_unavailable_without_callable() -> None:
     from exphub.agent.tools import make_tools
 
     manifest = get_technique("single_crystal")
-    tools = {
-        t.name: t
-        for t in make_tools({}, action_tools=manifest.action_tools, action_fns={})
-    }
+    tools = {t.name: t for t in make_tools({}, action_tools=manifest.action_tools, action_fns={})}
     out = tools["stop_current_run"].invoke({})
     assert "error" in out
 

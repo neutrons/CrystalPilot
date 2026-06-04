@@ -32,7 +32,9 @@ if TYPE_CHECKING:
 def _build_css_status(view_model: Any) -> CSSStatusView:
     """Lazy factory — avoids importing the app layer during spec registration."""
     from .tabs.css_status import CSSStatusView
+
     return CSSStatusView(view_model)
+
 
 TOPAZ_USER_PANEL_PVS: tuple[str, ...] = (
     "BL12:CS:IPTS",

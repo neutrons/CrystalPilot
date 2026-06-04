@@ -73,9 +73,13 @@ _TOPAZ_JOBS = [
     },
     {
         "headers": [
-            "Title", "Comment",
-            "BL12:SE:Ramp:Start", "BL12:SE:Ramp:End", "BL12:SE:Ramp:Rate",
-            "BL12:SE:Ramp:Soak", "BL12:SE:Ramp:Run",
+            "Title",
+            "Comment",
+            "BL12:SE:Ramp:Start",
+            "BL12:SE:Ramp:End",
+            "BL12:SE:Ramp:Rate",
+            "BL12:SE:Ramp:Soak",
+            "BL12:SE:Ramp:Run",
         ],
         "row": ["ramp1", "rc", 100, 300, 2, 5, 1],
         "title": "ramp1",
@@ -101,9 +105,13 @@ _CORELLI_JOBS = [
     },
     {
         "headers": [
-            "Title", "Comment",
-            "BL9:SE:Ramp:Start", "BL9:SE:Ramp:End", "BL9:SE:Ramp:Rate",
-            "BL9:SE:Ramp:Soak", "BL9:SE:Ramp:Run",
+            "Title",
+            "Comment",
+            "BL9:SE:Ramp:Start",
+            "BL9:SE:Ramp:End",
+            "BL9:SE:Ramp:Rate",
+            "BL9:SE:Ramp:Soak",
+            "BL9:SE:Ramp:Run",
         ],
         "row": ["ramp1", "rc", 100, 300, 2, 5, 1],
         "title": "ramp1",
@@ -121,13 +129,9 @@ def _builder_for(beamline_id: str) -> tuple[EICRowBuilder, str]:
     beamline's PV strings. Returns the builder plus its ``AMBIENT`` constant.
     """
     set_active(beamline_id)
-    gonio = importlib.import_module(
-        "exphub.techniques.single_crystal.models.gonio_pvs"
-    )
+    gonio = importlib.import_module("exphub.techniques.single_crystal.models.gonio_pvs")
     importlib.reload(gonio)
-    rb = importlib.import_module(
-        "exphub.techniques.single_crystal.agent.eic_row_builder"
-    )
+    rb = importlib.import_module("exphub.techniques.single_crystal.agent.eic_row_builder")
     importlib.reload(rb)
     return rb.SINGLE_CRYSTAL_EIC_ROW_BUILDER, gonio.AMBIENT
 

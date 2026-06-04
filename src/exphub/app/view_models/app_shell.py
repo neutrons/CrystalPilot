@@ -81,7 +81,11 @@ def _default_beamline_options() -> list[dict]:
 # v_if/v_show predicates. Keyed by the enum's string value so this module
 # needs no runtime import of TabKey.
 _TAB_KEY_TO_INT: dict[str, int] = {
-    "ipts": 1, "live": 2, "steering": 3, "status": 5, "analysis": 6,
+    "ipts": 1,
+    "live": 2,
+    "steering": 3,
+    "status": 5,
+    "analysis": 6,
 }
 
 
@@ -105,9 +109,7 @@ class AppShellViewState(BaseModel):
     beamline_switch_visible: bool = Field(default=False)
     # Always-visible banner shown beneath the selector explaining that
     # cross-technique options are grayed out until restart.
-    cross_technique_banner: str = Field(
-        default="Restart CrystalPilot to switch technique families"
-    )
+    cross_technique_banner: str = Field(default="Restart CrystalPilot to switch technique families")
 
 
 class AppShellViewModel:
@@ -123,9 +125,7 @@ class AppShellViewModel:
         # steering VM's ``on_deactivate``). Lets the technique quiesce live
         # tasks / clear buffers before the registry swaps.
         self._deactivate_hook: Optional[Callable[[], None]] = None
-        self.view_state_bind = binding.new_bind(
-            self.view_state, callback_after_update=self.on_view_state_change
-        )
+        self.view_state_bind = binding.new_bind(self.view_state, callback_after_update=self.on_view_state_change)
 
     def set_deactivate_hook(self, hook: Callable[[], None]) -> None:
         """Register the active technique VM's ``on_deactivate`` callback.

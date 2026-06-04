@@ -58,8 +58,10 @@ def _scan() -> dict[str, int]:
 
 
 def test_no_framework_side_beamline_coupling() -> None:
-    """Fail if framework-side code (outside allow-listed paths) picks up
-    a TOPAZ/BL12 hardcoded reference. Adding such a reference means either:
+    """Fail if framework-side code picks up a TOPAZ/BL12 hardcoded reference.
+
+    This checks code outside allow-listed paths. Adding such a reference
+    means either:
       - the code belongs under ``beamlines/<id>/`` (preferred), or
       - if it's a legitimate generic mention, add the file to ALLOWED_FILES.
     """
