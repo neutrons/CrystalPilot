@@ -1,6 +1,6 @@
 # CrystalPilot — Session Handoff (continue here)
 
-**Last updated:** 2026-06-03 · **Branch:** `multibeamline` · **Tests:** 183 passing · **mypy:** 0 (CI gate green) · **Technique-coupling ratchet:** 0
+**Last updated:** 2026-06-03 · **Branch:** `multibeamline` · **Tests:** 221 passing · **mypy:** 0 · **ruff:** green · **CI `build-and-test`:** fully green · **Technique-coupling ratchet:** 0
 
 This document is self-contained: read it top to bottom and you can continue the
 work in a fresh session without re-deriving context. Canonical plan is
@@ -190,58 +190,70 @@ Ordered by leverage. Each is independent enough to do in its own session.
   src+tests+scripts so the now-green mypy gate and the lint gate can't be quietly
   bypassed. **Ratchet down only** — lower a cap in the same commit when you
   delete debt; never raise one.
-- ⚠️ **STILL RED: `ruff check` (74 errors) + `ruff format --check` (57 files).**
-  These were already failing at HEAD *before* this work (verified — identical
-  counts), so the overall `build-and-test` job is **not** green until they're
-  fixed. `ruff check --fix` clears 13 automatically (review the rest; 2 are
-  unsafe-fix-only); `ruff format` reformats the 57. This is the next
-  cheap/high-value gate to make bite — same idea as mypy.
+- ✅ **ruff green — DONE** (commit `0f7f053`, `#6`). `ruff check` 74→0 (scoped
+  per-file-ignores for test fakes + crystallographic notation; real fixes
+  elsewhere) and `ruff format` applied (57 files). The whole CI `build-and-test`
+  job (ruff check + ruff format --check + mypy + pytest) is now green.
 
-### B. Behavioral test fakes + golden path (the biggest risk-reducer)
-- The suite is structural ("constructs", "ratchet", "golden rows"); the actual
-  science workflows (live Mantid reduction, coverage optimization, EIC
-  submission, EPICS reads) are largely **un-tested end-to-end**. Build **fakes**
-  for the three hard deps (a fake EIC server, recorded Mantid workspaces, a fake
-  EPICS PV source) and write **one golden-path integration test per technique**
-  (load IPTS → build strategy → submit → observe). This is the safety net that
-  lets agents + humans refactor the god-files (§D) without fear.
+### B. Behavioral test fakes + golden path — ✅ **DONE** (commit `74d7503`, `#7`)
+- `tests/conftest.py` adds `FakeEICClient` (+recording factory) and
+  `FakeMantidWorkflow` as the `fake_eic` / `fake_mantid_workflow` fixtures.
+  **EPICS needs no fake** — PVs are plain string constants passed to EIC as
+  column names; real channel access lives only in the (untested) trame view layer.
+- Golden-path tests: `tests/techniques/single_crystal/test_sc_golden_path_eic.py`
+  (build angle plan → submit/poll/abort via fake EIC), `.../test_golden_path_temporal.py`
+  (live-reduction consumption via the fake Mantid workflow),
+  `tests/techniques/sans/test_sans_golden_path_eic.py` (SANS strategy → submit).
+- **Bug found + fixed by these tests:** `_default_beamline_database()` collapsed
+  to `{}` whenever a non-single-crystal beamline (USANS) was registered, so
+  `submit_jobs` bailed (`supported_beamline=False`) for **every** technique.
+  Fixed via a technique-neutral `BeamlineSpec.mantid_instrument_name` + a
+  per-beamline-resilient builder.
 
-### C. Harden the in-app agent (high consequence — it steers real hardware)
-- **Replace prompt-only safety with code gates.** Destructive actions
-  (`stop_current_run` aborts a running scan; `submit_angle_plan`) are guarded
-  only by *text* in the `ActionTool.description` ("confirm with the user before
-  calling it"). Implement a typed **propose → user-confirms → execute** gate the
-  model cannot bypass. (Manifest `action_tools` live in
-  `techniques/single_crystal/manifest.py`; 5 verbs today.)
-- **Agent eval harness:** golden conversations → expected tool-calls / parameter
-  writes, run in CI, so prompt/model/schema changes can't silently regress the
-  agent.
-- Consider least-privilege scoping of the agent's tool surface by task/phase.
+### C. Harden the in-app agent — ✅ **C.1 + C.2 DONE** (commits `0dc498d`, `17e548a`)
+- ✅ **C.1 code-level confirmation gate** (`agent/confirmation.py`
+  `ConfirmationGate`): `ActionTool.requires_confirmation` (set on
+  `submit_angle_plan` + `stop_current_run`); such a verb only *proposes* from a
+  tool call; the destructive call runs only from an explicit user "yes" via
+  `handlers.handle_action_confirm` (run first in `run_handlers`). The chat VM
+  owns the gate. `tests/test_confirmation_gate.py` (16 tests).
+- ✅ **C.2 agent eval harness** (`tests/test_agent_eval.py` +
+  `ScriptedChatModel`/`scripted_agent_llm` in conftest): runs `Agent.invoke`
+  end-to-end through the real graph with a scripted LLM (deterministic, no
+  network). 4 golden conversations incl. the destructive-verb-can't-self-execute
+  invariant. (Real-LLM tool-*selection* eval — gated on an API key, offline — is
+  still TODO.)
+- ⏭ Still TODO: least-privilege scoping of the agent's tool surface by task/phase.
 
-### D. Decompose god-files (do AFTER B exists)
-- `core/eic/eic_client.py` (**1566 lines**), `angle_plan_engine.py` (1161),
-  `experiment_info.py` (1064), `angle_plan.py` (817), `steering.py` (738).
-  `eic_client` is the priority but is risky (auth/submit) — only refactor it
-  behind the behavioral tests from §B.
+### D. Decompose god-files — ⚠️ **UNBLOCKED, not yet done** (safety net added, commit `2838a9e`)
+- `core/eic/eic_client.py` (**1566 lines**, priority), `angle_plan_engine.py`
+  (1161), `experiment_info.py` (1064), `angle_plan.py` (817), `steering.py` (738).
+- B's golden-path tests **fake `EICClient` away**, so they give zero coverage of
+  eic_client.py. `tests/test_eic_client_characterization.py` (9 tests) now pins
+  its wire behavior (submit/status/abort/ping request shape + response parsing,
+  on the non-auth path). **The decomposition itself is deferred:** it covers the
+  non-auth happy path only — characterize the **OAuth/SSL/platform/URL-derivation**
+  paths *before* moving that code, then extract transport/auth/errors into
+  `core/eic/` submodules behind the tests.
+- **Gotcha surfaced:** `EICClient.__init__` decrypts the token *outside* the
+  handled block, so a non-Fernet token (incl. the default `token="test_password"`)
+  raises `InvalidToken` at construction — only masked today because submit paths
+  are faked in tests.
 
-### E. Land the branch
-- `multibeamline` is ~30 commits ahead of `main`, unreviewed-by-human, unpushed.
-  Review → merge → tag. Don't let it become a parallel universe. (This is
-  outward-facing — **confirm with the user before pushing / opening a PR.**)
+### E. Land the branch — ⏭ **needs human sign-off** (outward-facing)
+- `multibeamline` is ~37 commits ahead of `main`, unreviewed-by-human, unpushed.
+  Review → merge → tag. **Confirm with the user before pushing / opening a PR.**
 
 ### F. Loose ends / provisional items
-- **CODEOWNERS handles are placeholders** (`@framework-team`,
-  `@single-crystal-team`, `@sans-team`) — replace with real GitHub users/teams to
-  activate review routing.
-- **SANS/USANS values are provisional** (skeleton; ships gated, works, but not
-  behaviorally complete) — need SANS scientist / facility confirmation:
-  - SANS strategy CSV columns (`sample_aperture`, `detector_distance`,
-    `attenuator`, `wavelength_spread`).
-  - `iq_reduction` prediction model = `"TBD"` (no real Mantid I(Q) pipeline).
-  - USANS spec: `eic.server_url="https://eic.sns.gov"`, real PVs `None`,
-    placeholder STATUS/ANALYSIS tabs.
-- Minor: a couple of doc comments in `test_technique_coupling.py` still talk
-  about a "residual" — now zero; reword when convenient.
+- ✅ Reworded the stale "residual"/"in flight" ratchet doc comments (commit `f6f73ca`).
+- ⏭ **CODEOWNERS handles are placeholders** (`@framework-team`,
+  `@single-crystal-team`, `@sans-team`) — **needs a human** to supply real GitHub
+  users/teams to activate review routing.
+- ⏭ **SANS/USANS values are provisional** — **needs a SANS scientist / facility**:
+  SANS strategy CSV columns (`sample_aperture`/`detector_distance`/`attenuator`/
+  `wavelength_spread`); `iq_reduction` prediction model `"TBD"` (no real Mantid
+  I(Q) pipeline); USANS spec (`eic.server_url`, real PVs `None`, placeholder
+  STATUS/ANALYSIS tabs).
 
 ---
 
@@ -261,12 +273,15 @@ Ordered by leverage. Each is independent enough to do in its own session.
 
 ## 8. First moves in a new session
 
-1. `git -C <repo> log --oneline -8` and `git status` to confirm you're on
-   `multibeamline`, clean, at `11282ee` (or later).
-2. `.pixi/envs/default/bin/python -m pytest -q` → expect **183 passed**.
-3. Confirm both ratchets are still green: technique-coupling
+1. `git -C <repo> log --oneline -12` and `git status` to confirm you're on
+   `multibeamline`, clean, at `f6f73ca` (or later).
+2. `.pixi/envs/default/bin/python -m pytest -q` → expect **221 passed**.
+3. Confirm all gates are green: technique-coupling
    `.pixi/envs/default/bin/python -c "import sys;sys.path.insert(0,'tests');import test_technique_coupling as t;print(t._scan())"`
-   → `{}`; and `.pixi/envs/default/bin/mypy .` → **Success: no issues found**.
-4. Pick an item from §6. **§6A's mypy + hygiene ratchet are now DONE**; the
-   cheapest remaining gate is the still-red `ruff` (see §6A). Then B → C. Keep
-   the full suite green (and `mypy .` at 0) per commit; don't push without asking.
+   → `{}`; `.pixi/envs/default/bin/mypy .` → **Success**; `ruff check` →
+   **All checks passed!**; `ruff format --check` → all formatted.
+4. Pick an item from §6. **A, B, C.1, C.2, F are DONE; the whole CI job is now
+   green.** Highest-leverage remaining: **§6D** (decompose `eic_client` — first
+   characterize its OAuth/SSL path, then split, behind the new characterization
+   tests) and **§6E** (land the branch — needs your sign-off). Keep the full
+   suite + `mypy .` + `ruff` green per commit; **don't push without asking**.
