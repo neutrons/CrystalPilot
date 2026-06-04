@@ -37,6 +37,7 @@ _ACTION_TOOLS = (
             "beamline) are correct before calling this tool."
         ),
         success_message="Angle plan submitted to EIC.",
+        requires_confirmation=True,
     ),
     ActionTool(
         name="authenticate_eic",
@@ -79,6 +80,7 @@ _ACTION_TOOLS = (
             "collection early (e.g. sufficient statistics reached)."
         ),
         success_message="Current run stopped.",
+        requires_confirmation=True,
     ),
 )
 

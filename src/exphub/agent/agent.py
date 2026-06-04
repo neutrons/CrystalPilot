@@ -78,6 +78,7 @@ class Agent:
         write_through_fn: Any = None,
         action_fns: dict | None = None,
         action_tools: Any = None,
+        confirmation_gate: Any = None,
         beamline_id: str | None = None,
         task: str | None = None,
     ) -> None:
@@ -110,6 +111,9 @@ class Agent:
         self._nav_fn = nav_fn
         self._action_fns = action_fns
         self._action_tools = action_tools
+        # Code-level gate for destructive verbs (propose -> user confirms ->
+        # execute). When set, confirmation-required action tools only propose.
+        self._confirmation_gate = confirmation_gate
         self._mcp_tools = mcp_tools or []
 
         self._tools = self._make_tools()
@@ -124,6 +128,7 @@ class Agent:
             rag=self._rag,
             action_fns=self._action_fns,
             action_tools=self._action_tools,
+            confirmation_gate=self._confirmation_gate,
         )
         if self._mcp_tools:
             tools.extend(self._mcp_tools)

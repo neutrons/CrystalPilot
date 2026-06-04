@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from ...agent.agent import Agent
 from ...agent.bridge import apply_agent_config, bridged_submodels, snapshot_models, write_single_field
+from ...agent.confirmation import ConfirmationGate
 from ...agent.handlers import run_handlers
 from ...agent.mcp_service import MCPService
 from ...agent.schema_gen import enrich_schema_with_options, schema_from_model_instance
@@ -66,6 +67,11 @@ class ChatViewModel:
 
         # Phase manager for experiment workflow tracking
         self._phase_manager = PhaseManager()
+
+        # Code-level confirmation gate for destructive agent verbs (submit /
+        # stop run). Shared between the agent's action tools (which only propose)
+        # and the pre-agent handler chain (which executes on a user "yes").
+        self._confirmation_gate = ConfirmationGate()
 
         # Bridge errors from the previous turn, forwarded to the next invoke()
         self._pending_bridge_errors: dict[str, str] = {}
@@ -113,6 +119,7 @@ class ChatViewModel:
                 write_through_fn=_write_through,
                 action_fns=action_fns,
                 action_tools=action_tools,
+                confirmation_gate=self._confirmation_gate,
             )
             logger.info("CrystalPilot agent initialised with %d schema fields", len(schema_props))
 
@@ -145,6 +152,7 @@ class ChatViewModel:
                 schema_props=schema_props,
                 nav_fn=self._nav_fn,
                 phase_manager=self._phase_manager,
+                confirmation_gate=self._confirmation_gate,
             )
             if handler_reply is not None:
                 print(f"[CrystalPilot Agent] Handler shortcut: {handler_reply[:80]}")

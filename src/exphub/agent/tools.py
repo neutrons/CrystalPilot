@@ -14,6 +14,7 @@ from langchain_core.tools import tool
 
 if TYPE_CHECKING:
     from ..core.beamline import ActionTool
+    from .confirmation import ConfirmationGate
 
 from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .schema_gen import enrich_schema_with_options
@@ -46,14 +47,26 @@ def resolve_param_name(name: str, schema_props: dict[str, dict]) -> tuple[str, d
     return name, None
 
 
-def _make_action_tool(spec: "ActionTool", fn: "Callable[[], Any] | None") -> Any:
+def _make_action_tool(
+    spec: "ActionTool",
+    fn: "Callable[[], Any] | None",
+    gate: "ConfirmationGate | None" = None,
+) -> Any:
     """Build a no-arg LangChain tool for a technique :class:`ActionTool` spec.
 
     *fn* is the live callable (a view-model method) or ``None`` if unavailable.
     The tool's name + description come from the manifest spec.
+
+    When ``spec.requires_confirmation`` is set and a *gate* is supplied, the tool
+    never runs *fn* directly: it only proposes the action through the gate and
+    returns a ``confirmation_required`` result. The destructive call then runs
+    solely from the gate on an explicit user "yes" — the model has no path to
+    execute it. Non-confirmation verbs (or no gate) execute immediately.
     """
 
     def _run() -> dict:
+        if spec.requires_confirmation and gate is not None:
+            return gate.propose(spec.name, fn, spec.success_message)
         if fn is None:
             return {"error": f"{spec.name} action is not available in this session."}
         try:
@@ -74,6 +87,7 @@ def make_tools(
     rag: Any = None,
     action_fns: dict | None = None,
     action_tools: "Sequence[ActionTool] | None" = None,
+    confirmation_gate: "ConfirmationGate | None" = None,
 ) -> list:
     """Return a list of LangChain tools bound to *schema_props*.
 
@@ -506,6 +520,6 @@ def make_tools(
     # from the active technique's manifest rather than hardcoded here, so a new
     # technique declares its own verbs without editing tools.py.
     for spec in action_tools or []:
-        all_tools.append(_make_action_tool(spec, _actions.get(spec.name)))
+        all_tools.append(_make_action_tool(spec, _actions.get(spec.name), confirmation_gate))
 
     return all_tools

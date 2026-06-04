@@ -10,11 +10,14 @@ The handler chain is evaluated in ``HANDLERS`` order by ``run_handlers()``.
 from __future__ import annotations
 
 import re
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from ..core.beamline import TabKey
 from .constants import TAB_MAP, TAB_NAMES, get_experiment_presets
 from .workflow import PhaseManager
+
+if TYPE_CHECKING:
+    from .confirmation import ConfirmationGate
 
 # Type alias for handler functions
 HandlerFn = Callable[
@@ -236,6 +239,50 @@ def handle_phase_confirm(
 
 
 # ---------------------------------------------------------------------------
+# Destructive-action confirmation gate
+# ---------------------------------------------------------------------------
+
+_ACTION_YES = ("yes", "y", "confirm", "confirmed", "proceed", "go ahead", "do it", "approve", "approved")
+_ACTION_NO = ("no", "n", "cancel", "stop", "abort", "nope", "never mind", "nevermind", "don't", "dont")
+
+
+def handle_action_confirm(
+    user_text: str,
+    snapshot_fn: Callable[[], dict] | None,
+    schema_props: dict[str, dict],
+    nav_fn: Callable[[TabKey | int], None] | None,
+    *,
+    confirmation_gate: "ConfirmationGate | None" = None,
+) -> str | None:
+    """Resolve a destructive action awaiting confirmation (code-level safety gate).
+
+    When the gate holds a pending action this intercepts *before* the LLM: an
+    explicit "yes" executes it, an explicit "no" cancels it, and anything else
+    re-prompts (the gate stays sticky until the user resolves it, so the model
+    can never act on an unresolved destructive proposal).
+    """
+    if confirmation_gate is None or not confirmation_gate.has_pending():
+        return None
+    norm = _normalize(user_text)
+    name = confirmation_gate.pending_name
+
+    if norm in _ACTION_YES or any(norm.startswith(c + " ") for c in _ACTION_YES):
+        result = confirmation_gate.confirm()
+        if "error" in result:
+            return f"**{name}** could not run: {result['error']}"
+        return result.get("message", f"{name} completed.")
+
+    if norm in _ACTION_NO or any(norm.startswith(c) for c in _ACTION_NO):
+        confirmation_gate.cancel()
+        return f"Cancelled — **{name}** was not performed."
+
+    return (
+        f"**{name}** is awaiting your confirmation (it has a real beamline effect). "
+        "Reply **yes** to run it or **no** to cancel."
+    )
+
+
+# ---------------------------------------------------------------------------
 # Workflow status
 # ---------------------------------------------------------------------------
 
@@ -284,12 +331,20 @@ def run_handlers(
     schema_props: dict[str, dict] | None = None,
     nav_fn: Callable[[TabKey | int], None] | None = None,
     phase_manager: PhaseManager | None = None,
+    confirmation_gate: "ConfirmationGate | None" = None,
 ) -> str | None:
     """Run through the handler chain, returning the first non-None reply.
 
     Returns ``None`` if no handler matched — caller should invoke the agent.
     """
     props = schema_props or {}
+
+    # A pending destructive-action confirmation outranks everything: until the
+    # user resolves it, no other handler (or the LLM) may act.
+    if confirmation_gate is not None:
+        result = handle_action_confirm(user_text, snapshot_fn, props, nav_fn, confirmation_gate=confirmation_gate)
+        if result is not None:
+            return result
 
     # Phase-aware handlers first (confirmation should intercept before anything else)
     if phase_manager is not None:

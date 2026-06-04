@@ -81,12 +81,19 @@ class ActionTool:
     shown to the model, the ``vm_method`` attribute resolved against the live
     technique/main view-model at wiring time (the manifest stays import-cheap),
     and the ``success_message`` returned to the agent when the action runs.
+
+    ``requires_confirmation`` marks a verb whose effect is destructive or
+    hard-to-reverse (aborting a running scan, submitting to the beamline). Such
+    a verb is run through a code-level propose -> user-confirms -> execute gate
+    (:class:`exphub.agent.confirmation.ConfirmationGate`) the model cannot
+    bypass, rather than executing the moment the model calls it.
     """
 
     name: str
     vm_method: str
     description: str
     success_message: str = ""
+    requires_confirmation: bool = False
 
 
 class TechniqueManifest(BaseModel):
