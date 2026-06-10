@@ -14,8 +14,8 @@ from __future__ import annotations
 # Order matters: the first registered beamline is the default ``active()``,
 # so keep TOPAZ at the top until a launcher / selector overrides at runtime.
 from . import (
-    corelli,  # noqa: F401
     topaz,  # noqa: F401
+    corelli,  # noqa: F401
     usans,  # noqa: F401
 )
 

@@ -38,15 +38,8 @@ class MainApp(ThemedApp):
         self.create_ui()
 
     def _title(self) -> str:
-        """Window/toolbar title showing the active beamline + technique family.
-
-        Makes it obvious which beamline was launched — important now that a
-        non-default (e.g. a cross-technique beamline) is chosen at startup via
-        ``--beamline=`` / ``CRYSTALPILOT_BEAMLINE`` rather than the runtime
-        selector.
-        """
-        ctx = self.beamline_ctx
-        return f"CrystalPilot — {ctx.display_name} [{ctx.spec.technique}]"
+        """Window/toolbar title."""
+        return "CrystalPilot"
 
     def create_ui(self) -> None:
         self.set_theme("CompactTheme")
@@ -93,13 +86,22 @@ class MainApp(ThemedApp):
             if bob is not None and macros is not None:
                 with open(bob, mode="r") as xml_file, open(macros, mode="r") as macros_file:
                     self.epics.connect(xml_file.read(), macros_file.read(), 6)
+                # connect() creates ``window.dbwr`` and seeds the ``epics``
+                # frontend state; only now is it safe to subscribe PVs not in
+                # the .bob via the dbwr runtime.
+                self._subscribe_extra_pvs(self.beamline_ctx.extra_subscribe_pvs)
             else:
                 logger.warning(
-                    "Active beamline %r has no .bob screen configured; skipping EPICS connect()",
+                    "Active beamline %r has no .bob screen configured; skipping EPICS "
+                    "connect() and extra-PV subscriptions",
                     self.beamline_ctx.id,
                 )
-
-            self._subscribe_extra_pvs(self.beamline_ctx.extra_subscribe_pvs)
+                # connect() is what normally seeds the ``epics`` frontend state.
+                # Seed an empty map here too so PV-bound widgets (PVInput/PVPlot)
+                # bind to it and degrade gracefully instead of crashing the Vue
+                # subtree with "Cannot read properties of undefined (reading
+                # 'pv_data')" / "'pv_infos'".
+                self.server.state["epics"] = {"pv_data": {}}
 
             return layout
 
