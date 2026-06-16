@@ -145,10 +145,11 @@ class AppShellViewModel:
         """Switch the active tab and push the change to the view.
 
         Accepts a :class:`TabKey` (preferred — the agent and the technique
-        manifest speak TabKey) or the legacy integer tab number (translation
-        shim). The trame dispatcher keys its v_if/v_show predicates on the int
-        (1=IPTS Info, 2=Live Data Processing, 3=Experiment Steering,
-        5=Instrument Status, 6=Data Analysis), so the TabKey is mapped here.
+        manifest speak TabKey) or a raw integer tab id (translation shim). The
+        TabKey is resolved to the active beamline's tab id via ``_tab_to_int``
+        (``core.beamline.tab_layout``): the default layout keeps the legacy ids
+        (1=IPTS, 2=LIVE, 3=STEERING, 5=STATUS, 6=ANALYSIS), while a beamline that
+        merges tabs (e.g. USANS) maps several TabKeys onto one combined tab's id.
         """
         self.view_state.active_tab = _tab_to_int(tab)
         self.view_state_bind.update_in_view(self.view_state)
