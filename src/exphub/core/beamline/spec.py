@@ -242,6 +242,16 @@ class BeamlineSpec(BaseModel):
         "technique-supplied default instead of a placeholder. Untyped (set of "
         "TabKey) to keep core.beamline.spec free of a technique import cycle.",
     )
+    tab_layout: Optional[tuple] = Field(
+        default=None,
+        description="Per-beamline tab strip shape: an ordered tuple of "
+        "``core.beamline.tab_layout.TabGroup`` (each a VTab covering one or more "
+        "TabKeys; several keys = one combined tab). ``None`` -> the technique's "
+        "default five-tab layout, so beamlines that don't set it are unchanged. "
+        "A beamline that merges tabs (e.g. USANS folding IPTS+LIVE+STEERING into "
+        "one) sets this. Loosely typed (bare tuple) to keep core.beamline.spec "
+        "free of a tab_layout/technique import cycle, mirroring ``optional_tabs``.",
+    )
     technique_config: SingleCrystalConfig | SansConfig = Field(
         default_factory=SingleCrystalConfig,
         discriminator="kind",

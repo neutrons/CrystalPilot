@@ -31,6 +31,14 @@ from .spec import (
     TabOverrides,
     TechniqueConfig,
 )
+from .tab_layout import (
+    TabGroup,
+    TabLayout,
+    active_layout,
+    default_layout,
+    label_for,
+    tab_key_to_int,
+)
 from .technique import (
     ActionTool,
     PhaseDefinition,
@@ -55,17 +63,23 @@ __all__ = [
     "PhaseDefinition",
     "SansConfig",
     "SingleCrystalConfig",
+    "TabGroup",
     "TabKey",
+    "TabLayout",
     "TabOverrides",
     "TechniqueConfig",
     "TechniqueManifest",
     "active",
+    "active_layout",
     "active_technique",
+    "default_layout",
     "get",
     "get_technique",
+    "label_for",
     "list_ids",
     "list_technique_ids",
     "register",
     "register_technique",
     "set_active",
+    "tab_key_to_int",
 ]

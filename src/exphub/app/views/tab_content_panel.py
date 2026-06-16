@@ -21,7 +21,7 @@ dialog's OK button still resolves against the app-shell view-model.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any
 
 from nova.trame.view.layouts import VBoxLayout
 from trame.widgets import vuetify3 as vuetify
@@ -30,6 +30,7 @@ from trame_server import Server
 from ...core.beamline import TabKey
 from ...core.beamline import active as _active_beamline
 from ...core.beamline import active_technique as _active_technique
+from ...core.beamline.tab_layout import active_layout, label_for
 from .placeholder_tab import PlaceholderTab
 
 if TYPE_CHECKING:
@@ -37,30 +38,6 @@ if TYPE_CHECKING:
     from ..view_models.app_shell import AppShellViewModel
 
 logger = logging.getLogger(__name__)
-
-
-class _Slot(NamedTuple):
-    """Static description of one tab slot.
-
-    ``key`` is the manifest/agent-facing :class:`TabKey`; ``active_tab`` is the
-    legacy integer the trame ``v_if`` predicate addresses (1/2/3/5/6 — note the
-    gap at 4). The :class:`TabOverrides` field a beamline sets to swap this
-    slot's factory is resolved per-technique via ``manifest.tab_override_slots``
-    so this app-shell module carries no technique-shaped slot vocabulary.
-    """
-
-    key: TabKey
-    active_tab: int
-
-
-# Tab order on screen, with the legacy integer ids. The gap at 4 is historical.
-_SLOTS: tuple[_Slot, ...] = (
-    _Slot(TabKey.IPTS, 1),
-    _Slot(TabKey.LIVE, 2),
-    _Slot(TabKey.STEERING, 3),
-    _Slot(TabKey.STATUS, 5),
-    _Slot(TabKey.ANALYSIS, 6),
-)
 
 
 class TabContentPanel:
@@ -83,8 +60,8 @@ class TabContentPanel:
         self.ctrl = server.controller
         self.create_ui()
 
-    def _resolve_factory(self, slot: _Slot) -> Any:
-        """Resolve the factory for ``slot`` via the fall-through contract.
+    def _resolve_factory(self, key: TabKey) -> Any:
+        """Resolve the factory for one tab slot ``key`` via the fall-through contract.
 
         Returns a one-argument factory callable. When no override / default /
         opted-in optional default exists, returns a closure that renders a
@@ -94,13 +71,13 @@ class TabContentPanel:
         beamline = _active_beamline()
         technique = _active_technique()
 
-        override_attr = technique.tab_override_slots.get(slot.key)
+        override_attr = technique.tab_override_slots.get(key)
         if override_attr is not None:
             factory = getattr(beamline.tabs, override_attr, None)
             if factory is not None:
                 return factory
 
-        factory = technique.default_tabs.get(slot.key)
+        factory = technique.default_tabs.get(key)
         if factory is not None:
             return factory
 
@@ -108,13 +85,13 @@ class TabContentPanel:
         # (e.g. the single-crystal data-analysis launcher) via
         # BeamlineSpec.optional_tabs. Without opt-in the slot falls through to
         # a placeholder so a beamline never silently inherits a tab shape.
-        if slot.key in beamline.optional_tabs:
-            factory = technique.optional_tab_defaults.get(slot.key)
+        if key in beamline.optional_tabs:
+            factory = technique.optional_tab_defaults.get(key)
             if factory is not None:
                 return factory
 
-        message = beamline.placeholder_messages.get(slot.key)
-        links = beamline.placeholder_links.get(slot.key)
+        message = beamline.placeholder_messages.get(key)
+        links = beamline.placeholder_links.get(key)
 
         def _placeholder(_vm: Any) -> Any:
             return PlaceholderTab(message=message, external_links=links)
@@ -122,10 +99,19 @@ class TabContentPanel:
         return _placeholder
 
     def create_ui(self) -> None:
-        for slot in _SLOTS:
-            factory = self._resolve_factory(slot)
-            with VBoxLayout(v_if=f"controls.active_tab == {slot.active_tab}", stretch=True):
-                factory(self.view_model)
+        # One VBoxLayout per tab in the active beamline's layout. A tab that
+        # covers a single TabKey renders that slot's factory; a tab that covers
+        # several (a merged tab, e.g. USANS' combined Setup/Steering) stacks each
+        # slot's resolved view in one scrollable column, with a section header.
+        for group in active_layout():
+            with VBoxLayout(v_if=f"controls.active_tab == {group.id}", stretch=True):
+                if len(group.covers) == 1:
+                    self._resolve_factory(group.covers[0])(self.view_model)
+                else:
+                    with VBoxLayout(classes="overflow-y-auto", gap="1em", stretch=True):
+                        for key in group.covers:
+                            vuetify.VCardTitle(label_for(key))
+                            self._resolve_factory(key)(self.view_model)
 
         with vuetify.VDialog(v_model="controls.is_under_development", max_width="500px"):
             with vuetify.VCard():

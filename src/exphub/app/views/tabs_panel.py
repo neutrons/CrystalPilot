@@ -4,6 +4,7 @@ from trame.widgets import client
 from trame.widgets import vuetify3 as vuetify
 from trame_client.widgets import html
 
+from ...core.beamline.tab_layout import active_layout
 from ..view_models.app_shell import AppShellViewModel
 
 
@@ -28,11 +29,12 @@ class TabsPanel:
                     classes="pl-5",
                     style="flex: 1 1 auto; min-width: 0;",
                 ):
-                    vuetify.VTab("IPTS Info", value=1)
-                    vuetify.VTab("Live Data Processing", value=2)
-                    vuetify.VTab("Experiment Steering", value=3)
-                    vuetify.VTab("Instrument Status", value=5)
-                    vuetify.VTab("Data Analysis", value=6)
+                    # Tabs (count + labels + ids) come from the active beamline's
+                    # tab layout, not a hardcoded list, so a beamline can merge or
+                    # relabel tabs without touching this shared shell. The default
+                    # layout reproduces the historical five tabs for single-crystal.
+                    for group in active_layout():
+                        vuetify.VTab(group.label, value=group.id)
             # ``item_props=True`` spreads each option dict onto the rendered
             # list item, so a ``{"disabled": True}`` entry grays out (and makes
             # unselectable) cross-technique beamlines. The banner below the

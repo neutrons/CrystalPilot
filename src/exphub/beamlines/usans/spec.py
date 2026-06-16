@@ -34,6 +34,7 @@ from ...core.beamline import (
     EICSpec,
     PathsSpec,
     SansConfig,
+    TabGroup,
     TabKey,
     register,
 )
@@ -73,6 +74,17 @@ USANS = BeamlineSpec(
         # Mantid USANS reduction documentation (web). Provisional pointer.
         "data_reduction": "https://docs.mantidproject.org/nightly/techniques/USANS.html",
     },
+    # USANS folds the three workflow tabs (IPTS info, I(Q) reduction, experiment
+    # steering) into one scrollable "Experiment Setup & Steering" tab; STATUS and
+    # ANALYSIS stay as their own (placeholder) tabs. The combined tab keeps id 1,
+    # so agent / SANS-phase navigation to IPTS / LIVE / STEERING all land on it.
+    # Other beamlines leave tab_layout=None and keep the default five-tab layout
+    # (see core/beamline/tab_layout.py).
+    tab_layout=(
+        TabGroup(id=1, label="Experiment Setup & Steering", covers=(TabKey.IPTS, TabKey.LIVE, TabKey.STEERING)),
+        TabGroup(id=5, label="Instrument Status", covers=(TabKey.STATUS,)),
+        TabGroup(id=6, label="Data Analysis", covers=(TabKey.ANALYSIS,)),
+    ),
     technique_config=SansConfig(
         # Mantid facility instrument name for USANS at SNS.
         mantid_instrument_name="USANS",

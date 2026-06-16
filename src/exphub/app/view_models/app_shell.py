@@ -77,24 +77,18 @@ def _default_beamline_options() -> list[dict]:
         return []
 
 
-# TabKey value -> legacy integer tab number used by the trame dispatcher's
-# v_if/v_show predicates. Keyed by the enum's string value so this module
-# needs no runtime import of TabKey.
-_TAB_KEY_TO_INT: dict[str, int] = {
-    "ipts": 1,
-    "live": 2,
-    "steering": 3,
-    "status": 5,
-    "analysis": 6,
-}
-
-
 def _tab_to_int(tab: "TabKey | int | str") -> int:
-    """Translate a TabKey (or its str value) to the dispatcher's int; pass ints through."""
-    if isinstance(tab, int):
-        return tab
-    key = getattr(tab, "value", tab)  # TabKey -> "ipts"; plain str -> itself
-    return _TAB_KEY_TO_INT.get(key, 1)
+    """Translate a TabKey (or its str value) to the active beamline's tab id.
+
+    Resolution lives in the per-beamline tab layout
+    (:func:`exphub.core.beamline.tab_layout.tab_key_to_int`): a merged TabKey
+    maps to its combined tab's id, so agent / phase navigation to IPTS / LIVE /
+    STEERING all land on the one visible tab when a beamline merges them. The
+    legacy 1/2/3/5/6 ids are preserved by the default layout. Ints pass through.
+    """
+    from ...core.beamline.tab_layout import tab_key_to_int
+
+    return tab_key_to_int(tab)
 
 
 class AppShellViewState(BaseModel):
