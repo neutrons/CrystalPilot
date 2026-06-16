@@ -8,6 +8,10 @@ imports its ``spec`` module — the spec module's import-time side effect calls
 :func:`exphub.core.beamline.register`.
 """
 
+# ruff: noqa: I001 -- the import order below is intentional, not alphabetical:
+# the first-imported beamline registers first and becomes the default ``active()``
+# (see the note above the import). Letting isort sort it (corelli first) would
+# silently change the default beamline back to CORELLI.
 from __future__ import annotations
 
 # Importing each beamline package triggers its spec registration.
