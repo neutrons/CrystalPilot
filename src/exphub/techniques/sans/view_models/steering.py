@@ -34,6 +34,7 @@ from typing import Any, Callable, Dict, Optional
 from nova.mvvm.interface import BindingInterface
 from pydantic import BaseModel, Field
 
+from ....core.beamline import active
 from ..models.root import SansMainModel
 
 # Verbose tracing for ViewModel actions; off by default. Mirrors the
@@ -200,7 +201,7 @@ class SansSteeringViewModel:
         from ....core.beamline import active_technique
 
         ipts_number = self.model.iptsinfo.ipts_number
-        instrument_name = self.model.iptsinfo.instrument
+        instrument_name = active().mantid_instrument_name
         # Only honour the active technique's row builder when the active
         # technique is actually SANS. Guards against the SANS submit button
         # invoking the single-crystal row builder while the SANS manifest does
@@ -240,13 +241,13 @@ class SansSteeringViewModel:
 
     def stoprun(self) -> None:
         ipts_number = self.model.iptsinfo.ipts_number
-        instrument_name = self.model.iptsinfo.instrument
+        instrument_name = active().mantid_instrument_name
         self.model.eiccontrol.stop_run(ipts_number, instrument_name)
         self._push_eiccontrol()
 
     def poll_job_statuses(self) -> None:
         ipts_number = self.model.iptsinfo.ipts_number
-        instrument_name = self.model.iptsinfo.instrument
+        instrument_name = active().mantid_instrument_name
         try:
             self.model.eiccontrol.poll_job_statuses(ipts_number, instrument_name)
         except Exception as e:  # noqa: BLE001
@@ -255,7 +256,7 @@ class SansSteeringViewModel:
 
     def abort_job(self, scan_id: int) -> None:
         ipts_number = self.model.iptsinfo.ipts_number
-        instrument_name = self.model.iptsinfo.instrument
+        instrument_name = active().mantid_instrument_name
         self.model.eiccontrol.abort_job(scan_id, ipts_number, instrument_name)
         self._push_eiccontrol()
 

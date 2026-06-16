@@ -171,7 +171,7 @@ SANS = register_technique(
         # field names — the SANS analogues of the single-crystal set).
         bridged_submodels=("iptsinfo", "strategy", "iqreduction", "eiccontrol"),
         # Authoritative sub-model for fields that appear in more than one.
-        field_owner={"instrument": "iptsinfo"},
+        field_owner={},
         # Technique-level prompt fragment, inserted between core identity and the
         # beamline context by the 3-layer composer.
         prompts_dir=_TECHNIQUE_DIR / "prompts",

@@ -22,7 +22,6 @@ SINGLE_CRYSTAL_PHASES: tuple[PhaseDefinition, ...] = (
         field_prefixes=(
             "ipts_number",
             "exp_name",
-            "instrument",
             "molecular_formula",
             "Z",
             "unit_cell_volume",

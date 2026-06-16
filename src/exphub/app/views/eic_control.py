@@ -28,7 +28,6 @@ class EICControlView:
             vuetify.VBtn("Authenticate", click=self.view_model.call_load_token)
         InputField(v_model="model_eiccontrol.is_simulation", type="checkbox")
         InputField(v_model="model_experimentinfo.ipts_number")
-        InputField(v_model="model_experimentinfo.instrument")
         with GridLayout(columns=1):
             vuetify.VBtn("Submit through EIC", click=self.view_model.submit_angle_plan)
 

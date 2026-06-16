@@ -31,11 +31,10 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
         name="setup",
         tab=TabKey.IPTS,
         label="IPTS Info",
-        description="Enter experiment metadata: IPTS, instrument, sample info",
+        description="Enter experiment metadata: IPTS, sample info",
         field_prefixes=(
             "ipts_number",
             "exp_name",
-            "instrument",
         ),
     ),
     PhaseDefinition(

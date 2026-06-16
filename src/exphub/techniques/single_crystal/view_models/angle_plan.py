@@ -2,6 +2,7 @@
 
 from typing import List
 
+from ....core.beamline import active
 from .steering import SingleCrystalSteeringViewModel
 
 # from ..models.ccs_status import CCSStatusModel
@@ -116,7 +117,7 @@ def angleplan_optimize(view_model: SingleCrystalSteeringViewModel) -> List:
     print("==========================angle plan test================================")
     print("=========================================================================")
 
-    instrument = view_model.model.experimentinfo.instrument
+    instrument = active().mantid_instrument_name
     # wavelength = view_model.model.experimentinfo.wavelength
     # axes = view_model.model.experimentinfo.axes
     # limits = view_model.model.experimentinfo.limits

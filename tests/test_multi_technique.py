@@ -125,8 +125,8 @@ def test_techniques_differ_on_the_same_tab_slot(usans: BeamlineSpec) -> None:
     sans_fields = set(type(_active_tab1_model()).model_fields)
 
     # Both keep the shared experiment-identity surface...
-    assert {"exp_name", "ipts_number", "instrument"} <= sc_fields
-    assert {"exp_name", "ipts_number", "instrument"} <= sans_fields
+    assert {"exp_name", "ipts_number"} <= sc_fields
+    assert {"exp_name", "ipts_number"} <= sans_fields
     # ...but only single-crystal carries the lattice fields.
     assert "crystalsystem" in sc_fields
     assert "crystalsystem" not in sans_fields

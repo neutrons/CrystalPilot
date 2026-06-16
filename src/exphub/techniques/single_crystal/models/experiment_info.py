@@ -11,30 +11,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from ....core.beamline import active as _active_beamline
-from ....core.beamline import list_ids as _beamline_ids
 from ....core.paths import resolver_for as _resolver_for
-
-
-def _default_instrument_list() -> List[str]:
-    """Return the Mantid instrument names of every registered beamline."""
-    try:
-        names = []
-        from ....core.beamline import get as _get
-
-        for bid in _beamline_ids():
-            inst = _get(bid).single_crystal.mantid.instrument_name
-            if inst:
-                names.append(inst)
-        return names or [""]
-    except Exception:
-        return [""]
-
-
-def _default_instrument() -> str:
-    try:
-        return _active_beamline().single_crystal.mantid.instrument_name
-    except Exception:
-        return ""
 
 
 def _default_cal_filename() -> str:
@@ -54,7 +31,6 @@ def _default_spectra_filename() -> str:
 class Options(BaseModel):
     """A class for the configuration options."""
 
-    instrument_list: List[str] = Field(default_factory=_default_instrument_list)
     centering_list: List[str] = Field(default=[])
     crystalsystem_list: List[str] = Field(
         default=[
@@ -87,7 +63,6 @@ class ExperimentInfoModel(BaseModel):
     )
     point_group: str = Field(default="m-3", title="Point group")
 
-    instrument: str = Field(default_factory=_default_instrument, title="Instrument Name")
     ipts_number: str = Field(
         default="35036", title="IPTS Number", min_length=1, description="Proposal number for the experiment"
     )
@@ -794,7 +769,7 @@ class ExperimentInfoModel(BaseModel):
             "Z": self.Z,
             "unitCellVolume": self.unit_cell_volume,
             "sampleRadius": self.sample_radius,
-            "instrument": self.instrument,
+            "instrument": _active_beamline().mantid_instrument_name,
             "calFileName": self.cal_filename,
             "maxQ": self.max_q,
             "split_threshold": self.split_threshold,

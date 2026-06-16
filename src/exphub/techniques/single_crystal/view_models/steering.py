@@ -24,6 +24,7 @@ import plotly.graph_objects as go
 from nova.mvvm.interface import BindingInterface
 from pydantic import BaseModel, Field
 
+from ....core.beamline import active
 from ..models.root import SingleCrystalMainModel
 
 # Verbose tracing for ViewModel actions; off by default. Used to gate the
@@ -279,7 +280,7 @@ class SingleCrystalSteeringViewModel:
         assert row_builder is not None
 
         ipts_number = self.model.experimentinfo.ipts_number
-        instrument_name = self.model.experimentinfo.instrument
+        instrument_name = active().mantid_instrument_name
         goniometer_type = self.model.angleplan.goniometer_type
         angle_list = self.model.angleplan.angle_list
         try:
@@ -515,13 +516,13 @@ class SingleCrystalSteeringViewModel:
 
     def stoprun(self) -> None:
         ipts_number = self.model.experimentinfo.ipts_number
-        instrument_name = self.model.experimentinfo.instrument
+        instrument_name = active().mantid_instrument_name
         self.model.eiccontrol.stop_run(ipts_number, instrument_name)
         self._push_eiccontrol()
 
     def poll_job_statuses(self) -> None:
         ipts_number = self.model.experimentinfo.ipts_number
-        instrument_name = self.model.experimentinfo.instrument
+        instrument_name = active().mantid_instrument_name
         try:
             self.model.eiccontrol.poll_job_statuses(ipts_number, instrument_name)
         except Exception as e:
@@ -530,7 +531,7 @@ class SingleCrystalSteeringViewModel:
 
     def abort_job(self, scan_id: int) -> None:
         ipts_number = self.model.experimentinfo.ipts_number
-        instrument_name = self.model.experimentinfo.instrument
+        instrument_name = active().mantid_instrument_name
         self.model.eiccontrol.abort_job(scan_id, ipts_number, instrument_name)
         self._push_eiccontrol()
 
