@@ -884,7 +884,8 @@ class ExperimentInfoModel(BaseModel):
         self.centering = params_dictionary["centering"]
         self.crystalsystem = params_dictionary["cell_type"]
         self.point_group = params_dictionary["pg_symbol"]
-        self.instrument = params_dictionary["instrument_name"]
+        # instrument is no longer a model field — derived from the active
+        # beamline (active().mantid_instrument_name), so nothing to load here.
         for line in config_data:
             line = line.strip()
             line = line.rstrip()
