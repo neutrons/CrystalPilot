@@ -74,7 +74,7 @@ def test_corelli_uses_the_default_layout_too() -> None:
 
 
 def test_default_layout_reads_sans_labels() -> None:
-    """The SANS manifest's labels (e.g. 'I(Q) Reduction') flow into the default layout."""
+    """The SANS manifest's labels (e.g. LIVE='Live Data') flow into the default layout."""
     sans = get_technique("sans")
     labels = {g.covers[0]: g.label for g in default_layout(sans)}
-    assert labels[TabKey.LIVE] == "I(Q) Reduction"
+    assert labels[TabKey.LIVE] == "Live Data"

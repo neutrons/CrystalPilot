@@ -36,21 +36,14 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
             "ipts_number",
             "exp_name",
             "instrument",
-            "molecular_formula",
-            "sample_environment",
         ),
     ),
     PhaseDefinition(
         name="configure_q_range",
         tab=TabKey.LIVE,
         label="I(Q) Reduction",
-        description="Configure the I(Q) reduction Q-range and binning",
-        field_prefixes=(
-            "q_min",
-            "q_max",
-            "n_q_bins",
-            "prediction_model",
-        ),
+        description="Configure the live-data reduction / prediction model",
+        field_prefixes=("prediction_model",),
     ),
     PhaseDefinition(
         name="load_strategy",

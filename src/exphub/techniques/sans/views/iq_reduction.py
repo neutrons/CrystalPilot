@@ -49,11 +49,6 @@ class SansIQReductionView:
                     type="select",
                     label="Reduction / Prediction Model",
                 )
-            with GridLayout(columns=3, gap="0.5em"):
-                InputField(v_model="model_iqreduction.q_min", type="number", label="Q-min (1/Angstrom)")
-                InputField(v_model="model_iqreduction.q_max", type="number", label="Q-max (1/Angstrom)")
-                InputField(v_model="model_iqreduction.n_q_bins", type="number", label="Number of Q bins")
-
             # Placeholder I(Q) figure. Seeded with the model's empty annotated
             # figure; refreshed via the steering VM's figure-push bind.
             with HBoxLayout(halign="left", height="45vh"):

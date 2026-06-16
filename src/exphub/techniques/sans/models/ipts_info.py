@@ -10,9 +10,8 @@ crystallography field from the single-crystal model is intentionally absent:
   - no d-spacing / peak-finding / satellite-peak parameters
 
 What remains is the shared experiment-identity surface (experiment name, IPTS
-number, instrument, molecular formula) plus a SANS-relevant ``sample_environment``
-selector. Field titles/defaults mirror the single-crystal model so the IPTS-Info
-tab view can be built with the same idioms.
+number, instrument). Field titles/defaults mirror the single-crystal model so the
+IPTS-Info tab view can be built with the same idioms.
 """
 
 from __future__ import annotations
@@ -94,16 +93,6 @@ class SansIptsInfoModel(BaseModel):
         default_factory=_default_instrument,
         title="Instrument Name",
     )
-    molecular_formula: str = Field(
-        default="",
-        title="Molecular Formula",
-        description="Sample chemical formula (used for contrast / absorption estimates).",
-    )
-    sample_environment: str = Field(
-        default="Ambient",
-        title="Sample Environment",
-        description="Sample-environment configuration (e.g. ambient, cryostat, magnet, flow cell).",
-    )
 
     error_message: str = ""
     show_error: bool = False
@@ -112,17 +101,6 @@ class SansIptsInfoModel(BaseModel):
         """Dropdown option lists for the SANS IPTS-Info tab."""
 
         instrument_list: List[str] = Field(default_factory=_default_instrument_list)
-        # Provisional list; real SANS sample environments TBD with the SANS
-        # scientist (kept generic so the UI renders something sensible).
-        sample_environment_list: List[str] = Field(
-            default=[
-                "Ambient",
-                "Cryostat",
-                "Furnace",
-                "Magnet",
-                "Flow cell",
-            ]
-        )
 
     options: "SansIptsInfoModel.Options" = Field(default_factory=lambda: SansIptsInfoModel.Options())
 

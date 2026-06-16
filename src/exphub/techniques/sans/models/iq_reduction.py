@@ -41,28 +41,21 @@ class SansIQReductionModel(BaseModel):
     prediction_model: str = Field(default="TBD", title="Prediction Model")
     prediction_model_options: list[str] = Field(default_factory=lambda: list(PREDICTION_MODEL_OPTIONS))
 
-    # Provisional Q-range knobs for the (future) reduction. Carried as plain
-    # fields so the placeholder view has something to render; no pipeline reads
-    # them yet.
-    q_min: float = Field(default=0.001, title="Q-min (1/Angstrom)")
-    q_max: float = Field(default=0.5, title="Q-max (1/Angstrom)")
-    n_q_bins: int = Field(default=100, title="Number of Q bins")
-
     def get_figure(self) -> go.Figure:
-        """Return an empty, annotated placeholder I(Q) figure.
+        """Return an empty, annotated placeholder live-data quality figure.
 
-        No reduction is performed; this draws a log-log axis frame with a
-        "reduction pipeline TBD" annotation so the tab renders something
-        meaningful before the SANS pipeline lands.
+        No reduction is performed; this draws an empty Time vs Quality-Metrics
+        axis frame with a "not yet wired" annotation so the tab renders something
+        meaningful before the SANS live-data pipeline lands.
         """
         figure = go.Figure()
         figure.update_layout(
-            title={"text": "SANS I(Q) — reduction pipeline TBD"},
-            xaxis={"title": {"text": "Q (1/Angstrom)"}, "type": "log"},
-            yaxis={"title": {"text": "I(Q)"}, "type": "log"},
+            title={"text": "Quality metrics monitoring and prediction of live data"},
+            xaxis={"title": {"text": "Time (s)"}},
+            yaxis={"title": {"text": "Quality Metrics"}},
             annotations=[
                 {
-                    "text": "SANS reduction not yet wired (prediction_model = 'TBD')",
+                    "text": "SANS live-data reduction not yet wired (prediction_model = 'TBD')",
                     "xref": "paper",
                     "yref": "paper",
                     "x": 0.5,

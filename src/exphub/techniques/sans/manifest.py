@@ -149,7 +149,7 @@ SANS = register_technique(
         },
         tab_labels={
             TabKey.IPTS: "IPTS Info",
-            TabKey.LIVE: "I(Q) Reduction",
+            TabKey.LIVE: "Live Data",
             TabKey.STEERING: "Experiment Steering",
             TabKey.STATUS: "Instrument Status",
             TabKey.ANALYSIS: "Data Analysis",

@@ -31,12 +31,3 @@ class SansIptsInfoView:
             InputField(v_model="config.exp_name")
             InputField(v_model="config.ipts_number")
             InputField(v_model="config.instrument", items="config.options.instrument_list", type="select")
-            InputField(v_model="config.molecular_formula")
-        with GridLayout(columns=1, gap="0.5em"):
-            # SANS sample-environment selector replaces the single-crystal
-            # crystallography row (crystal system / point group / centering).
-            InputField(
-                v_model="config.sample_environment",
-                items="config.options.sample_environment_list",
-                type="select",
-            )
