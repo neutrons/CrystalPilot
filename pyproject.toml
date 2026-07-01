@@ -78,6 +78,9 @@ packages = ["src/exphub"]
 testpaths = ["tests"]
 python_files = ["test*.py"]
 norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__"]
+# Put the repo root on sys.path so the standalone ``scripts.cp_bench`` harness
+# is importable from its tests (exphub is installed; scripts/ is not a package).
+pythonpath = ["."]
 
 [tool.ruff]
 extend-exclude = [".pixi"]
