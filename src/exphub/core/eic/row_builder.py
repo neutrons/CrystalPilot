@@ -49,11 +49,14 @@ class EICRowBuilder(Protocol):
         strategy_rows: List[Dict[str, Any]],
         **kwargs: Any,
     ) -> List[Dict[str, Any]]:
-        """Build one EIC submission payload per strategy row.
+        """Build the EIC submission payloads for a strategy.
 
-        Each returned dict carries the EIC table-scan ``headers`` and ``row``
-        to submit plus display metadata (``title``; ``phi`` / ``omega`` for
-        goniometer techniques).
+        Each returned dict carries the EIC table-scan ``headers`` plus **either**
+        a single ``row`` (one scan row — single-crystal emits one job per angle
+        step) **or** a ``rows`` list (a multi-row scan — SANS emits one job per
+        sample holder, carrying all of that Sample's steps), plus display
+        metadata (``title``; ``phi`` / ``omega`` for goniometer techniques).
+        ``submit_jobs`` prefers ``rows`` when present and otherwise wraps ``row``.
         """
         ...
 

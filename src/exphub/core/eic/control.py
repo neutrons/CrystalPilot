@@ -135,12 +135,16 @@ class EICControlModel(BaseModel):
     ) -> None:
         """Submit pre-built EIC table-scan jobs.
 
-        ``jobs`` is a list of per-row payloads produced by a per-technique
-        row builder. Each entry carries the EIC table-scan ``headers`` and
-        ``row`` to submit plus the display metadata the EIC Control panel
-        renders (``title``/``phi``/``omega``; ``phi``/``omega`` default to
-        ``0.0`` for techniques without goniometer angles). The framework
-        stays technique-agnostic — it never inspects column names.
+        ``jobs`` is a list of payloads produced by a per-technique row builder.
+        Each entry carries the EIC table-scan ``headers`` plus **either** a
+        single ``row`` (one scan row — single-crystal) **or** a ``rows`` list
+        (a multi-row table scan — SANS submits one scan per Sample holder), plus
+        the display metadata the EIC Control panel renders (``title``/``phi``/
+        ``omega``; ``phi``/``omega`` default to ``0.0`` for techniques without
+        goniometer angles). ``rows`` is preferred when present; otherwise the
+        singular ``row`` is wrapped as a one-row scan, so existing single-crystal
+        callers are unaffected. The framework stays technique-agnostic — it never
+        inspects column names.
         """
         self.beamline = self.beamline_database.get(instrument_name, "")
         if not self.beamline:
@@ -158,15 +162,20 @@ class EICControlModel(BaseModel):
         self.submitted_jobs = []
         for idx, job in enumerate(jobs):
             headers = job["headers"]
-            row = job["row"]
-            print(row)
-            desc_sub = desc + " " + str(row[0]) if row else desc
+            # Prefer a multi-row payload (``rows``); fall back to the singular
+            # ``row`` wrapped as a one-row scan (single-crystal callers).
+            rows = job.get("rows")
+            if rows is None:
+                rows = [job["row"]]
+            first_row = rows[0] if rows else []
+            print(rows)
+            desc_sub = desc + " " + str(first_row[0]) if first_row else desc
             success, scan_id, response_data = eic_client.submit_table_scan(
-                parms={"run_mode": 0, "headers": headers, "rows": [row]},
+                parms={"run_mode": 0, "headers": headers, "rows": rows},
                 desc=desc_sub,
                 simulate_only=self.is_simulation,
             )
-            print({"run_mode": 0, "headers": headers, "rows": [row]})
+            print({"run_mode": 0, "headers": headers, "rows": rows})
             print(success, scan_id, response_data)
             self.eic_submission_success.append(success)
             self.eic_submission_message.append(response_data["eic_response_message"])

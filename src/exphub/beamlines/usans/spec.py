@@ -93,6 +93,9 @@ USANS = BeamlineSpec(
         default_q_range=None,
         transmission_monitor_pv=None,
         live_stream_url=None,
+        # Pre-fill the strategy-upload field with the USANS example plan. Blank-safe
+        # if the path is absent (Upload just no-ops until the user picks a file).
+        default_plan_file="/SNS/TOPAZ/shared/CrystalPilot/code/usans/strategy.csv",
     ),
     agent=AgentSpec(
         context_prompt=Path("prompts/context.md"),

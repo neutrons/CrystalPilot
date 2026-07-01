@@ -1,24 +1,21 @@
-"""SANS EIC row builder (P4.3).
+"""SANS EIC row builder — flexible columns, one table-scan per Sample.
 
-The SANS half of the EIC seam introduced in P3a (the single-crystal half is
+The SANS half of the EIC seam (the single-crystal half is
 :mod:`exphub.techniques.single_crystal.agent.eic_row_builder`). The
 framework-agnostic submit/poll/abort plumbing lives in
 :mod:`exphub.core.eic.control`; the per-technique CSV column layout lives here.
 
-Column shape (per ``MULTI_TECHNIQUE_PLAN.md`` DECISION DEFAULTS):
-single-crystal-shaped rows — ``Title``, ``Comment``, ``Wait For``, ``Value`` —
-but the goniometer angle columns are replaced with the SANS
-instrument-configuration placeholders
-from :data:`~exphub.techniques.sans.models.strategy.SANS_PARAM_COLUMNS`
-(``sample_aperture`` / ``detector_distance`` / ``attenuator`` /
-``wavelength_spread``). **Column names are provisional — TBD with the SANS
-scientist.**
-
-SANS plans are homogeneous (no ramp-vs-angle row split as in single crystal),
-so every job shares one header layout; :meth:`build_rows` is therefore the
-natural flat form and :meth:`build_jobs` simply wraps it per-row. Wired onto the
-SANS manifest as :data:`SANS_EIC_ROW_BUILDER`; the SANS steering VM resolves it
-via ``active_technique().eic_row_builder`` on submit.
+SANS strategy tables are **column-flexible**: the columns are whatever the
+uploaded CSV carried (discovered by
+:class:`~exphub.techniques.sans.models.strategy.SansStrategyModel`), so the row
+builder never hard-codes a header list — it reads the column order off the rows.
+The only structural assumption is :data:`~exphub.techniques.sans.models.strategy.GROUP_KEY`
+(``BL1A:sampleholder``): rows are **grouped by sample holder** and each Sample is
+submitted as **one EIC table-scan carrying all of that Sample's steps** (load the
+holder once, run every step). That is why :meth:`build_jobs` emits one job per
+Sample with a ``rows`` (plural) payload — the framework-agnostic
+:meth:`~exphub.core.eic.control.EICControlModel.submit_jobs` submits ``rows`` as a
+multi-row table scan.
 """
 
 from __future__ import annotations
@@ -29,22 +26,43 @@ from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 from ....core.paths import resolver_for as _resolver_for
-from ..models.strategy import SANS_PARAM_COLUMNS
+from ..models.strategy import GROUP_KEY
 
-# EIC table-scan header order for a SANS row. Single-crystal-shaped tail
-# (Title/Comment ... Wait For/Value) with the goniometer angle columns replaced
-# by the SANS instrument-configuration placeholders. column names provisional
-# (TBD with SANS scientist).
-_SANS_HEADERS: List[str] = ["Title", "Comment", *SANS_PARAM_COLUMNS, "Wait For", "Value"]
-# Matching strategy-row dict keys, same order as the headers above.
-_SANS_KEYS: List[str] = ["title", "comment", *SANS_PARAM_COLUMNS, "wait_for", "value"]
+
+def _headers_of(strategy_rows: List[Dict]) -> List[str]:
+    """The raw CSV column order, taken off the first row (excludes ``id``)."""
+    if not strategy_rows:
+        return []
+    return [k for k in strategy_rows[0].keys() if k != "id"]
+
+
+def _cell(entry: Dict, key: str) -> object:
+    v = entry.get(key)
+    return "" if v is None else v
+
+
+def _holder_sort_key(holder: str) -> Tuple[int, Any]:
+    try:
+        return (0, int(float(str(holder))))
+    except (TypeError, ValueError):
+        return (1, str(holder))
+
+
+def _group_by_holder(strategy_rows: List[Dict], group_key: str) -> List[Tuple[str, List[Dict]]]:
+    """Group rows by holder value, holder-sorted, order-stable within a group."""
+    groups: Dict[str, List[Dict]] = {}
+    for row in strategy_rows:
+        holder = str(row.get(group_key, "")).strip()
+        groups.setdefault(holder, []).append(row)
+    return [(h, groups[h]) for h in sorted(groups, key=_holder_sort_key)]
 
 
 class SansEICRowBuilder:
-    """``EICRowBuilder`` for SANS instrument-configuration strategy tables.
+    """``EICRowBuilder`` for flexible-column SANS strategy tables.
 
-    Stateless: one shared instance serves every SANS beamline. The CSV column
-    layout is provisional (TBD with the SANS scientist).
+    Stateless: one shared instance serves every SANS beamline. The CSV columns
+    are whatever the uploaded strategy carried; rows are grouped into Samples by
+    ``BL1A:sampleholder`` and each Sample becomes one multi-row table scan.
     """
 
     def write_strategy_csv(
@@ -54,11 +72,10 @@ class SansEICRowBuilder:
         *_args: Any,
         **_kwargs: Any,
     ) -> str:
-        """Write the SANS strategy CSV to the EIC dropbox location.
+        """Write the flexible-column SANS strategy CSV to the EIC dropbox.
 
-        Columns: ``Title``, the SANS parameter columns, ``Comment``,
-        ``Wait For``, ``Value`` (column names provisional, TBD with SANS
-        scientist). Returns the destination path.
+        Columns and their order are taken from the strategy rows verbatim (the
+        injected ``id`` is dropped). Returns the destination path.
         """
         timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         filename = f"CrystalPilot-sans-plan-{timestamp}.csv"
@@ -72,20 +89,12 @@ class SansEICRowBuilder:
             print(f"Failed to create directory {destination_dir}: {e}")
             raise
 
-        fieldnames = ["Title", *SANS_PARAM_COLUMNS, "Comment", "Wait For", "Value"]
+        fieldnames = _headers_of(strategy_rows)
         with open(destination_path, mode="w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             for row in strategy_rows:
-                out: Dict = {
-                    "Title": row.get("title", "CrystalPilot"),
-                    "Comment": row.get("comment", ""),
-                    "Wait For": row.get("wait_for", "PCharge"),
-                    "Value": row.get("value", 10),
-                }
-                for col in SANS_PARAM_COLUMNS:
-                    out[col] = row.get(col, 0)
-                writer.writerow(out)
+                writer.writerow({k: row.get(k, "") for k in fieldnames})
         print(f"Copied SANS strategy to {destination_path}")
         return destination_path
 
@@ -96,45 +105,44 @@ class SansEICRowBuilder:
         spec: Any = None,
         **_kwargs: Any,
     ) -> Tuple[List[str], List[List[Any]]]:
-        """Return ``(headers, rows)`` for the SANS strategy plan.
+        """Return ``(headers, rows)`` — the flat, ungrouped form.
 
-        SANS plans are homogeneous, so a single shared header layout always
-        applies. Returns the SANS header order and one flat value row per
-        strategy step.
+        SANS tables are homogeneous (one shared column layout), so this returns
+        the loaded column order and one flat value row per strategy step. Used by
+        tests / the homogeneous convenience path; live submission uses the
+        per-Sample grouping in :meth:`build_jobs`.
         """
-        rows: List[List[Any]] = []
-        for entry in strategy_rows:
-            rows.append([_cell(entry, k) for k in _SANS_KEYS])
-        return list(_SANS_HEADERS), rows
+        headers = _headers_of(strategy_rows)
+        rows: List[List[Any]] = [[_cell(entry, k) for k in headers] for entry in strategy_rows]
+        return headers, rows
 
     def build_jobs(
         self,
         strategy_rows: List[Dict],
+        group_key: str = GROUP_KEY,
         **_kwargs: Any,
     ) -> List[Dict[str, Any]]:
-        """Build the per-row EIC submission payloads for a SANS plan.
+        """Build one EIC submission payload **per Sample** (grouped by holder).
 
-        Returns one job dict per strategy step. Each carries the EIC table-scan
-        ``headers`` + ``row`` to submit plus the display metadata the EIC
-        Control panel renders. SANS has no goniometer, so ``phi`` / ``omega``
-        are omitted (only ``title`` travels as display metadata).
+        Each job carries the flexible ``headers`` and a ``rows`` (plural) list —
+        every step for that Sample — plus display metadata (``title`` =
+        ``"Sample <holder>"``). SANS has no goniometer, so no ``phi`` / ``omega``
+        travel. The framework's ``submit_jobs`` submits ``rows`` as a single
+        multi-row table scan.
         """
-        headers, rows = self.build_rows(strategy_rows)
+        headers = _headers_of(strategy_rows)
         jobs: List[Dict[str, Any]] = []
-        for entry, row in zip(strategy_rows, rows, strict=True):
+        for holder, group_rows in _group_by_holder(strategy_rows, group_key):
+            rows = [[_cell(entry, k) for k in headers] for entry in group_rows]
             jobs.append(
                 {
                     "headers": headers,
-                    "row": row,
-                    "title": entry.get("title", ""),
+                    "rows": rows,
+                    "title": f"Sample {holder}" if holder != "" else "Sample (unassigned)",
+                    "sampleholder": holder,
                 }
             )
         return jobs
-
-
-def _cell(entry: Dict, key: str) -> object:
-    v = entry.get(key)
-    return "" if v is None else v
 
 
 # Shared stateless instance wired onto the SANS manifest's ``eic_row_builder``

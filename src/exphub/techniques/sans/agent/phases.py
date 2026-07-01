@@ -48,14 +48,11 @@ SANS_PHASES: tuple[PhaseDefinition, ...] = (
         name="load_strategy",
         tab=TabKey.STEERING,
         label="Experiment Steering",
-        description="Build or load the SANS instrument-configuration strategy",
+        description="Build, load, edit, or export the SANS sample-holder strategy table",
         field_prefixes=(
             "plan_name",
             "plan_file",
-            "sample_aperture",
-            "detector_distance",
-            "attenuator",
-            "wavelength_spread",
+            "export_file",
         ),
     ),
     PhaseDefinition(

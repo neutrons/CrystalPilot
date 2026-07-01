@@ -4,9 +4,8 @@ Mirror the *structure* of the single-crystal equivalents but in a SANS shape:
 
 - :mod:`.ipts_info` — sample-info fields only (no crystal system / point group /
   centering / UB / d-spacing).
-- :mod:`.strategy` — CSV-loadable editable strategy table; single-crystal
-  strategy-CSV row shape (Title/Comment/Wait For/Value) with SANS column names
-  (provisional; see module docstring).
+- :mod:`.strategy` — column-flexible, CSV-loadable editable strategy table; the
+  only guaranteed column is ``BL1A:sampleholder`` (groups rows into Samples).
 - :mod:`.iq_reduction` — I(Q) reduction placeholder; the prediction-model
   dropdown stays ``"TBD"`` until a real SANS pipeline is specified.
 """
@@ -14,12 +13,12 @@ Mirror the *structure* of the single-crystal equivalents but in a SANS shape:
 from .ipts_info import SansIptsInfoModel
 from .iq_reduction import SansIQReductionModel
 from .root import SansMainModel
-from .strategy import SansStrategyModel, SansStrategyRow
+from .strategy import GROUP_KEY, SansStrategyModel
 
 __all__ = [
+    "GROUP_KEY",
     "SansIptsInfoModel",
     "SansIQReductionModel",
     "SansMainModel",
     "SansStrategyModel",
-    "SansStrategyRow",
 ]

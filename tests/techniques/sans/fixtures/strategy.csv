@@ -1,0 +1,9 @@
+Notes,BL1A:sampleholder,BL1A:anlge,Wait For,Value
+"test 1",1,0.0,seconds,60
+"test 2:1",2,5.0,seconds,60
+"test 2:2",2,15.0,seconds,60
+"test 2:3",2,25.0,seconds,60
+"test 2:4",2,35.0,seconds,60
+"test 2:5",2,45.0,Counts,1e4
+"test 3:2",3,73.9,PCharge,1.0
+

@@ -98,6 +98,14 @@ class SansSteeringViewModel:
         # analogue of the single-crystal temporal/coverage figure binds).
         self.iqreduction_updatefig_bind = binding.new_bind()
 
+        # Seed the strategy upload path from the active beamline's configured
+        # default (USANS points at its example strategy CSV), unless one is
+        # already set. Blank-safe: a missing path just makes Upload a no-op.
+        config = getattr(active(), "technique_config", None)
+        default_plan_file = getattr(config, "default_plan_file", "") or ""
+        if default_plan_file and not self.model.strategy.plan_file:
+            self.model.strategy.plan_file = default_plan_file
+
     # ------------------------------------------------------------------ #
     # generic callbacks
     # ------------------------------------------------------------------ #
@@ -143,46 +151,43 @@ class SansSteeringViewModel:
         self._push_strategy()
 
     # ------------------------------------------------------------------ #
-    # strategy row-edit dialog (mirrors single-crystal add/edit/remove/save)
+    # strategy row editing (inline; grouped by sample holder)
     # ------------------------------------------------------------------ #
-    def add_run(self) -> None:
-        _trace("add_run")
-        self.model.strategy.is_editing_run = False
-        self.model.strategy.run_record = self.model.strategy.get_default_run_record()
-        self.model.strategy.runedit_dialog = True
+    def add_sample(self) -> None:
+        """Append a new Sample (next integer holder) with one empty step."""
+        _trace("add_sample")
+        self.model.strategy.add_sample()
         self._push_strategy()
 
-    def edit_run(self, run_id: int) -> None:
-        _trace("edit_run", run_id)
-        self.model.strategy.is_editing_run = True
-        run = next((r for r in self.model.strategy.strategy_list if r["id"] == run_id), None)
-        if run:
-            self.model.strategy.run_record = run.copy()
-            self.model.strategy.runedit_dialog = True
+    def add_step(self, holder: Any) -> None:
+        """Append a new empty step to the Sample identified by ``holder``."""
+        _trace("add_step", holder)
+        self.model.strategy.add_step(holder)
         self._push_strategy()
 
-    def close_runedit_dialog(self) -> None:
-        _trace("close_runedit_dialog")
-        self.model.strategy.runedit_dialog = False
+    def remove_step(self, row_id: int) -> None:
+        """Delete the strategy step with the given row id."""
+        _trace("remove_step", row_id)
+        self.model.strategy.remove_step(row_id)
         self._push_strategy()
 
-    def save_run(self) -> None:
-        _trace("save_run")
-        if self.model.strategy.is_editing_run:
-            for i, run in enumerate(self.model.strategy.strategy_list):
-                if run["id"] == self.model.strategy.run_record["id"]:
-                    self.model.strategy.strategy_list[i] = self.model.strategy.run_record.copy()
-                    break
-        else:
-            max_id = max((r["id"] for r in self.model.strategy.strategy_list), default=0)
-            self.model.strategy.run_record["id"] = max_id + 1
-            self.model.strategy.strategy_list.append(self.model.strategy.run_record.copy())
-        self.model.strategy.runedit_dialog = False
-        self._push_strategy()
-
-    def remove_run(self, run_id: int) -> None:
-        _trace("remove_run", run_id)
-        self.model.strategy.strategy_list = [r for r in self.model.strategy.strategy_list if r["id"] != run_id]
+    # ------------------------------------------------------------------ #
+    # strategy export
+    # ------------------------------------------------------------------ #
+    def export_strategy(self) -> None:
+        """Write the edited strategy table to ``model.strategy.export_file``."""
+        path = self.model.strategy.export_file
+        if not path:
+            if self._notify is not None:
+                self._notify("Set an export file path before exporting the strategy.")
+            return
+        try:
+            self.model.strategy.export_to_csv(path)
+            if self._notify is not None:
+                self._notify(f"Strategy exported to {path}")
+        except OSError as e:
+            if self._notify is not None:
+                self._notify(f"Failed to export strategy CSV: {e}")
         self._push_strategy()
 
     # ------------------------------------------------------------------ #
@@ -202,6 +207,20 @@ class SansSteeringViewModel:
 
         ipts_number = self.model.iptsinfo.ipts_number
         instrument_name = active().mantid_instrument_name
+
+        # Pre-submission guidance gate: errors block submission, warnings are
+        # surfaced but allow it. Rules live on the strategy model (real
+        # scientific rules TBD with the SANS scientist).
+        ok = self.model.strategy.run_guidance()
+        self._push_strategy()
+        if not ok:
+            n = len(self.model.strategy.guidance_errors)
+            self.model.eiccontrol.eic_status = f"submission blocked: {n} issue(s) — see guidance above"
+            self._push_eiccontrol()
+            return
+        if self.model.strategy.guidance_warnings and self._notify is not None:
+            self._notify(f"Strategy has {len(self.model.strategy.guidance_warnings)} warning(s); submitting anyway.")
+
         # Only honour the active technique's row builder when the active
         # technique is actually SANS. Guards against the SANS submit button
         # invoking the single-crystal row builder while the SANS manifest does

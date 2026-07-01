@@ -37,15 +37,26 @@ _ACTION_TOOLS = (
         name="submit_strategy",
         vm_method="submit_strategy",
         description=(
-            "Submit the current SANS instrument-configuration strategy to the "
-            "EIC for execution. This authenticates (if not already done) and "
-            "sends all rows in the strategy table to the beamline EIC system. "
-            "Check that the strategy is complete and the EIC settings (token, "
-            "simulation mode, beamline) are correct before calling this tool. "
-            "NOTE: the SANS EIC column layout is provisional (TBD with the SANS "
-            "scientist)."
+            "Submit the current SANS strategy table to the EIC for execution. "
+            "The table is grouped by the BL1A:sampleholder column and each Sample "
+            "is submitted as one EIC table-scan carrying all of its steps. A "
+            "pre-submission guidance check runs first: if it finds blocking "
+            "errors the submission is refused and the issues are shown; warnings "
+            "are surfaced but allow submission. Check that the strategy is "
+            "complete and the EIC settings (token, simulation mode, beamline) are "
+            "correct before calling this tool."
         ),
         success_message="SANS strategy submitted to EIC.",
+    ),
+    ActionTool(
+        name="export_strategy",
+        vm_method="export_strategy",
+        description=(
+            "Export the current (edited) SANS strategy table to a CSV file at the "
+            "path in the export_file field. Writes the columns in their original "
+            "order. Set export_file before calling this tool."
+        ),
+        success_message="SANS strategy exported.",
     ),
     ActionTool(
         name="authenticate_eic",

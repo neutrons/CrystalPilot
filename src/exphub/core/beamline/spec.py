@@ -186,6 +186,9 @@ class SansConfig(BaseModel):
     default_q_range: tuple[float, float] | None = None
     transmission_monitor_pv: str | None = None
     live_stream_url: str | None = None
+    # Default strategy-CSV path pre-filled into the steering tab's upload field.
+    # Blank-safe: a missing path just makes Upload a no-op until the user picks one.
+    default_plan_file: str = ""
 
 
 TechniqueConfig = SingleCrystalConfig | SansConfig
